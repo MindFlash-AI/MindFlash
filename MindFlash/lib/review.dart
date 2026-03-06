@@ -57,7 +57,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       MaterialPageRoute(
         builder: (context) => ReviewCompletionScreen(
           deck: widget.deck,
-          totalCards: _reviewCards.length,
+          // If they finish early, we pass the current progress
+          totalCards: _currentIndex + 1,
           allCards: widget.cards,
         ),
       ),
@@ -176,7 +177,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     padding: const EdgeInsets.only(bottom: 40.0),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
-                      child: (_currentIndex == _reviewCards.length - 1 && _showAnswer)
+                      child: _showAnswer
                           ? ElevatedButton(
                               onPressed: _finishReview,
                               style: ElevatedButton.styleFrom(

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'deck_model.dart';
 import 'card_model.dart';
 import 'card_storage_service.dart';
-import 'deck_storage_service.dart'; // Added import
+import 'deck_storage_service.dart'; 
 import 'create_card_dialog.dart';
+import 'edit_card_dialog.dart'; // Added Import
 import 'review.dart';
 
 class DeckView extends StatefulWidget {
@@ -58,14 +59,15 @@ class _DeckViewState extends State<DeckView> {
     _loadCards();
   }
 
-  void _startReview() {
+  void _startReview() async {
     if (_cards.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Add some cards first to start reviewing!")),
       );
       return;
     }
-    Navigator.push(
+    // Await added to reload if a card was edited during review
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ReviewScreen(
@@ -75,6 +77,7 @@ class _DeckViewState extends State<DeckView> {
         ),
       ),
     );
+    _loadCards(); 
   }
 
   @override
@@ -343,7 +346,22 @@ class _DeckViewState extends State<DeckView> {
                   ),
                   Row(
                     children: [
-                      const Icon(Icons.edit_outlined, color: Colors.grey, size: 20),
+                      // Edit Button implemented
+                      InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => EditCardDialog(
+                              card: card,
+                              onCardUpdated: (updatedCard) async {
+                                await _cardStorageService.updateCard(updatedCard);
+                                _loadCards();
+                              },
+                            ),
+                          );
+                        },
+                        child: const Icon(Icons.edit_outlined, color: Colors.grey, size: 20),
+                      ),
                       const SizedBox(width: 16),
                       InkWell(
                         onTap: () => _deleteCard(card.id),

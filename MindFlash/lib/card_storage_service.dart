@@ -31,6 +31,15 @@ class CardStorageService {
     await _saveCards(cards);
   }
 
+  Future<void> updateCard(Flashcard updatedCard) async {
+    final cards = await getAllCards();
+    final index = cards.indexWhere((c) => c.id == updatedCard.id);
+    if (index != -1) {
+      cards[index] = updatedCard;
+      await _saveCards(cards);
+    }
+  }
+
   Future<void> deleteCard(String id) async {
     final cards = await getAllCards();
     cards.removeWhere((card) => card.id == id);
