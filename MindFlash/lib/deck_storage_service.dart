@@ -31,4 +31,13 @@ class DeckStorageService {
     decks.removeWhere((deck) => deck.id == id);
     await _saveDecks(decks);
   }
+
+  Future<void> updateDeck(Deck updatedDeck) async {
+    final decks = await getDecks();
+    final index = decks.indexWhere((deck) => deck.id == updatedDeck.id);
+    if (index != -1) {
+      decks[index] = updatedDeck;
+      await _saveDecks(decks);
+    }
+  }
 }

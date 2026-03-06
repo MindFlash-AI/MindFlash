@@ -6,6 +6,7 @@ import 'create_deck_dialog.dart';
 import 'deck_model.dart';
 import 'deck_storage_service.dart';
 import 'deck_list_item.dart';
+import 'deck_view.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -192,6 +193,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return DeckListItem(
                 deck: deck,
                 onDelete: () => _deleteDeck(deck.id),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DeckView(deck: deck),
+                    ),
+                  );
+                  _loadDecks(); 
+                },
               );
             },
           ),
