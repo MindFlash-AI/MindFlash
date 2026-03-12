@@ -1,16 +1,16 @@
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'deck_model.dart';
 import 'card_model.dart';
 import 'deck_storage_service.dart';
 import 'card_storage_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AIResponse {
   final String message;
   final Deck? generatedDeck;
-  final Deck? editedDeck; // Added support for edited decks
+  final Deck? editedDeck;
 
   AIResponse({required this.message, this.generatedDeck, this.editedDeck});
 }
@@ -18,24 +18,23 @@ class AIResponse {
 class AIService {
   final DeckStorageService _deckStorage = DeckStorageService();
   final CardStorageService _cardStorage = CardStorageService();
-  late ChatSession _chat;
-  bool isInitialized = false;
+  
+  // ==========================================
+  // PASTE YOUR FIREBASE FUNCTION URL HERE:
+  // Make sure it ends with /generate-deck
+  // ==========================================
+  final String backendUrl = dotenv.env['BACKEND_URL']!; 
 
-  Future<void> initChat() async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty || apiKey == 'YOUR_API_KEY_HERE') {
-      throw Exception("Please add your valid GEMINI_API_KEY in the .env file");
-    }
-
+  Future<AIResponse> processInput({String? text, String? fileText, String? fileName}) async {
+    // 1. Gather the user's current decks to send as context to the server
     final decks = await _deckStorage.getDecks();
     final allCards = await _cardStorage.getAllCards();
-
+    
     String userDataContext = "The user currently has no saved decks.";
     if (decks.isNotEmpty) {
       userDataContext = "The user currently has the following study decks saved in their library:\n";
       for (var deck in decks) {
         final deckCards = allCards.where((c) => c.deckId == deck.id).toList();
-        // Crucial: We must provide the internal ID so Gemini can target it for edits
         userDataContext += "- Deck Name: '${deck.name}' (Subject: ${deck.subject}, ID: ${deck.id}). It contains ${deckCards.length} cards.\n";
         
         if (deckCards.isNotEmpty) {
@@ -44,59 +43,25 @@ class AIService {
       }
     }
 
-    final model = GenerativeModel(
-      model: 'gemini-2.5-flash', 
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(
-        responseMimeType: 'application/json',
-      ),
-      systemInstruction: Content.system('''
-You are MindFlash AI, a friendly and expert study assistant.
-
-$userDataContext
-
-Read the user's prompt carefully. 
-- If they ask about their existing decks or progress, answer conversationally based on the context provided above.
-- If they are just chatting, ask a question, or need an explanation, respond conversationally.
-- If they ask you to ADD cards to an existing deck, generate the cards and select the action "edit_deck" using the correct targetDeckId.
-- If they explicitly ask you to generate, create, or make a NEW flashcard deck, OR if they upload a document (and don't specify an existing deck), you MUST generate a new deck using the "create_deck" action.
-
-ALWAYS return your response exactly in this JSON format:
-{
-  "action": "chat" | "create_deck" | "edit_deck",
-  "reply": "Your conversational response here. Be encouraging.",
-  "deckName": "Short descriptive name (ONLY if action is create_deck)",
-  "subject": "General subject category (ONLY if action is create_deck)",
-  "targetDeckId": "The exact ID of the existing deck (ONLY if action is edit_deck)",
-  "cards": [
-    {"q": "Question", "a": "Answer"}
-  ] // (ONLY if action is create_deck OR edit_deck)
-}
-'''),
-    );
-    
-    _chat = model.startChat();
-    isInitialized = true;
-  }
-
-  Future<AIResponse> processInput({String? text, String? fileText, String? fileName}) async {
-    if (!isInitialized) {
-      await initChat();
-    }
-
-    String prompt = text ?? "";
-    
-    if (fileText != null && fileText.isNotEmpty) {
-      prompt = "I have uploaded a document named '$fileName'. Here is the content:\n\n---\n$fileText\n---\n\nPlease extract the key concepts and generate a flashcard deck from this document, or add them to the deck I requested.";
-    }
-
+    // 2. Make the HTTP request to your secure Firebase backend
     try {
-      final response = await _chat.sendMessage(Content.text(prompt));
-      String responseText = response.text ?? '{}';
-      
-      responseText = responseText.replaceAll('```json', '').replaceAll('```', '').trim();
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'prompt': text,
+          'fileText': fileText,
+          'fileName': fileName,
+          'userContext': userDataContext,
+        }),
+      );
 
-      final Map<String, dynamic> data = json.decode(responseText);
+      if (response.statusCode != 200) {
+        throw Exception("Server error: ${response.statusCode}");
+      }
+
+      // 3. Parse the JSON returned by your server
+      final Map<String, dynamic> data = jsonDecode(response.body);
       
       final String action = data['action'] ?? 'chat';
       final String reply = data['reply'] ?? "I processed your request.";
@@ -104,7 +69,7 @@ ALWAYS return your response exactly in this JSON format:
       Deck? newDeck;
       Deck? editedDeck;
 
-      // 1. Handle New Deck Creation
+      // 4. Handle New Deck Creation
       if (action == 'create_deck' && data['cards'] != null) {
         final List<dynamic> cardsData = data['cards'];
         
@@ -128,7 +93,7 @@ ALWAYS return your response exactly in this JSON format:
           }
         }
       } 
-      // 2. Handle Existing Deck Editing
+      // 5. Handle Existing Deck Editing
       else if (action == 'edit_deck' && data['targetDeckId'] != null && data['cards'] != null) {
         final targetId = data['targetDeckId'];
         final decks = await _deckStorage.getDecks();
@@ -149,7 +114,6 @@ ALWAYS return your response exactly in this JSON format:
               await _cardStorage.addCard(newCard);
             }
             
-            // Update the deck count and save
             editedDeck.cardCount += cardsData.length;
             await _deckStorage.updateDeck(editedDeck);
           }
@@ -159,7 +123,7 @@ ALWAYS return your response exactly in this JSON format:
       return AIResponse(message: reply, generatedDeck: newDeck, editedDeck: editedDeck);
       
     } catch (e) {
-      throw Exception("Failed to process request: $e");
+      throw Exception("Failed to connect to backend: $e");
     }
   }
 }

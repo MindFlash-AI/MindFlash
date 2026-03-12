@@ -47,7 +47,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   Future<void> _initAI() async {
     try {
-      await _aiService.initChat();
+      await _aiService.processInput();
       setState(() {
         _messages.add(
           ChatMessage(
