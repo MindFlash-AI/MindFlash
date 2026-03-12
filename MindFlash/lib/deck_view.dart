@@ -4,8 +4,10 @@ import 'card_model.dart';
 import 'card_storage_service.dart';
 import 'deck_storage_service.dart'; 
 import 'create_card_dialog.dart';
-import 'edit_card_dialog.dart'; // Added Import
+import 'edit_card_dialog.dart';
 import 'review.dart';
+import 'quiz_creator.dart'; // --- IMPORT NEW QUIZ ENGINE ---
+import 'quiz_screen.dart';       // --- IMPORT NEW QUIZ SCREEN ---
 
 class DeckView extends StatefulWidget {
   final Deck deck;
@@ -18,7 +20,7 @@ class DeckView extends StatefulWidget {
 
 class _DeckViewState extends State<DeckView> {
   final CardStorageService _cardStorageService = CardStorageService();
-  final DeckStorageService _deckStorageService = DeckStorageService(); // Added service
+  final DeckStorageService _deckStorageService = DeckStorageService();
   List<Flashcard> _cards = [];
   bool _isLoading = true;
   bool _isShuffleOn = false;
@@ -42,9 +44,7 @@ class _DeckViewState extends State<DeckView> {
     setState(() {
       widget.deck.cardCount += 1;
     });
-    // --- PERSIST THE UPDATED DECK COUNT ---
     await _deckStorageService.updateDeck(widget.deck);
-    
     _loadCards();
   }
 
@@ -53,9 +53,7 @@ class _DeckViewState extends State<DeckView> {
     setState(() {
       if (widget.deck.cardCount > 0) widget.deck.cardCount -= 1;
     });
-    // --- PERSIST THE UPDATED DECK COUNT ---
     await _deckStorageService.updateDeck(widget.deck);
-    
     _loadCards();
   }
 
@@ -66,7 +64,6 @@ class _DeckViewState extends State<DeckView> {
       );
       return;
     }
-    // Await added to reload if a card was edited during review
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -78,6 +75,31 @@ class _DeckViewState extends State<DeckView> {
       ),
     );
     _loadCards(); 
+  }
+
+  // --- ADDED QUIZ START LOGIC ---
+  void _startQuiz() {
+    if (_cards.length < 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You need at least 4 cards in this deck to take a quiz!"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    final quizQuestions = LocalQuizEngine.generateMCQ(_cards);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QuizScreen(
+          quiz: quizQuestions,
+          deckTitle: widget.deck.name,
+        ),
+      ),
+    );
   }
 
   @override
@@ -173,65 +195,103 @@ class _DeckViewState extends State<DeckView> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                    child: Row(
+                    child: Column( // --- WRAPPED ACTION BUTTONS IN A COLUMN ---
                       children: [
-                        Expanded(
-                          child: Container(
-                            height: 55,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF7A40F2), Color(0xFF9830E8)],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: _startReview,
-                                borderRadius: BorderRadius.circular(16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(Icons.play_arrow_outlined, color: Colors.white),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "Start Review",
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 55,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF7A40F2), Color(0xFF9830E8)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: _startReview,
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(Icons.play_arrow_outlined, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          "Start Review",
+                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Container(
+                                height: 55,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3E8FF),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => setState(() => _isShuffleOn = !_isShuffleOn),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.shuffle, color: _isShuffleOn ? const Color(0xFF7A40F2) : Colors.black87),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _isShuffleOn ? "Shuffle ON" : "Shuffle OFF",
+                                          style: TextStyle(
+                                            color: _isShuffleOn ? const Color(0xFF7A40F2) : Colors.black87, 
+                                            fontWeight: FontWeight.bold, 
+                                            fontSize: 15
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            height: 55,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3E8FF),
+                        
+                        const SizedBox(height: 12), // Space between rows
+
+                        // --- ADDED NEW QUIZ BUTTON HERE ---
+                        Container(
+                          height: 55,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white, // White background pops against gradient
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _startQuiz,
                               borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () => setState(() => _isShuffleOn = !_isShuffleOn),
-                                borderRadius: BorderRadius.circular(16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.shuffle, color: _isShuffleOn ? const Color(0xFF7A40F2) : Colors.black87),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _isShuffleOn ? "Shuffle ON" : "Shuffle OFF",
-                                      style: TextStyle(
-                                        color: _isShuffleOn ? const Color(0xFF7A40F2) : Colors.black87, 
-                                        fontWeight: FontWeight.bold, 
-                                        fontSize: 15
-                                      ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.quiz_outlined, color: Color(0xFF8B4EFF)), // Purple icon
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Test My Knowledge (Quiz)",
+                                    style: TextStyle(
+                                      color: Color(0xFF8B4EFF), // Purple text
+                                      fontWeight: FontWeight.bold, 
+                                      fontSize: 15
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -346,7 +406,6 @@ class _DeckViewState extends State<DeckView> {
                   ),
                   Row(
                     children: [
-                      // Edit Button implemented
                       InkWell(
                         onTap: () {
                           showDialog(
