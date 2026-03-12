@@ -79,19 +79,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   colors: AppColors.mainBackgroundGradient,
                 ),
               ),
-              child: Stack(
+              // CHANGED: Replaced Stack with a Column so the list and buttons never overlap
+              child: Column(
                 children: [
-                  _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(color: Colors.white))
-                      : _decks.isEmpty
-                          ? _buildEmptyState()
-                          : _buildDeckList(),
-
-                  Positioned(
-                    bottom: 40,
-                    left: 20,
-                    right: 20,
+                  // This Expanded forces the list/loading state to take up all space ABOVE the buttons
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(color: Colors.white))
+                        : _decks.isEmpty
+                            ? _buildEmptyState()
+                            : _buildDeckList(),
+                  ),
+                  
+                  // Action buttons sit firmly at the bottom of the Column
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
                     child: _buildActionButtons(context),
                   ),
                 ],
@@ -163,7 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 100), // Extra space for double buttons
+            // CHANGED: Removed the huge 100px SizedBox here since buttons are no longer floating
           ],
         ),
       ),
@@ -187,7 +190,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 150), // Added padding for taller buttons
+            // CHANGED: Reduced the bottom padding from 150 to 15. The list stops right above the buttons now.
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 15), 
             itemCount: _decks.length,
             itemBuilder: (context, index) {
               final deck = _decks[index];
@@ -225,7 +229,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- UPDATED ACTION BUTTONS AREA ---
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
