@@ -173,32 +173,35 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   ),
 
                   // Bottom Area
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 40.0),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: _showAnswer
-                          ? ElevatedButton(
-                              onPressed: _finishReview,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF7A40F2),
-                                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  SizedBox(
+                    height: 80,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 40.0),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _showAnswer
+                            ? ElevatedButton(
+                                onPressed: _finishReview,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF7A40F2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Text("Finish Review", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.check),
+                                  ],
+                                ),
+                              )
+                            : const Text(
+                                "Tap card to reveal answer",
+                                style: TextStyle(color: Colors.white70, fontSize: 14),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Text("Finish Review", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.check),
-                                ],
-                              ),
-                            )
-                          : const Text(
-                              "Tap card to reveal answer",
-                              style: TextStyle(color: Colors.white70, fontSize: 14),
-                            ),
+                      ),
                     ),
                   ),
                 ],
