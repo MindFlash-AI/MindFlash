@@ -1,0 +1,145 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+import 'deck_model.dart';
+import 'card_model.dart';
+import 'deck_storage_service.dart';
+import 'card_storage_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class AIResponse {
+  final String message;
+  final Deck? generatedDeck;
+  final Deck? editedDeck;
+
+  AIResponse({required this.message, this.generatedDeck, this.editedDeck});
+}
+
+class AIService {
+  final DeckStorageService _deckStorage = DeckStorageService();
+  final CardStorageService _cardStorage = CardStorageService();
+
+  // ==========================================
+  // PASTE YOUR FIREBASE FUNCTION URL HERE:
+  // Make sure it ends with /generate-deck
+  // ==========================================
+  final String backendUrl = dotenv.env['BACKEND_URL']!;
+
+  Future<AIResponse> processInput({
+    String? text,
+    String? fileText,
+    String? fileName,
+  }) async {
+    // 1. Gather the user's current decks to send as context to the server
+    final decks = await _deckStorage.getDecks();
+    final allCards = await _cardStorage.getAllCards();
+
+    String userDataContext = "The user currently has no saved decks.";
+    if (decks.isNotEmpty) {
+      userDataContext =
+          "The user currently has the following study decks saved in their library:\n";
+      for (var deck in decks) {
+        final deckCards = allCards.where((c) => c.deckId == deck.id).toList();
+        userDataContext +=
+            "- Deck Name: '${deck.name}' (Subject: ${deck.subject}, ID: ${deck.id}). It contains ${deckCards.length} cards.\n";
+
+        if (deckCards.isNotEmpty) {
+          userDataContext +=
+              "  Examples: Q: '${deckCards.first.question}' -> A: '${deckCards.first.answer}'\n";
+        }
+      }
+    }
+
+    // 2. Make the HTTP request to your secure Firebase backend
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'prompt': text,
+          'fileText': fileText,
+          'fileName': fileName,
+          'userContext': userDataContext,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Server error: ${response.statusCode}");
+      }
+
+      // 3. Parse the JSON returned by your server
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      final String action = data['action'] ?? 'chat';
+      final String reply = data['reply'] ?? "I processed your request.";
+
+      Deck? newDeck;
+      Deck? editedDeck;
+
+      // 4. Handle New Deck Creation
+      if (action == 'create_deck' && data['cards'] != null) {
+        final List<dynamic> cardsData = data['cards'];
+
+        if (cardsData.isNotEmpty) {
+          newDeck = Deck(
+            id: const Uuid().v4(),
+            name:
+                data['deckName'] ??
+                (fileName != null
+                    ? "Notes from $fileName"
+                    : "AI Generated Deck"),
+            subject: data['subject'] ?? "Generated Study Material",
+            cardCount: cardsData.length,
+          );
+          await _deckStorage.addDeck(newDeck);
+
+          for (var cardData in cardsData) {
+            final newCard = Flashcard(
+              id: const Uuid().v4(),
+              deckId: newDeck.id,
+              question: cardData['q'].toString(),
+              answer: cardData['a'].toString(),
+            );
+            await _cardStorage.addCard(newCard);
+          }
+        }
+      }
+      // 5. Handle Existing Deck Editing
+      else if (action == 'edit_deck' &&
+          data['targetDeckId'] != null &&
+          data['cards'] != null) {
+        final targetId = data['targetDeckId'];
+        final decks = await _deckStorage.getDecks();
+        final index = decks.indexWhere((d) => d.id == targetId);
+
+        if (index != -1) {
+          editedDeck = decks[index];
+          final List<dynamic> cardsData = data['cards'];
+
+          if (cardsData.isNotEmpty) {
+            for (var cardData in cardsData) {
+              final newCard = Flashcard(
+                id: const Uuid().v4(),
+                deckId: editedDeck.id,
+                question: cardData['q'].toString(),
+                answer: cardData['a'].toString(),
+              );
+              await _cardStorage.addCard(newCard);
+            }
+
+            editedDeck.cardCount += cardsData.length;
+            await _deckStorage.updateDeck(editedDeck);
+          }
+        }
+      }
+
+      return AIResponse(
+        message: reply,
+        generatedDeck: newDeck,
+        editedDeck: editedDeck,
+      );
+    } catch (e) {
+      throw Exception("Failed to connect to backend: $e");
+    }
+  }
+}
