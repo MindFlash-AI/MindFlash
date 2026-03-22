@@ -2,102 +2,109 @@ import 'dart:math';
 import 'quiz_question.dart';
 import 'card_model.dart';
 
-// Assuming you have a basic Flashcard model like this:
-// class Flashcard { final String front; final String back; }
+class _AnswerProfile {
+  final String text;
+  final bool hasNumber;
+  final int wordCount;
+  final int length;
+
+  _AnswerProfile(this.text)
+    : hasNumber = RegExp(r'\d').hasMatch(text),
+      wordCount = text.trim().split(RegExp(r'\s+')).length,
+      length = text.length;
+}
 
 class LocalQuizEngine {
-  /// Transforms a list of Flashcards into a list of "Smart" Multiple Choice Questions
   static List<QuizQuestion> generateMCQ(List<Flashcard> deck) {
     if (deck.length < 4) {
       throw Exception('Deck must contain at least 4 cards to generate a quiz.');
     }
 
-    List<QuizQuestion> quiz = [];
     final random = Random();
+    List<QuizQuestion> quiz = [];
+
+    final List<_AnswerProfile> allProfiles = deck
+        .map((c) => _AnswerProfile(c.answer))
+        .toList();
 
     for (int i = 0; i < deck.length; i++) {
-      Flashcard currentCard = deck[i];
-      String correctAnswer =
-          currentCard.answer; // Assuming your model uses 'answer', not 'back'
+      final currentCard = deck[i];
+      final correctProfile = allProfiles[i];
 
-      // 1. Get all possible wrong answers
-      List<String> allWrongAnswers = deck
-          .where((card) => card.id != currentCard.id)
-          .map((card) => card.answer)
-          .toList();
+      final Set<String> uniqueDistractors = {correctProfile.text};
 
-      // 2. Score them using our Heuristic Algorithm
-      List<Map<String, dynamic>> scoredAnswers = allWrongAnswers.map((
-        wrongAnswer,
-      ) {
-        int score = _calculateDistractorScore(correctAnswer, wrongAnswer);
-        return {'answer': wrongAnswer, 'score': score};
-      }).toList();
+      List<Map<String, dynamic>> scoredDistractors = [];
 
-      // 3. Sort by highest score first (the most "tricky" options)
-      scoredAnswers.sort((a, b) => b['score'].compareTo(a['score']));
+      for (int j = 0; j < allProfiles.length; j++) {
+        if (i == j) continue;
 
-      // 4. Take the top 5 trickiest answers, and randomly pick 3 of them
-      // (We randomize the top 5 so the quiz isn't exactly the same every single time)
-      List<String> topTrickiest = scoredAnswers
-          .take(5)
-          .map((e) => e['answer'] as String)
+        final candidateProfile = allProfiles[j];
+
+        if (!uniqueDistractors.contains(candidateProfile.text)) {
+          int score = _calculateFastScore(correctProfile, candidateProfile);
+          scoredDistractors.add({
+            'text': candidateProfile.text,
+            'score': score,
+          });
+          uniqueDistractors.add(candidateProfile.text);
+        }
+      }
+
+      if (scoredDistractors.length < 3) {
+        throw Exception(
+          'Not enough unique answers in the deck to create a valid multiple-choice quiz.',
+        );
+      }
+
+      scoredDistractors.sort((a, b) => b['score'].compareTo(a['score']));
+
+      final int poolSize = min(5, scoredDistractors.length);
+      final topTrickiest = scoredDistractors
+          .take(poolSize)
+          .map((e) => e['text'] as String)
           .toList();
       topTrickiest.shuffle(random);
-      List<String> distractors = topTrickiest.take(3).toList();
 
-      // 5. Combine the correct answer with the 3 smart distractors
-      List<String> allOptions = [...distractors, correctAnswer];
-
-      // 6. Shuffle the final options so the correct answer isn't always 'D'
-      allOptions.shuffle(random);
+      List<String> finalOptions = topTrickiest.take(3).toList();
+      finalOptions.add(correctProfile.text);
+      finalOptions.shuffle(random);
 
       quiz.add(
         QuizQuestion(
-          question:
-              currentCard.question, // Assuming 'question' instead of 'front'
-          correctAnswer: correctAnswer,
-          options: allOptions,
+          question: currentCard.question,
+          correctAnswer: correctProfile.text,
+          options: finalOptions,
         ),
       );
     }
 
-    // Optional: Shuffle the order of the questions themselves
     quiz.shuffle(random);
-
     return quiz;
   }
 
-  /// THE HEURISTIC ALGORITHM
-  /// Calculates how good a wrong answer is compared to the correct answer.
-  /// Higher score = more confusing/better distractor.
-  static int _calculateDistractorScore(String correct, String distractor) {
+  static int _calculateFastScore(
+    _AnswerProfile correct,
+    _AnswerProfile distractor,
+  ) {
     int score = 0;
 
-    // Rule 1: Number Matching (Crucial for dates, math, or statistics)
-    bool correctHasNum = RegExp(r'\d').hasMatch(correct);
-    bool distHasNum = RegExp(r'\d').hasMatch(distractor);
-    if (correctHasNum && distHasNum) {
-      score += 10; // Massive bonus if both have numbers
-    } else if (!correctHasNum && !distHasNum) {
-      score += 2; // Slight bonus if neither have numbers
+    if (correct.hasNumber && distractor.hasNumber) {
+      score += 10;
+    } else if (!correct.hasNumber && !distractor.hasNumber) {
+      score += 2;
     } else {
-      score -= 5; // Penalty if one has numbers and the other doesn't
+      score -= 5;
     }
 
-    // Rule 2: Word Count Matching (Prevents mixing 1-word answers with full paragraphs)
-    int correctWords = correct.trim().split(RegExp(r'\s+')).length;
-    int distWords = distractor.trim().split(RegExp(r'\s+')).length;
-
-    if (correctWords == distWords) {
+    int diffWords = (correct.wordCount - distractor.wordCount).abs();
+    if (diffWords == 0) {
       score += 5;
-    } else if ((correctWords - distWords).abs() <= 2) {
-      score += 3; // Good if they are within 2 words of each other
-    } else if ((correctWords - distWords).abs() > 5) {
-      score -= 5; // Heavy penalty if lengths are wildly different
+    } else if (diffWords <= 2) {
+      score += 3;
+    } else if (diffWords > 5) {
+      score -= 5;
     }
 
-    // Rule 3: Character Length Matching (Visual similarity)
     int lengthDiff = (correct.length - distractor.length).abs();
     if (lengthDiff < 5) {
       score += 3;
