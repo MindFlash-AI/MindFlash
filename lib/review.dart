@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:math';
 import 'deck_model.dart';
 import 'card_model.dart';
 import 'review_completion.dart';
@@ -23,6 +25,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
   late List<Flashcard> _reviewCards;
   int _currentIndex = 0;
   bool _showAnswer = false;
+  int _correctCount = 0;
+
+  final double _cardHeight = 420.0;
 
   @override
   void initState() {
@@ -39,6 +44,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
         _currentIndex++;
         _showAnswer = false;
       });
+    } else {
+      _finishReview();
     }
   }
 
@@ -51,18 +58,33 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
+  void _handleAnswer(bool wasCorrect) {
+    if (wasCorrect) _correctCount++;
+    _nextCard();
+  }
+
   void _finishReview() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => ReviewCompletionScreen(
           deck: widget.deck,
-          // If they finish early, we pass the current progress
           totalCards: _currentIndex + 1,
           allCards: widget.cards,
+          correctCards: _correctCount,
         ),
       ),
     );
+  }
+
+  void _onSwipe(DragEndDetails details) {
+    if (details.primaryVelocity! < -300) {
+      HapticFeedback.lightImpact();
+      _nextCard();
+    } else if (details.primaryVelocity! > 300) {
+      HapticFeedback.lightImpact();
+      _previousCard();
+    }
   }
 
   @override
@@ -70,7 +92,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     if (_reviewCards.isEmpty) return const Scaffold();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF9FF), // Matches the top section color
+      backgroundColor: const Color(0xFFFDF9FF),
       body: Column(
         children: [
           SafeArea(
@@ -112,10 +134,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       size: 20,
                     ),
                     onPressed: () {
+                      HapticFeedback.selectionClick();
                       setState(() {
                         _reviewCards.shuffle();
                         _currentIndex = 0;
                         _showAnswer = false;
+                        _correctCount = 0;
                       });
                     },
                   ),
@@ -143,111 +167,200 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Card Area
+                        if (_currentIndex < _reviewCards.length - 2)
+                          Transform.translate(
+                            offset: const Offset(0, 24),
+                            child: Transform.scale(
+                              scale: 0.88,
+                              child: _buildStaticCardContainer(
+                                Colors.white.withOpacity(0.4),
+                              ),
+                            ),
+                          ),
+                        if (_currentIndex < _reviewCards.length - 1)
+                          Transform.translate(
+                            offset: const Offset(0, 12),
+                            child: Transform.scale(
+                              scale: 0.94,
+                              child: _buildStaticCardContainer(
+                                Colors.white.withOpacity(0.7),
+                              ),
+                            ),
+                          ),
+
                         GestureDetector(
-                          onTap: () =>
-                              setState(() => _showAnswer = !_showAnswer),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _showAnswer = !_showAnswer);
+                          },
+                          onHorizontalDragEnd: _onSwipe,
                           child: Container(
                             margin: const EdgeInsets.symmetric(
-                              horizontal: 45,
+                              horizontal: 40,
                               vertical: 40,
                             ),
                             width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 15,
-                                  offset: Offset(0, 8),
-                                ),
-                              ],
-                            ),
+                            height: _cardHeight,
                             child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              transitionBuilder: (child, animation) =>
-                                  FadeTransition(
-                                    opacity: animation,
-                                    child: child,
-                                  ),
+                              duration: const Duration(milliseconds: 500),
+                              transitionBuilder:
+                                  (Widget child, Animation<double> animation) {
+                                    final rotateAnim =
+                                        Tween(begin: pi, end: 0.0).animate(
+                                          CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOutCubic,
+                                          ),
+                                        );
+
+                                    return AnimatedBuilder(
+                                      animation: rotateAnim,
+                                      child: child,
+                                      builder: (context, widget) {
+                                        final isFront =
+                                            widget!.key ==
+                                            const ValueKey("front");
+                                        final rotation = isFront
+                                            ? rotateAnim.value
+                                            : -rotateAnim.value;
+
+                                        if (rotateAnim.value > pi / 2) {
+                                          return const SizedBox.shrink();
+                                        }
+
+                                        return Transform(
+                                          transform: Matrix4.identity()
+                                            ..setEntry(3, 2, 0.001)
+                                            ..rotateY(rotation),
+                                          alignment: Alignment.center,
+                                          child: widget,
+                                        );
+                                      },
+                                    );
+                                  },
                               child: _showAnswer
                                   ? _buildBackSide()
                                   : _buildFrontSide(),
                             ),
                           ),
                         ),
-
-                        // Navigation Arrows
-                        Positioned(
-                          left: 10,
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back_ios, size: 36),
-                            color: _currentIndex > 0
-                                ? Colors.black87
-                                : Colors.black26,
-                            onPressed: _currentIndex > 0 ? _previousCard : null,
-                          ),
-                        ),
-                        Positioned(
-                          right: 10,
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_forward_ios, size: 36),
-                            color: _currentIndex < _reviewCards.length - 1
-                                ? Colors.black87
-                                : Colors.black26,
-                            onPressed: _currentIndex < _reviewCards.length - 1
-                                ? _nextCard
-                                : null,
-                          ),
-                        ),
                       ],
                     ),
                   ),
 
-                  // Bottom Area
-                  SizedBox(
-                    height: 80,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 40.0),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: _showAnswer
-                            ? ElevatedButton(
-                                onPressed: _finishReview,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF7A40F2),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 40,
-                                    vertical: 10,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Text(
-                                      "Finish Review",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+                  SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      height: 100,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: 20.0,
+                          left: 24,
+                          right: 24,
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _showAnswer
+                              ? Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.redAccent
+                                                  .withOpacity(0.3),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 6),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            HapticFeedback.lightImpact();
+                                            _handleAnswer(false);
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.redAccent,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 18,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            elevation: 0,
+                                          ),
+                                          child: const Text(
+                                            "Need Review",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.check),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(
+                                                0xFF7A40F2,
+                                              ).withOpacity(0.3),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 6),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            HapticFeedback.lightImpact();
+                                            _handleAnswer(true);
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: const Color(
+                                              0xFF7A40F2,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 18,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            elevation: 0,
+                                          ),
+                                          child: const Text(
+                                            "Got It",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
+                                )
+                              : const Center(
+                                  child: Text(
+                                    "Tap card to reveal answer",
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
-                              )
-                            : const Text(
-                                "Tap card to reveal answer",
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
+                        ),
                       ),
                     ),
                   ),
@@ -256,6 +369,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStaticCardContainer(Color color) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+      width: double.infinity,
+      height: _cardHeight,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(24),
       ),
     );
   }
@@ -272,14 +397,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
         borderRadius: BorderRadius.circular(3),
       ),
       alignment: Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: progress,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(3),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF5A6DFF), Color(0xFFE335A0)],
-            ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        width: MediaQuery.of(context).size.width * progress,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(3),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF5A6DFF), Color(0xFFE335A0)],
           ),
         ),
       ),
@@ -287,87 +412,91 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Widget _buildFrontSide() {
-    return Padding(
+    return _buildCardBase(
       key: const ValueKey("front"),
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FF),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFD6DFFF)),
-            ),
-            child: const Text(
-              "QUESTION",
-              style: TextStyle(
-                color: Color(0xFF5A6DFF),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const Spacer(),
-          Text(
-            _reviewCards[_currentIndex].question,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              height: 1.4,
-            ),
-          ),
-          const Spacer(),
-          const Text(
-            "Tap to reveal answer",
-            style: TextStyle(color: Colors.black38, fontSize: 14),
-          ),
-        ],
-      ),
+      tagLabel: "QUESTION",
+      tagColor: const Color(0xFF5A6DFF),
+      tagBgColor: const Color(0xFFF4F6FF),
+      tagBorderColor: const Color(0xFFD6DFFF),
+      content: _reviewCards[_currentIndex].question,
+      hintText: "Tap to reveal answer",
     );
   }
 
   Widget _buildBackSide() {
-    return Padding(
+    return _buildCardBase(
       key: const ValueKey("back"),
-      padding: const EdgeInsets.all(24.0),
+      tagLabel: "ANSWER",
+      tagColor: const Color(0xFFC042E6),
+      tagBgColor: const Color(0xFFFCF0FF),
+      tagBorderColor: const Color(0xFFEBC1FF),
+      content: _reviewCards[_currentIndex].answer,
+      hintText: "Tap to flip back",
+    );
+  }
+
+  Widget _buildCardBase({
+    required Key key,
+    required String tagLabel,
+    required Color tagColor,
+    required Color tagBgColor,
+    required Color tagBorderColor,
+    required String content,
+    required String hintText,
+  }) {
+    return Container(
+      key: key,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(32.0),
       child: Column(
         children: [
-          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFFCF0FF),
+              color: tagBgColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFEBC1FF)),
+              border: Border.all(color: tagBorderColor),
             ),
-            child: const Text(
-              "ANSWER",
+            child: Text(
+              tagLabel,
               style: TextStyle(
-                color: Color(0xFFC042E6),
+                color: tagColor,
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.0,
               ),
             ),
           ),
           const Spacer(),
           Text(
-            _reviewCards[_currentIndex].answer,
+            content,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
               height: 1.4,
             ),
           ),
           const Spacer(),
-          const Text(
-            "Tap to flip back",
-            style: TextStyle(color: Colors.black38, fontSize: 14),
+          Text(
+            hintText,
+            style: const TextStyle(
+              color: Colors.black38,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
