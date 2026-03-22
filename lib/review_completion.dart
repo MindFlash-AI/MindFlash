@@ -1,26 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'deck_model.dart';
 import 'card_model.dart';
 import 'review.dart';
 
-class ReviewCompletionScreen extends StatelessWidget {
+class ReviewCompletionScreen extends StatefulWidget {
   final Deck deck;
   final int totalCards;
   final List<Flashcard> allCards;
+  final int? correctCards;
 
   const ReviewCompletionScreen({
     super.key,
     required this.deck,
     required this.totalCards,
     required this.allCards,
+    this.correctCards,
   });
 
+  @override
+  State<ReviewCompletionScreen> createState() => _ReviewCompletionScreenState();
+}
+
+class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
+  final LinearGradient _brandGradient = const LinearGradient(
+    colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    HapticFeedback.mediumImpact();
+  }
+
   void _reviewAgain(BuildContext context) {
+    HapticFeedback.lightImpact();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            ReviewScreen(deck: deck, cards: allCards, isShuffleOn: false),
+        builder: (context) => ReviewScreen(
+          deck: widget.deck,
+          cards: widget.allCards,
+          isShuffleOn: false,
+        ),
       ),
     );
   }
@@ -28,60 +52,39 @@ class ReviewCompletionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF9FF), // Matches the top section color
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.black87,
-                      size: 18,
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: _brandGradient,
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.8, end: 1.0),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.elasticOut,
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: AnimatedOpacity(
+                      opacity: scale == 0.8 ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: child,
                     ),
-                    label: const Text(
-                      "Back to Deck",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Center(
+                  );
+                },
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 30),
-                  padding: const EdgeInsets.all(30),
+                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: const [
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
                       BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 15,
-                        offset: Offset(0, 8),
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
@@ -89,122 +92,131 @@ class ReviewCompletionScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 80,
-                        height: 80,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF7A40F2),
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          gradient: _brandGradient,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE841A1).withOpacity(0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
                         child: const Icon(
-                          Icons.check,
+                          Icons.check_rounded,
                           color: Colors.white,
-                          size: 40,
+                          size: 48,
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        "Review Complete!",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                      const SizedBox(height: 28),
+
+                      ShaderMask(
+                        shaderCallback: (bounds) => _brandGradient.createShader(bounds),
+                        child: const Text(
+                          "Review Complete!",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Great job studying ${deck.name}",
+                        "Great job studying ${widget.deck.name}",
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 32),
 
-                      // Stats Box
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF9F5FF),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.1)),
                         ),
-                        child: Column(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            const Text(
-                              "Cards Reviewed",
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
+                            _buildStatColumn("Cards", widget.totalCards.toString()),
+                            if (widget.correctCards != null) ...[
+                              Container(width: 1, height: 40, color: Colors.grey.shade300),
+                              _buildStatColumn(
+                                "Accuracy",
+                                "${((widget.correctCards! / widget.totalCards) * 100).round()}%"
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            ShaderMask(
-                              shaderCallback: (bounds) => const LinearGradient(
-                                colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                              ).createShader(bounds),
-                              child: Text(
-                                "$totalCards",
-                                style: const TextStyle(
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+                            ]
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 32),
 
-                      // Action Buttons
-                      SizedBox(
+                      Container(
                         width: double.infinity,
-                        height: 55,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: _brandGradient,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
                         child: ElevatedButton.icon(
                           onPressed: () => _reviewAgain(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7A40F2),
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          icon: const Icon(
-                            Icons.replay,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                          icon: const Icon(Icons.replay_rounded, color: Colors.white, size: 22),
                           label: const Text(
                             "Review Again",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
+
                       SizedBox(
                         width: double.infinity,
-                        height: 55,
+                        height: 56,
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.pop(context);
+                          },
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: Colors.grey.shade300,
-                              width: 1.5,
-                            ),
+                            side: BorderSide(color: Colors.grey.shade300, width: 2),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             "Back to Deck",
                             style: TextStyle(
-                              color: Colors.black87,
+                              color: Colors.grey.shade800,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -217,8 +229,36 @@ class ReviewCompletionScreen extends StatelessWidget {
               ),
             ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Colors.black45,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 6),
+        ShaderMask(
+          shaderCallback: (bounds) => _brandGradient.createShader(bounds),
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
