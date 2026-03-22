@@ -27,7 +27,9 @@ class DeckListItem extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           backgroundColor: Colors.white,
           title: const Text(
             "Delete Deck?",
@@ -40,10 +42,7 @@ class DeckListItem extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -51,7 +50,9 @@ class DeckListItem extends StatelessWidget {
                 backgroundColor: Colors.red.shade50,
                 foregroundColor: Colors.red,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text(
                 "Delete",
@@ -91,7 +92,11 @@ class DeckListItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
-        child: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 28),
+        child: const Icon(
+          Icons.delete_forever_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),

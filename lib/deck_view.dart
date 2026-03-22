@@ -67,7 +67,10 @@ class _DeckViewState extends State<DeckView> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Delete Card?", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Delete Card?",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text("Are you sure? This action cannot be undone."),
         actions: [
           TextButton(
@@ -80,9 +83,14 @@ class _DeckViewState extends State<DeckView> {
               backgroundColor: Colors.red.shade50,
               foregroundColor: Colors.red,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Delete",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -143,7 +151,11 @@ class _DeckViewState extends State<DeckView> {
         leading: const BackButton(color: Colors.black87),
         title: const Text(
           "Back",
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
       body: Column(
@@ -170,7 +182,11 @@ class _DeckViewState extends State<DeckView> {
                   child: Center(
                     child: Text(
                       firstLetter,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 32,
+                      ),
                     ),
                   ),
                 ),
@@ -181,20 +197,39 @@ class _DeckViewState extends State<DeckView> {
                     children: [
                       Text(
                         widget.deck.name,
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: -0.5),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.deck.subject,
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 15, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F6FF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         child: Text(
                           "${widget.deck.cardCount} card${widget.deck.cardCount == 1 ? '' : 's'}",
-                          style: const TextStyle(color: Color(0xFF5A6DFF), fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Color(0xFF5A6DFF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -220,7 +255,13 @@ class _DeckViewState extends State<DeckView> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               if (canReview)
-                                BoxShadow(color: const Color(0xFF8B4EFF).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6)),
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF8B4EFF,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
                             ],
                           ),
                           child: Material(
@@ -231,9 +272,20 @@ class _DeckViewState extends State<DeckView> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
-                                  Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                                  Icon(
+                                    Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                   SizedBox(width: 6),
-                                  Text("Review", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text(
+                                    "Review",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -246,8 +298,15 @@ class _DeckViewState extends State<DeckView> {
                       child: Container(
                         height: 56,
                         decoration: BoxDecoration(
-                          color: _isShuffleOn ? const Color(0xFFF4F6FF) : Colors.white,
-                          border: Border.all(color: _isShuffleOn ? const Color(0xFFD6DFFF) : Colors.grey.shade300, width: 2),
+                          color: _isShuffleOn
+                              ? const Color(0xFFF4F6FF)
+                              : Colors.white,
+                          border: Border.all(
+                            color: _isShuffleOn
+                                ? const Color(0xFFD6DFFF)
+                                : Colors.grey.shade300,
+                            width: 2,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Material(
@@ -261,12 +320,20 @@ class _DeckViewState extends State<DeckView> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.shuffle_rounded, color: _isShuffleOn ? const Color(0xFF5A6DFF) : Colors.black54, size: 20),
+                                Icon(
+                                  Icons.shuffle_rounded,
+                                  color: _isShuffleOn
+                                      ? const Color(0xFF5A6DFF)
+                                      : Colors.black54,
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   "Shuffle",
                                   style: TextStyle(
-                                    color: _isShuffleOn ? const Color(0xFF5A6DFF) : Colors.black87,
+                                    color: _isShuffleOn
+                                        ? const Color(0xFF5A6DFF)
+                                        : Colors.black87,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
                                   ),
@@ -290,7 +357,11 @@ class _DeckViewState extends State<DeckView> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         if (canQuiz)
-                          BoxShadow(color: const Color(0xFFFF9100).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6)),
+                          BoxShadow(
+                            color: const Color(0xFFFF9100).withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
                       ],
                     ),
                     child: Material(
@@ -301,11 +372,21 @@ class _DeckViewState extends State<DeckView> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.quiz_rounded, color: Colors.white, size: 22),
+                            const Icon(
+                              Icons.quiz_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                             const SizedBox(width: 8),
                             Text(
-                              canQuiz ? "Take a Quiz" : "Need 4+ Cards for Quiz",
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                              canQuiz
+                                  ? "Take a Quiz"
+                                  : "Need 4+ Cards for Quiz",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         ),
@@ -325,12 +406,20 @@ class _DeckViewState extends State<DeckView> {
               children: [
                 const Text(
                   "Card List",
-                  style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const Spacer(),
                 Text(
                   "${_cards.length} Total",
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 14, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -339,7 +428,9 @@ class _DeckViewState extends State<DeckView> {
 
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B4EFF)))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF8B4EFF)),
+                  )
                 : _cards.isEmpty
                 ? _buildEmptyState()
                 : _buildCardsList(),
@@ -361,7 +452,10 @@ class _DeckViewState extends State<DeckView> {
         },
         backgroundColor: const Color(0xFF1E1E2C),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Add Card", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          "Add Card",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -373,13 +467,30 @@ class _DeckViewState extends State<DeckView> {
         Container(
           width: 80,
           height: 80,
-          decoration: BoxDecoration(color: const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(24)),
-          child: const Icon(Icons.style_outlined, size: 40, color: Color(0xFF5A6DFF)),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F6FF),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Icon(
+            Icons.style_outlined,
+            size: 40,
+            color: Color(0xFF5A6DFF),
+          ),
         ),
         const SizedBox(height: 20, width: double.infinity),
-        const Text("This deck is empty", style: TextStyle(fontSize: 20, color: Colors.black87, fontWeight: FontWeight.w800)),
+        const Text(
+          "This deck is empty",
+          style: TextStyle(
+            fontSize: 20,
+            color: Colors.black87,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text("Add your first card to start studying!", style: TextStyle(color: Colors.grey.shade600, fontSize: 15)),
+        Text(
+          "Add your first card to start studying!",
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+        ),
       ],
     );
   }
@@ -423,11 +534,21 @@ class _DeckViewState extends State<DeckView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F6FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Text(
                         "#${index + 1}",
-                        style: const TextStyle(color: Color(0xFF5A6DFF), fontSize: 11, fontWeight: FontWeight.w900),
+                        style: const TextStyle(
+                          color: Color(0xFF5A6DFF),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     Row(
@@ -440,20 +561,30 @@ class _DeckViewState extends State<DeckView> {
                               builder: (context) => EditCardDialog(
                                 card: card,
                                 onCardUpdated: (updatedCard) async {
-                                  await _cardStorageService.updateCard(updatedCard);
+                                  await _cardStorageService.updateCard(
+                                    updatedCard,
+                                  );
                                   _loadCards();
                                 },
                               ),
                             );
                           },
-                          icon: const Icon(Icons.edit_rounded, color: Colors.black45, size: 20),
+                          icon: const Icon(
+                            Icons.edit_rounded,
+                            color: Colors.black45,
+                            size: 20,
+                          ),
                           padding: const EdgeInsets.all(8),
                           constraints: const BoxConstraints(),
                         ),
                         const SizedBox(width: 4),
                         IconButton(
                           onPressed: () => _confirmDeleteCard(card.id),
-                          icon: const Icon(Icons.delete_rounded, color: Colors.redAccent, size: 20),
+                          icon: const Icon(
+                            Icons.delete_rounded,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
                           padding: const EdgeInsets.all(8),
                           constraints: const BoxConstraints(),
                         ),
@@ -463,18 +594,48 @@ class _DeckViewState extends State<DeckView> {
                 ),
                 const SizedBox(height: 12),
 
-                const Text("FRONT", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                const Text(
+                  "FRONT",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(card.question, style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(
+                  card.question,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
 
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFF0F0F0),
+                  ),
                 ),
 
-                const Text("BACK", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                const Text(
+                  "BACK",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(card.answer, style: const TextStyle(color: Colors.black87, fontSize: 15)),
+                Text(
+                  card.answer,
+                  style: const TextStyle(color: Colors.black87, fontSize: 15),
+                ),
               ],
             ),
           ),
