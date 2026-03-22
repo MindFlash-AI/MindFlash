@@ -54,9 +54,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: _brandGradient,
-        ),
+        decoration: BoxDecoration(gradient: _brandGradient),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -75,7 +73,10 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                   );
                 },
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 24,
+                  ),
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -114,7 +115,8 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                       const SizedBox(height: 28),
 
                       ShaderMask(
-                        shaderCallback: (bounds) => _brandGradient.createShader(bounds),
+                        shaderCallback: (bounds) =>
+                            _brandGradient.createShader(bounds),
                         child: const Text(
                           "Review Complete!",
                           style: TextStyle(
@@ -139,23 +141,35 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
 
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 20,
+                          horizontal: 16,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF9F5FF),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.1)),
+                          border: Border.all(
+                            color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _buildStatColumn("Cards", widget.totalCards.toString()),
+                            _buildStatColumn(
+                              "Cards",
+                              widget.totalCards.toString(),
+                            ),
                             if (widget.correctCards != null) ...[
-                              Container(width: 1, height: 40, color: Colors.grey.shade300),
+                              Container(
+                                width: 1,
+                                height: 40,
+                                color: Colors.grey.shade300,
+                              ),
                               _buildStatColumn(
                                 "Accuracy",
-                                "${((widget.correctCards! / widget.totalCards) * 100).round()}%"
+                                "${((widget.correctCards! / widget.totalCards) * 100).round()}%",
                               ),
-                            ]
+                            ],
                           ],
                         ),
                       ),
@@ -185,7 +199,11 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          icon: const Icon(Icons.replay_rounded, color: Colors.white, size: 22),
+                          icon: const Icon(
+                            Icons.replay_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                           label: const Text(
                             "Review Again",
                             style: TextStyle(
@@ -208,7 +226,10 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                             Navigator.pop(context);
                           },
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.grey.shade300, width: 2),
+                            side: BorderSide(
+                              color: Colors.grey.shade300,
+                              width: 2,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
