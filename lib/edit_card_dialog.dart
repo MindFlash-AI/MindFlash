@@ -34,10 +34,14 @@ class _EditCardDialogState extends State<EditCardDialog> {
   void initState() {
     super.initState();
     _questionController = TextEditingController(text: widget.card.question)
-      ..selection = TextSelection.fromPosition(TextPosition(offset: widget.card.question.length));
+      ..selection = TextSelection.fromPosition(
+        TextPosition(offset: widget.card.question.length),
+      );
 
     _answerController = TextEditingController(text: widget.card.answer)
-      ..selection = TextSelection.fromPosition(TextPosition(offset: widget.card.answer.length));
+      ..selection = TextSelection.fromPosition(
+        TextPosition(offset: widget.card.answer.length),
+      );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _questionFocus.requestFocus();
@@ -55,7 +59,7 @@ class _EditCardDialogState extends State<EditCardDialog> {
 
   bool get _hasUnsavedChanges {
     return _questionController.text.trim() != widget.card.question ||
-           _answerController.text.trim() != widget.card.answer;
+        _answerController.text.trim() != widget.card.answer;
   }
 
   Future<bool> _onWillPop() async {
@@ -68,12 +72,20 @@ class _EditCardDialogState extends State<EditCardDialog> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Discard Changes?", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text("You have unsaved edits. Are you sure you want to discard them?"),
+        title: const Text(
+          "Discard Changes?",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "You have unsaved edits. Are you sure you want to discard them?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Keep Editing", style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              "Keep Editing",
+              style: TextStyle(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -81,9 +93,14 @@ class _EditCardDialogState extends State<EditCardDialog> {
               backgroundColor: Colors.red.shade50,
               foregroundColor: Colors.red,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text("Discard", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Discard",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -162,21 +179,29 @@ class _EditCardDialogState extends State<EditCardDialog> {
                             color: Colors.grey.shade100,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.black54, size: 20),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.black54,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
 
-                  _buildInputLabel("Question (Front)", Icons.help_outline_rounded),
+                  _buildInputLabel(
+                    "Question (Front)",
+                    Icons.help_outline_rounded,
+                  ),
                   const SizedBox(height: 10),
                   _buildTextFormField(
                     controller: _questionController,
                     focusNode: _questionFocus,
                     hint: "e.g., Enter the question or term...",
                     textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_answerFocus),
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_answerFocus),
                     validator: (value) => value == null || value.trim().isEmpty
                         ? 'Question is required'
                         : null,
@@ -278,7 +303,11 @@ class _EditCardDialogState extends State<EditCardDialog> {
       style: const TextStyle(fontSize: 16, color: Colors.black87),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15, fontWeight: FontWeight.w400),
+        hintStyle: TextStyle(
+          color: Colors.grey.shade400,
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+        ),
         filled: true,
         fillColor: const Color(0xFFF8F9FA),
         border: OutlineInputBorder(
