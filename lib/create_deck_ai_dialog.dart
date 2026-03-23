@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CreateDeckAIDialog extends StatefulWidget {
   final Function(String topic) onGenerate;
@@ -12,26 +13,73 @@ class CreateDeckAIDialog extends StatefulWidget {
 class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers for our text fields
   final TextEditingController _deckNameController = TextEditingController();
   final TextEditingController _topicController = TextEditingController();
   final TextEditingController _promptController = TextEditingController();
 
-  // State for the slider
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _topicFocus = FocusNode();
+  final FocusNode _promptFocus = FocusNode();
+
   double _numCards = 10;
+
+  final LinearGradient _brandGradient = const LinearGradient(
+    colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _nameFocus.requestFocus();
+    });
+
+    _deckNameController.addListener(() => setState(() {}));
+    _topicController.addListener(() => setState(() {}));
+    _promptController.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
     _deckNameController.dispose();
     _topicController.dispose();
     _promptController.dispose();
+    _nameFocus.dispose();
+    _topicFocus.dispose();
+    _promptFocus.dispose();
     super.dispose();
+  }
+
+  void _submitTopic() {
+    if (_formKey.currentState!.validate()) {
+      HapticFeedback.lightImpact();
+
+      final deckName = _deckNameController.text.trim();
+      final topic = _topicController.text.trim();
+      final prompt = _promptController.text.trim();
+      final numCards = _numCards.toInt();
+
+      String engineeredPrompt =
+          "Create a flashcard deck named '$deckName'. "
+          "Topic: $topic. "
+          "Generate exactly $numCards cards.";
+
+      if (prompt.isNotEmpty) {
+        engineeredPrompt += " Additional instructions: $prompt.";
+      }
+
+      widget.onGenerate(engineeredPrompt);
+      Navigator.of(context).pop();
+    } else {
+      HapticFeedback.heavyImpact();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // Handles the keyboard sliding up nicely
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -39,44 +87,76 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         width: double.infinity,
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24.0,
-              vertical: 32.0,
-            ),
+            padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
-                        children: const [
-                          Icon(
-                            Icons.auto_awesome,
-                            color: Color(0xFF9E55E6),
-                            size: 28,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Color(0xFF8B4EFF),
+                              size: 22,
+                            ),
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            "Generate with AI",
+                          const SizedBox(width: 12),
+                          const Text(
+                            "AI Generation",
                             style: TextStyle(
                               fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
                               color: Colors.black87,
+                              letterSpacing: -0.5,
                             ),
                           ),
                         ],
                       ),
                       IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close, color: Colors.grey),
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          Navigator.of(context).pop();
+                        },
+                        icon: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.black54,
+                            size: 20,
+                          ),
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -91,42 +171,39 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                  // --- DECK NAME ---
-                  const Text(
-                    "Deck Name",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  _buildInputLabel("Deck Name", Icons.style_rounded),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _deckNameController,
+                    focusNode: _nameFocus,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_topicFocus),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter a deck name';
                       }
                       return null;
                     },
-                    decoration: _buildInputDecoration("e.g., Biology 101"),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // --- TOPIC ---
-                  const Text(
-                    "Topic",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                    decoration: _buildInputDecoration(
+                      "e.g., CMSC 156",
+                      _deckNameController,
                     ),
                   ),
+                  const SizedBox(height: 20),
+
+                  _buildInputLabel("Topic", Icons.bookmark_border_rounded),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _topicController,
+                    focusNode: _topicFocus,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_promptFocus),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter a topic';
@@ -134,102 +211,128 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       return null;
                     },
                     decoration: _buildInputDecoration(
-                      "e.g., The Solar System, Basic French...",
+                      "e.g., Core Flutter Skills, Firebase Integration...",
+                      _topicController,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  // --- PROMPT / INSTRUCTIONS (Optional) ---
-                  const Text(
+                  _buildInputLabel(
                     "Specific Instructions (Optional)",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
+                    Icons.tune_rounded,
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _promptController,
+                    focusNode: _promptFocus,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submitTopic(),
                     decoration: _buildInputDecoration(
-                      "e.g., Focus on dates, make it multiple choice...",
+                      "e.g., Focus on API integration, make it about code organization ...",
+                      _promptController,
                     ),
                     maxLines: 2,
                     minLines: 1,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 28),
 
-                  // --- NUMBER OF CARDS (Max 50) ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "Number of Cards",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                      _buildInputLabel("Number of Cards", Icons.layers_rounded),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                      ),
-                      Text(
-                        "${_numCards.toInt()} Cards",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF5B4FE6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "${_numCards.toInt()} Cards",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF8B4EFF),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  Slider(
-                    value: _numCards,
-                    min: 1,
-                    max: 50, // Updated to 50 maximum
-                    divisions: 49, // Allows stepping exactly by 1
-                    activeColor: const Color(0xFF5B4FE6),
-                    inactiveColor: const Color(0xFF5B4FE6).withOpacity(0.2),
-                    onChanged: (value) {
-                      setState(() {
-                        _numCards = value;
-                      });
-                    },
+                  const SizedBox(height: 8),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 6.0,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 12.0,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 24.0,
+                      ),
+                      activeTickMarkColor: Colors.transparent,
+                      inactiveTickMarkColor: Colors.transparent,
+                    ),
+                    child: Slider(
+                      value: _numCards,
+                      min: 5,
+                      max: 50,
+                      divisions: 9,
+                      activeColor: const Color(0xFF8B4EFF),
+                      inactiveColor: const Color(0xFF8B4EFF).withOpacity(0.2),
+                      onChanged: (value) {
+                        if (value != _numCards) {
+                          HapticFeedback.selectionClick();
+                        }
+                        setState(() {
+                          _numCards = value;
+                        });
+                      },
+                    ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
-                  // --- AI GENERATE BUTTON ---
                   Container(
                     width: double.infinity,
-                    height: 55,
+                    height: 56,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2C1A8A), Color(0xFF5B4FE6)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
+                      gradient: _brandGradient,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2C1A8A).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
                     child: Material(
                       color: Colors.transparent,
+                      clipBehavior: Clip.antiAlias,
+                      borderRadius: BorderRadius.circular(16),
                       child: InkWell(
                         onTap: _submitTopic,
-                        borderRadius: BorderRadius.circular(16),
-                        child: const Center(
-                          child: Text(
-                            "Start Generating",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.auto_awesome_rounded,
                               color: Colors.white,
+                              size: 20,
                             ),
-                          ),
+                            SizedBox(width: 8),
+                            Text(
+                              "Start Generating",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -243,49 +346,58 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     );
   }
 
-  // Helper method to keep text fields clean and consistent
-  InputDecoration _buildInputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-      filled: true,
-      fillColor: const Color(0xFFF5F5F5),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  Widget _buildInputLabel(String label, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF8B4EFF)),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 
-  void _submitTopic() {
-    if (_formKey.currentState!.validate()) {
-      final deckName = _deckNameController.text.trim();
-      final topic = _topicController.text.trim();
-      final prompt = _promptController.text.trim();
-      final numCards = _numCards.toInt();
-
-      // Combine all inputs into one highly specific prompt for the AI
-      String engineeredPrompt =
-          "Create a flashcard deck named '$deckName'. "
-          "Topic: $topic. "
-          "Generate exactly $numCards cards.";
-
-      // Append optional instructions if the user provided any
-      if (prompt.isNotEmpty) {
-        engineeredPrompt += " Additional instructions: $prompt.";
-      }
-
-      widget.onGenerate(engineeredPrompt);
-      Navigator.of(context).pop();
-    }
+  InputDecoration _buildInputDecoration(
+    String hint,
+    TextEditingController controller,
+  ) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
+      filled: true,
+      fillColor: const Color(0xFFF8F9FA),
+      suffixIcon: controller.text.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),
+              onPressed: () {
+                controller.clear();
+                HapticFeedback.selectionClick();
+              },
+            )
+          : null,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF8B4EFF), width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.red.shade300, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+    );
   }
 }

@@ -123,7 +123,11 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                           color: Colors.grey.shade100,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close, color: Colors.black54, size: 20),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.black54,
+                          size: 20,
+                        ),
                       ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -145,7 +149,8 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                   hint: "e.g., CMSC 156",
                   maxLength: 40,
                   textInputAction: TextInputAction.next,
-                  onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_subjectFocus),
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_subjectFocus),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Deck name is required';
@@ -250,9 +255,7 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
       textCapitalization: TextCapitalization.words,
-      inputFormatters: [
-        LengthLimitingTextInputFormatter(maxLength),
-      ],
+      inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
       style: const TextStyle(fontSize: 16, color: Colors.black87),
       decoration: InputDecoration(
         hintText: hint,
