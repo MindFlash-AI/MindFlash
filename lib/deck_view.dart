@@ -348,7 +348,7 @@ class _DeckViewState extends State<DeckView> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    "Shuffle",
+                                    _isShuffleOn ? "Shuffle On": "Shuffle Off",
                                     style: TextStyle(
                                       color: _isShuffleOn
                                           ? const Color(0xFF5A6DFF)
