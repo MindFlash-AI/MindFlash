@@ -70,151 +70,153 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 5,
-                    margin: const EdgeInsets.only(bottom: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
-                ),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Create New Deck",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black87,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        Navigator.of(context).pop();
-                      },
-                      icon: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.black54,
-                          size: 20,
+      
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Create New Deck",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Enter the details for your new flashcard deck.",
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 28),
-
-                _buildInputLabel("Deck Name", Icons.style_rounded),
-                const SizedBox(height: 8),
-                _buildTextFormField(
-                  controller: _nameController,
-                  focusNode: _nameFocus,
-                  hint: "e.g., CMSC 156",
-                  maxLength: 40,
-                  textInputAction: TextInputAction.next,
-                  onFieldSubmitted: (_) =>
-                      FocusScope.of(context).requestFocus(_subjectFocus),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Deck name is required';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                _buildInputLabel("Subject", Icons.bookmark_border_rounded),
-                const SizedBox(height: 8),
-                _buildTextFormField(
-                  controller: _subjectController,
-                  focusNode: _subjectFocus,
-                  hint: "e.g., Flutter UI Foundations",
-                  maxLength: 30,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _createDeck(),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Subject is required';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                Container(
-                  width: double.infinity,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: _brandGradient,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8B4EFF).withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: const Offset(0, 6),
+                      IconButton(
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          Navigator.of(context).pop();
+                        },
+                        icon: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.black54,
+                            size: 20,
+                          ),
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
                     ],
                   ),
-                  child: Material(
-                    color: Colors.transparent,
-                    clipBehavior: Clip.antiAlias,
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      onTap: _createDeck,
-                      child: const Center(
-                        child: Text(
-                          "Create Deck",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
+                  const SizedBox(height: 8),
+                  Text(
+                    "Enter the details for your new flashcard deck.",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 28),
+      
+                  _buildInputLabel("Deck Name", Icons.style_rounded),
+                  const SizedBox(height: 8),
+                  _buildTextFormField(
+                    controller: _nameController,
+                    focusNode: _nameFocus,
+                    hint: "e.g., CMSC 156",
+                    maxLength: 40,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_subjectFocus),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Deck name is required';
+                      }
+                      return null;
+                    },
+                  ),
+      
+                  const SizedBox(height: 16),
+      
+                  _buildInputLabel("Subject", Icons.bookmark_border_rounded),
+                  const SizedBox(height: 8),
+                  _buildTextFormField(
+                    controller: _subjectController,
+                    focusNode: _subjectFocus,
+                    hint: "e.g., Flutter UI Foundations",
+                    maxLength: 30,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _createDeck(),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Subject is required';
+                      }
+                      return null;
+                    },
+                  ),
+      
+                  const SizedBox(height: 24),
+      
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: _brandGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      clipBehavior: Clip.antiAlias,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: _createDeck,
+                        child: const Center(
+                          child: Text(
+                            "Create Deck",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

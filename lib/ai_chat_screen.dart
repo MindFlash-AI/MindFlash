@@ -73,13 +73,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   void _scrollToBottom() {
-    // Small delay ensures the frame has rendered the new message
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 500),
-          curve: Curves.easeOutCubic, // Replaced outDetailedAccel for compatibility
+          curve: Curves.easeOutCubic, 
         );
       }
     });
@@ -194,37 +193,39 @@ class _AIChatScreenState extends State<AIChatScreen> {
         leading: const BackButton(color: Colors.black87),
         title: _buildAppBarTitle(),
       ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: _isInitializing
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF7A40F2)))
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.fromLTRB(16, 100, 16, 140), // More bottom padding for glass input
-                        itemCount: _messages.length + (_isTyping ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == _messages.length) return _buildShimmerLoading();
-                          
-                          // Grouping logic: check if next message is from same sender
-                          bool isLastInGroup = true;
-                          if (index < _messages.length - 1) {
-                            isLastInGroup = _messages[index].isUser != _messages[index + 1].isUser;
-                          }
-
-                          return _buildMessageBubble(_messages[index], isLastInGroup);
-                        },
-                      ),
-              ),
-            ],
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: _buildInputArea(),
-          ),
-        ],
+      body: SafeArea(
+        top: false, 
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: _isInitializing
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFF7A40F2)))
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 100, 16, 140), 
+                          itemCount: _messages.length + (_isTyping ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == _messages.length) return _buildShimmerLoading();
+                            
+                            bool isLastInGroup = true;
+                            if (index < _messages.length - 1) {
+                              isLastInGroup = _messages[index].isUser != _messages[index + 1].isUser;
+                            }
+  
+                            return _buildMessageBubble(_messages[index], isLastInGroup);
+                          },
+                        ),
+                ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: _buildInputArea(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -421,7 +422,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
           child: ActionChip(
             label: Text(s, style: const TextStyle(fontSize: 12, color: Color(0xFF7A40F2))),
             backgroundColor: const Color(0xFFF3E8FF),
-            shape: StadiumBorder(side: BorderSide(color: Colors.transparent)),
+            shape: const StadiumBorder(side: BorderSide(color: Colors.transparent)),
             onPressed: () => _handleTextSubmit(s),
           ),
         )).toList(),

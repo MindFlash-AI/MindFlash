@@ -33,7 +33,7 @@ class _DeckViewState extends State<DeckView> {
   );
 
   final LinearGradient _quizGradient = const LinearGradient(
-    colors: [Color(0xFFFF9100), Color(0xFFFF6D00)],
+    colors: [Color(0xFF5A6DFF), Color(0xFF4256E8)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
@@ -118,7 +118,23 @@ class _DeckViewState extends State<DeckView> {
         ),
       ),
     );
-    _loadCards();
+    _loadCards(); // Reload to reflect any new flags
+  }
+
+  void _startFlaggedReview() async {
+    HapticFeedback.lightImpact();
+    final flaggedCards = _cards.where((c) => c.isFlagged).toList();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReviewScreen(
+          deck: widget.deck,
+          cards: flaggedCards,
+          isShuffleOn: _isShuffleOn,
+        ),
+      ),
+    );
+    _loadCards(); // Reload to reflect any changes in flags
   }
 
   void _startQuiz() {
@@ -142,6 +158,8 @@ class _DeckViewState extends State<DeckView> {
 
     final bool canReview = _cards.isNotEmpty;
     final bool canQuiz = _cards.length >= 4;
+    final int flaggedCount = _cards.where((c) => c.isFlagged).length;
+    final bool hasFlagged = flaggedCount > 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDF9FF),
@@ -158,132 +176,185 @@ class _DeckViewState extends State<DeckView> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            child: Row(
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    gradient: _brandGradient,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8B4EFF).withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      firstLetter,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 32,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              child: Row(
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      gradient: _brandGradient,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        firstLetter,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 32,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.deck.name,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black87,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.deck.subject,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF4F6FF),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          "${widget.deck.cardCount} card${widget.deck.cardCount == 1 ? '' : 's'}",
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.deck.name,
                           style: const TextStyle(
-                            color: Color(0xFF5A6DFF),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black87,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.deck.subject,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4F6FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "${widget.deck.cardCount} card${widget.deck.cardCount == 1 ? '' : 's'}",
+                            style: const TextStyle(
+                              color: Color(0xFF5A6DFF),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Opacity(
+                          opacity: canReview ? 1.0 : 0.5,
+                          child: Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: _brandGradient,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                if (canReview)
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF8B4EFF,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: canReview ? _startReview : null,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(
+                                      Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      "Review",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Opacity(
-                        opacity: canReview ? 1.0 : 0.5,
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Container(
                           height: 56,
                           decoration: BoxDecoration(
-                            gradient: _brandGradient,
+                            color: _isShuffleOn
+                                ? const Color(0xFFF4F6FF)
+                                : Colors.white,
+                            border: Border.all(
+                              color: _isShuffleOn
+                                  ? const Color(0xFFD6DFFF)
+                                  : Colors.grey.shade300,
+                              width: 2,
+                            ),
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              if (canReview)
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF8B4EFF,
-                                  ).withOpacity(0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                            ],
                           ),
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: canReview ? _startReview : null,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() => _isShuffleOn = !_isShuffleOn);
+                              },
                               borderRadius: BorderRadius.circular(16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
+                                children: [
                                   Icon(
-                                    Icons.play_arrow_rounded,
-                                    color: Colors.white,
-                                    size: 24,
+                                    Icons.shuffle_rounded,
+                                    color: _isShuffleOn
+                                        ? const Color(0xFF5A6DFF)
+                                        : Colors.black54,
+                                    size: 20,
                                   ),
-                                  SizedBox(width: 6),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    "Review",
+                                    "Shuffle",
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: _isShuffleOn
+                                          ? const Color(0xFF5A6DFF)
+                                          : Colors.black87,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontSize: 15,
                                     ),
                                   ),
                                 ],
@@ -292,169 +363,164 @@ class _DeckViewState extends State<DeckView> {
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: _isShuffleOn
-                              ? const Color(0xFFF4F6FF)
-                              : Colors.white,
-                          border: Border.all(
-                            color: _isShuffleOn
-                                ? const Color(0xFFD6DFFF)
-                                : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
+                    ],
+                  ),
+                  
+                  // NEW: Review Flagged Cards Button
+                  if (hasFlagged) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 56,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.red.shade200,
+                          width: 1.5,
                         ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() => _isShuffleOn = !_isShuffleOn);
-                            },
-                            borderRadius: BorderRadius.circular(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.shuffle_rounded,
-                                  color: _isShuffleOn
-                                      ? const Color(0xFF5A6DFF)
-                                      : Colors.black54,
-                                  size: 20,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _startFlaggedReview,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.flag_rounded,
+                                color: Colors.redAccent,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Review $flaggedCount Flagged Card${flaggedCount == 1 ? '' : 's'}",
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "Shuffle",
-                                  style: TextStyle(
-                                    color: _isShuffleOn
-                                        ? const Color(0xFF5A6DFF)
-                                        : Colors.black87,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                Opacity(
-                  opacity: canQuiz ? 1.0 : 0.5,
-                  child: Container(
-                    height: 56,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: _quizGradient,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        if (canQuiz)
-                          BoxShadow(
-                            color: const Color(0xFFFF9100).withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: canQuiz ? _startQuiz : null,
+
+                  const SizedBox(height: 12),
+                  Opacity(
+                    opacity: canQuiz ? 1.0 : 0.5,
+                    child: Container(
+                      height: 56,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: _quizGradient,
                         borderRadius: BorderRadius.circular(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.quiz_rounded,
-                              color: Colors.white,
-                              size: 22,
+                        boxShadow: [
+                          if (canQuiz)
+                            BoxShadow(
+                              color: const Color(0xFF5A6DFF).withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              canQuiz
-                                  ? "Take a Quiz"
-                                  : "Need 4+ Cards for Quiz",
-                              style: const TextStyle(
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: canQuiz ? _startQuiz : null,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.quiz_rounded,
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                size: 22,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Text(
+                                canQuiz
+                                    ? "Take a Quiz"
+                                    : "Need 4+ Cards for Quiz",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Row(
-              children: [
-                const Text(
-                  "Card List",
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Row(
+                children: [
+                  const Text(
+                    "Card List",
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  "${_cards.length} Total",
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  const Spacer(),
+                  Text(
+                    "${_cards.length} Total",
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF8B4EFF)),
-                  )
-                : _cards.isEmpty
-                ? _buildEmptyState()
-                : _buildCardsList(),
-          ),
-        ],
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Color(0xFF8B4EFF)),
+                    )
+                  : _cards.isEmpty
+                  ? _buildEmptyState()
+                  : _buildCardsList(),
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => CreateCardDialog(
-              deckId: widget.deck.id,
-              onCardCreated: _onCardCreated,
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFF1E1E2C),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "Add Card",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      floatingActionButton: SafeArea(
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => CreateCardDialog(
+                deckId: widget.deck.id,
+                onCardCreated: _onCardCreated,
+              ),
+            );
+          },
+          backgroundColor: const Color(0xFF1E1E2C),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            "Add Card",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -533,23 +599,47 @@ class _DeckViewState extends State<DeckView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F6FF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        "#${index + 1}",
-                        style: const TextStyle(
-                          color: Color(0xFF5A6DFF),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                    Row(
+                      children: [
+                        if (card.isFlagged)
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 14),
+                          )
+                        else if (card.isMastered)
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.check_rounded, color: Colors.green, size: 14),
+                          ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4F6FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            "#${index + 1}",
+                            style: const TextStyle(
+                              color: Color(0xFF5A6DFF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     Row(
                       children: [

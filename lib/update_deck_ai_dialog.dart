@@ -3,7 +3,8 @@ import 'deck_model.dart';
 
 class UpdateDeckAIDialog extends StatefulWidget {
   final List<Deck> decks;
-  final Function(Deck deck, String topic) onGenerate;
+  // Changed to return a Future
+  final Future<void> Function(Deck deck, String topic) onGenerate;
 
   const UpdateDeckAIDialog({
     super.key,
@@ -34,6 +35,29 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
   void dispose() {
     _topicController.dispose();
     super.dispose();
+  }
+
+  void _submitUpdate() async {
+    if (_formKey.currentState!.validate() && _selectedDeck != null) {
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      final topic = _topicController.text.trim();
+
+      try {
+        await widget.onGenerate(_selectedDeck!, topic);
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -127,7 +151,9 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                       ],
                     ),
                     IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () {
+                        if (!_isSubmitting) Navigator.of(context).pop();
+                      },
                       icon: const Icon(Icons.close, color: Colors.grey),
                       tooltip: 'Close',
                     ),
@@ -335,19 +361,5 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
         ),
       ),
     );
-  }
-
-  void _submitUpdate() {
-    if (_formKey.currentState!.validate() && _selectedDeck != null) {
-      setState(() {
-        _isSubmitting = true;
-      });
-
-      final topic = _topicController.text.trim();
-
-      widget.onGenerate(_selectedDeck!, topic);
-
-      Navigator.of(context).pop();
-    }
   }
 }

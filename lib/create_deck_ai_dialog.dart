@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class CreateDeckAIDialog extends StatefulWidget {
-  final Function(String topic) onGenerate;
+  // Changed to return a Future
+  final Future<void> Function(String topic) onGenerate;
 
   const CreateDeckAIDialog({super.key, required this.onGenerate});
 
@@ -22,6 +23,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
   final FocusNode _promptFocus = FocusNode();
 
   double _numCards = 10;
+  bool _isSubmitting = false;
 
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -52,7 +54,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     super.dispose();
   }
 
-  void _submitTopic() {
+  void _submitTopic() async {
     if (_formKey.currentState!.validate()) {
       HapticFeedback.lightImpact();
 
@@ -70,8 +72,23 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         engineeredPrompt += " Additional instructions: $prompt.";
       }
 
-      widget.onGenerate(engineeredPrompt);
-      Navigator.of(context).pop();
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      try {
+        await widget.onGenerate(engineeredPrompt);
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        // If it fails, stop loading so they can edit and try again
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+      }
     } else {
       HapticFeedback.heavyImpact();
     }
@@ -142,8 +159,10 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       ),
                       IconButton(
                         onPressed: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.of(context).pop();
+                          if (!_isSubmitting) {
+                            HapticFeedback.selectionClick();
+                            Navigator.of(context).pop();
+                          }
                         },
                         icon: Container(
                           padding: const EdgeInsets.all(4),
@@ -178,6 +197,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                   TextFormField(
                     controller: _deckNameController,
                     focusNode: _nameFocus,
+                    enabled: !_isSubmitting,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
                     onFieldSubmitted: (_) =>
@@ -200,6 +220,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                   TextFormField(
                     controller: _topicController,
                     focusNode: _topicFocus,
+                    enabled: !_isSubmitting,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
                     onFieldSubmitted: (_) =>
@@ -225,6 +246,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                   TextFormField(
                     controller: _promptController,
                     focusNode: _promptFocus,
+                    enabled: !_isSubmitting,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _submitTopic(),
@@ -281,7 +303,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       divisions: 9,
                       activeColor: const Color(0xFF8B4EFF),
                       inactiveColor: const Color(0xFF8B4EFF).withOpacity(0.2),
-                      onChanged: (value) {
+                      onChanged: _isSubmitting ? null : (value) {
                         if (value != _numCards) {
                           HapticFeedback.selectionClick();
                         }
@@ -298,9 +320,11 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                     width: double.infinity,
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: _brandGradient,
+                      gradient: _isSubmitting 
+                        ? LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade400])
+                        : _brandGradient,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
+                      boxShadow: _isSubmitting ? null : [
                         BoxShadow(
                           color: const Color(0xFF8B4EFF).withOpacity(0.3),
                           blurRadius: 15,
@@ -313,26 +337,47 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       clipBehavior: Clip.antiAlias,
                       borderRadius: BorderRadius.circular(16),
                       child: InkWell(
-                        onTap: _submitTopic,
+                        onTap: _isSubmitting ? null : _submitTopic,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              Icons.auto_awesome_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              "Start Generating",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
+                          children: _isSubmitting
+                              ? const [
+                                  SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    "Generating...",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ]
+                              : const [
+                                  Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Start Generating",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
                         ),
                       ),
                     ),
@@ -372,7 +417,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
       filled: true,
       fillColor: const Color(0xFFF8F9FA),
-      suffixIcon: controller.text.isNotEmpty
+      suffixIcon: controller.text.isNotEmpty && !_isSubmitting
           ? IconButton(
               icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),
               onPressed: () {

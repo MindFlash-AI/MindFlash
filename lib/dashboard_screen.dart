@@ -63,44 +63,13 @@ class _DashboardScreenState extends State<DashboardScreen>
     _loadDecks();
   }
 
+  // Changed to return a Future so the Dialog buttons can await it and show a loading spinner
   Future<void> _processAIGeneration(BuildContext context, String prompt) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (loadingContext) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              CircularProgressIndicator(color: Color(0xFF5B4FE6)),
-              SizedBox(height: 16),
-              Text(
-                "MindFlash AI is thinking...",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.none,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
     try {
       final aiService = AIService();
       final response = await aiService.processInput(text: prompt);
 
-      if (context.mounted) Navigator.pop(context);
-
-      _loadDecks();
+      await _loadDecks();
 
       if (context.mounted) {
         HapticFeedback.mediumImpact();
@@ -114,8 +83,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         );
       }
     } catch (e) {
-      if (context.mounted) Navigator.pop(context);
-
       if (context.mounted) {
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -127,6 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         );
       }
+      rethrow; // Rethrow to let the dialog catch it and stop the loading spinner
     }
   }
 
@@ -264,7 +232,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       onGenerate: (Deck deck, String topic) {
                         final engineeredPrompt =
                             "Update the deck '${deck.name}' with the following topic/cards: $topic";
-                        _processAIGeneration(parentContext, engineeredPrompt);
+                        return _processAIGeneration(parentContext, engineeredPrompt);
                       },
                     ),
                   );

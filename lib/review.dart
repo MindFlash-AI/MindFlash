@@ -4,6 +4,7 @@ import 'dart:math';
 import 'deck_model.dart';
 import 'card_model.dart';
 import 'review_completion.dart';
+import 'card_storage_service.dart';
 
 class ReviewScreen extends StatefulWidget {
   final Deck deck;
@@ -22,6 +23,7 @@ class ReviewScreen extends StatefulWidget {
 }
 
 class _ReviewScreenState extends State<ReviewScreen> {
+  final CardStorageService _cardStorageService = CardStorageService();
   late List<Flashcard> _reviewCards;
   int _currentIndex = 0;
   bool _showAnswer = false;
@@ -60,6 +62,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   void _handleAnswer(bool wasCorrect) {
     if (wasCorrect) _correctCount++;
+    
+    // Update the flag and mastered status
+    Flashcard currentCard = _reviewCards[_currentIndex];
+    if (wasCorrect) {
+      currentCard.isMastered = true;
+      currentCard.isFlagged = false;
+    } else {
+      currentCard.isFlagged = true;
+      currentCard.isMastered = false;
+    }
+    _cardStorageService.updateCard(currentCard);
+
     _nextCard();
   }
 
@@ -93,11 +107,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDF9FF),
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Padding(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 8.0,
                 vertical: 8.0,
@@ -146,111 +159,108 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 ],
               ),
             ),
-          ),
 
-          _buildProgressBar(),
+            _buildProgressBar(),
 
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: 16),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        if (_currentIndex < _reviewCards.length - 2)
-                          Transform.translate(
-                            offset: const Offset(0, 24),
-                            child: Transform.scale(
-                              scale: 0.88,
-                              child: _buildStaticCardContainer(
-                                Colors.white.withOpacity(0.4),
-                              ),
-                            ),
-                          ),
-                        if (_currentIndex < _reviewCards.length - 1)
-                          Transform.translate(
-                            offset: const Offset(0, 12),
-                            child: Transform.scale(
-                              scale: 0.94,
-                              child: _buildStaticCardContainer(
-                                Colors.white.withOpacity(0.7),
-                              ),
-                            ),
-                          ),
-
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() => _showAnswer = !_showAnswer);
-                          },
-                          onHorizontalDragEnd: _onSwipe,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 40,
-                              vertical: 40,
-                            ),
-                            width: double.infinity,
-                            height: _cardHeight,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500),
-                              transitionBuilder:
-                                  (Widget child, Animation<double> animation) {
-                                    final rotateAnim =
-                                        Tween(begin: pi, end: 0.0).animate(
-                                          CurvedAnimation(
-                                            parent: animation,
-                                            curve: Curves.easeOutCubic,
-                                          ),
-                                        );
-
-                                    return AnimatedBuilder(
-                                      animation: rotateAnim,
-                                      child: child,
-                                      builder: (context, widget) {
-                                        final isFront =
-                                            widget!.key ==
-                                            const ValueKey("front");
-                                        final rotation = isFront
-                                            ? rotateAnim.value
-                                            : -rotateAnim.value;
-
-                                        if (rotateAnim.value > pi / 2) {
-                                          return const SizedBox.shrink();
-                                        }
-
-                                        return Transform(
-                                          transform: Matrix4.identity()
-                                            ..setEntry(3, 2, 0.001)
-                                            ..rotateY(rotation),
-                                          alignment: Alignment.center,
-                                          child: widget,
-                                        );
-                                      },
-                                    );
-                                  },
-                              child: _showAnswer
-                                  ? _buildBackSide()
-                                  : _buildFrontSide(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(top: 16),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_currentIndex < _reviewCards.length - 2)
+                            Transform.translate(
+                              offset: const Offset(0, 24),
+                              child: Transform.scale(
+                                scale: 0.88,
+                                child: _buildStaticCardContainer(
+                                  Colors.white.withOpacity(0.4),
+                                ),
+                              ),
+                            ),
+                          if (_currentIndex < _reviewCards.length - 1)
+                            Transform.translate(
+                              offset: const Offset(0, 12),
+                              child: Transform.scale(
+                                scale: 0.94,
+                                child: _buildStaticCardContainer(
+                                  Colors.white.withOpacity(0.7),
+                                ),
+                              ),
+                            ),
 
-                  SafeArea(
-                    top: false,
-                    child: SizedBox(
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _showAnswer = !_showAnswer);
+                            },
+                            onHorizontalDragEnd: _onSwipe,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 40,
+                                vertical: 40,
+                              ),
+                              width: double.infinity,
+                              height: _cardHeight,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 500),
+                                transitionBuilder:
+                                    (Widget child, Animation<double> animation) {
+                                      final rotateAnim =
+                                          Tween(begin: pi, end: 0.0).animate(
+                                            CurvedAnimation(
+                                              parent: animation,
+                                              curve: Curves.easeOutCubic,
+                                            ),
+                                          );
+
+                                      return AnimatedBuilder(
+                                        animation: rotateAnim,
+                                        child: child,
+                                        builder: (context, widget) {
+                                          final isFront =
+                                              widget!.key ==
+                                              const ValueKey("front");
+                                          final rotation = isFront
+                                              ? rotateAnim.value
+                                              : -rotateAnim.value;
+
+                                          if (rotateAnim.value > pi / 2) {
+                                            return const SizedBox.shrink();
+                                          }
+
+                                          return Transform(
+                                            transform: Matrix4.identity()
+                                              ..setEntry(3, 2, 0.001)
+                                              ..rotateY(rotation),
+                                            alignment: Alignment.center,
+                                            child: widget,
+                                          );
+                                        },
+                                      );
+                                    },
+                                child: _showAnswer
+                                    ? _buildBackSide()
+                                    : _buildFrontSide(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(
                       height: 100,
                       child: Padding(
                         padding: const EdgeInsets.only(
@@ -363,12 +373,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -444,6 +454,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
     required String content,
     required String hintText,
   }) {
+    final currentCard = _reviewCards[_currentIndex];
+
     return Container(
       key: key,
       width: double.infinity,
@@ -461,21 +473,55 @@ class _ReviewScreenState extends State<ReviewScreen> {
       padding: const EdgeInsets.all(32.0),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: tagBgColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: tagBorderColor),
-            ),
-            child: Text(
-              tagLabel,
-              style: TextStyle(
-                color: tagColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.0,
-              ),
+          SizedBox(
+            width: double.infinity,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: tagBgColor,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: tagBorderColor),
+                  ),
+                  child: Text(
+                    tagLabel,
+                    style: TextStyle(
+                      color: tagColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (currentCard.isFlagged)
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 20),
+                        )
+                      else if (currentCard.isMastered)
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.check_rounded, color: Colors.green, size: 20),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const Spacer(),
