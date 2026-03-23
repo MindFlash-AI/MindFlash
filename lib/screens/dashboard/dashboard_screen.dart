@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'constants.dart';
-import 'dashboard_header.dart';
-import 'stat_card.dart';
-import 'create_deck_dialog.dart';
-import 'create_deck_ai_dialog.dart';
-import 'update_deck_ai_dialog.dart';
-import 'deck_model.dart';
-import 'deck_storage_service.dart';
-import 'deck_list_item.dart';
-import 'deck_view.dart';
-import 'ai_service.dart';
+
+import '../../constants.dart';
+import '../../models/deck_model.dart';
+import '../../services/deck_storage_service.dart';
+import '../../services/ai_service.dart';
+
+import '../../widgets/stat_card.dart';
+import '../../widgets/deck_list_item.dart';
+import '../../widgets/create_deck_dialog.dart';
+import '../../widgets/create_deck_ai_dialog.dart';
+import '../../widgets/update_deck_ai_dialog.dart';
+
+import '../deck_view/deck_view.dart';
+import 'widgets/dashboard_header.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -145,19 +148,24 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Changed to return Future<String> so we can pass the success message back 
-  // to the dashboard BEFORE showing the modal.
-  Future<String> _processAIGeneration(BuildContext context, String prompt) async {
+  Future<String> _processAIGeneration(
+    BuildContext context, 
+    String prompt, 
+    {String? fileText, String? fileName}
+  ) async {
     try {
       final aiService = AIService();
-      final response = await aiService.processInput(text: prompt);
+      final response = await aiService.processInput(
+        text: prompt,
+        fileText: fileText,
+        fileName: fileName,
+      );
 
       await _loadDecks();
       return response.message;
     } catch (e) {
       if (context.mounted) {
         HapticFeedback.heavyImpact();
-        // If it errors, we show the modal immediately over the bottom sheet.
         _showFeedbackModal(
           context,
           false,
@@ -172,154 +180,166 @@ class _DashboardScreenState extends State<DashboardScreen>
     showModalBottomSheet(
       context: parentContext,
       backgroundColor: Colors.transparent,
-      builder: (modalContext) => SafeArea(
+      isScrollControlled: true,
+      builder: (modalContext) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(modalContext).viewInsets.bottom),
         child: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "AI Generation",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[400],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.of(modalContext).pop(),
-                      icon: const Icon(Icons.close, color: Colors.grey),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Flexible(
+                          child: Text(
+                            "AI Generation",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(modalContext).pop(),
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Choose how you want MindFlash AI to help you.",
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 24),
+
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF5B4FE6).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: Color(0xFF5B4FE6),
+                        ),
+                      ),
+                      title: const Text(
+                        "Create New Deck with AI",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      subtitle: const Text(
+                        "Generate a completely new deck from a prompt",
+                      ),
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(modalContext);
+
+                        final successMessage = await showModalBottomSheet<String>(
+                          context: parentContext,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => CreateDeckAIDialog(
+                            onGenerate: (topic, fileText, fileName) =>
+                                _processAIGeneration(
+                                  parentContext, 
+                                  topic, 
+                                  fileText: fileText, 
+                                  fileName: fileName
+                                ),
+                          ),
+                        );
+
+                        if (successMessage != null && parentContext.mounted) {
+                          HapticFeedback.mediumImpact();
+                          _showFeedbackModal(parentContext, true, successMessage);
+                        }
+                      },
+                    ),
+                    const Divider(height: 30),
+
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE940A3).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.update, color: Color(0xFFE940A3)),
+                      ),
+                      title: const Text(
+                        "Update Deck with AI",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      subtitle: const Text(
+                        "Add newly generated cards to an existing deck",
+                      ),
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(modalContext);
+
+                        if (_decks.isEmpty) {
+                          HapticFeedback.heavyImpact();
+                          _showFeedbackModal(
+                            parentContext,
+                            false,
+                            "You need to create a deck first before updating one!",
+                          );
+                          return;
+                        }
+
+                        final successMessage = await showModalBottomSheet<String>(
+                          context: parentContext,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => UpdateDeckAIDialog(
+                            decks: _decks,
+                            onGenerate: (Deck deck, String topic) {
+                              final engineeredPrompt =
+                                  "Update the deck '${deck.name}' with the following topic/cards: $topic";
+                              return _processAIGeneration(parentContext, engineeredPrompt);
+                            },
+                          ),
+                        );
+
+                        if (successMessage != null && parentContext.mounted) {
+                          HapticFeedback.mediumImpact();
+                          _showFeedbackModal(parentContext, true, successMessage);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  "Choose how you want MindFlash AI to help you.",
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 24),
-
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5B4FE6).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      color: Color(0xFF5B4FE6),
-                    ),
-                  ),
-                  title: const Text(
-                    "Create New Deck with AI",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  subtitle: const Text(
-                    "Generate a completely new deck from a prompt",
-                  ),
-                  onTap: () async {
-                    HapticFeedback.lightImpact();
-                    Navigator.pop(modalContext);
-
-                    // Await the Bottom Sheet's result
-                    final successMessage = await showModalBottomSheet<String>(
-                      context: parentContext,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => CreateDeckAIDialog(
-                        onGenerate: (topic) =>
-                            _processAIGeneration(parentContext, topic),
-                      ),
-                    );
-
-                    // Show the success modal only after the Bottom Sheet is gone
-                    if (successMessage != null && parentContext.mounted) {
-                      HapticFeedback.mediumImpact();
-                      _showFeedbackModal(parentContext, true, successMessage);
-                    }
-                  },
-                ),
-                const Divider(height: 30),
-
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE940A3).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.update, color: Color(0xFFE940A3)),
-                  ),
-                  title: const Text(
-                    "Update Deck with AI",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  subtitle: const Text(
-                    "Add newly generated cards to an existing deck",
-                  ),
-                  onTap: () async {
-                    HapticFeedback.lightImpact();
-                    Navigator.pop(modalContext);
-
-                    if (_decks.isEmpty) {
-                      HapticFeedback.heavyImpact();
-                      _showFeedbackModal(
-                        parentContext,
-                        false,
-                        "You need to create a deck first before updating one!",
-                      );
-                      return;
-                    }
-
-                    // Await the Bottom Sheet's result
-                    final successMessage = await showModalBottomSheet<String>(
-                      context: parentContext,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => UpdateDeckAIDialog(
-                        decks: _decks,
-                        onGenerate: (Deck deck, String topic) {
-                          final engineeredPrompt =
-                              "Update the deck '${deck.name}' with the following topic/cards: $topic";
-                          return _processAIGeneration(parentContext, engineeredPrompt);
-                        },
-                      ),
-                    );
-
-                    // Show the success modal only after the Bottom Sheet is gone
-                    if (successMessage != null && parentContext.mounted) {
-                      HapticFeedback.mediumImpact();
-                      _showFeedbackModal(parentContext, true, successMessage);
-                    }
-                  },
-                ),
-                const SizedBox(height: 10),
-              ],
+              ),
             ),
           ),
         ),
@@ -329,61 +349,67 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const DashboardHeader(),
-                  const SizedBox(height: 25),
-                  _buildStatsRow(),
-                ],
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: AppColors.mainBackgroundGradient,
+    // 💡 FIX: AnnotatedRegion forces the status bar icons to be DARK (black) so they are visible against the white background.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent, // Keeps the background of the status bar transparent
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const DashboardHeader(),
+                    const SizedBox(height: 25),
+                    _buildStatsRow(),
+                  ],
                 ),
               ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          )
-                        : _decks.isEmpty
-                        ? _buildEmptyState()
-                        : _buildDeckList(),
+            ),
+
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: AppColors.mainBackgroundGradient,
                   ),
-                  SafeArea(
-                    top: false,
-                    bottom: true,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-                      child: _buildActionButtons(context),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            )
+                          : _decks.isEmpty
+                          ? _buildEmptyState()
+                          : _buildDeckList(),
                     ),
-                  ),
-                ],
+                    SafeArea(
+                      top: false,
+                      bottom: true,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                        child: _buildActionButtons(context),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -673,12 +699,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                   children: const [
                     Icon(Icons.auto_awesome, color: Colors.white),
                     SizedBox(width: 8),
-                    Text(
-                      "Generate with AI",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    Flexible(
+                      child: Text(
+                        "Generate with AI",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -722,12 +751,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                 children: const [
                   Icon(Icons.add, color: Colors.black),
                   SizedBox(width: 8),
-                  Text(
-                    "Create Deck Manually",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Flexible(
+                    child: Text(
+                      "Create Deck Manually",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

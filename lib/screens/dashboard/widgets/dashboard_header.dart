@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'constants.dart';
-import 'how_it_works_dialog.dart';
+import '../../../constants.dart';
+import '../../../widgets/how_it_works_dialog.dart';
 
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({super.key});

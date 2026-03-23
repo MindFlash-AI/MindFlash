@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
-import 'card_model.dart';
+import '../models/card_model.dart';
 
 class CreateCardDialog extends StatefulWidget {
   final String deckId;

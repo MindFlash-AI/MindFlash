@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dashboard_screen.dart';
-import 'constants.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../../constants.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});

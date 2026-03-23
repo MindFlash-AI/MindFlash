@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'card_model.dart';
+import '../models/card_model.dart';
 
 class EditCardDialog extends StatefulWidget {
   final Flashcard card;

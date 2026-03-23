@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
-import 'deck_model.dart';
+import '../models/deck_model.dart';
 
 class CreateDeckDialog extends StatefulWidget {
   final Function(Deck) onDeckCreated;
