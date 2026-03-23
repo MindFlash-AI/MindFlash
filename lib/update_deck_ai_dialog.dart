@@ -19,6 +19,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
   final _formKey = GlobalKey<FormState>();
   Deck? _selectedDeck;
   final TextEditingController _topicController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -26,6 +27,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
     if (widget.decks.isNotEmpty) {
       _selectedDeck = widget.decks.first;
     }
+    _topicController.addListener(() => setState(() {}));
   }
 
   @override
@@ -36,15 +38,57 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.decks.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.layers_clear, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              "No Decks Available",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Please create a deck first before generating AI cards.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                "Close",
+                style: TextStyle(color: Color(0xFFE940A3)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
@@ -58,10 +102,21 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
-                      children: const [
-                        Icon(Icons.update, color: Color(0xFFE940A3), size: 28),
-                        SizedBox(width: 8),
-                        Text(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE940A3).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome,
+                            color: Color(0xFFE940A3),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
                           "Update with AI",
                           style: TextStyle(
                             fontSize: 22,
@@ -74,8 +129,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close, color: Colors.grey),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      tooltip: 'Close',
                     ),
                   ],
                 ),
@@ -91,11 +145,12 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                 const SizedBox(height: 24),
 
                 const Text(
-                  "Select Deck",
+                  "SELECT DECK",
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF6B7280),
+                    letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -107,11 +162,13 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                       child: Text(deck.name),
                     );
                   }).toList(),
-                  onChanged: (Deck? newValue) {
-                    setState(() {
-                      _selectedDeck = newValue;
-                    });
-                  },
+                  onChanged: _isSubmitting
+                      ? null
+                      : (Deck? newValue) {
+                          setState(() {
+                            _selectedDeck = newValue;
+                          });
+                        },
                   validator: (value) =>
                       value == null ? 'Please select a deck' : null,
                   decoration: InputDecoration(
@@ -120,6 +177,13 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE940A3),
+                        width: 2,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -135,16 +199,21 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                 const SizedBox(height: 20),
 
                 const Text(
-                  "What should we add?",
+                  "WHAT SHOULD WE ADD?",
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF6B7280),
+                    letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _topicController,
+                  autofocus: true,
+                  textInputAction: TextInputAction.send,
+                  enabled: !_isSubmitting,
+                  onFieldSubmitted: (_) => _submitUpdate(),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter a topic to add';
@@ -152,8 +221,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                     return null;
                   },
                   decoration: InputDecoration(
-                    hintText:
-                        "e.g., More irregular verbs, Advanced math formulas...",
+                    hintText: "e.g., More about widgets...",
                     hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
                     filled: true,
                     fillColor: const Color(0xFFF5F5F5),
@@ -161,18 +229,36 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE940A3),
+                        width: 2,
+                      ),
+                    ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Colors.red, width: 1),
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.red, width: 1),
+                      borderSide: const BorderSide(color: Colors.red, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
                     ),
+                    suffixIcon:
+                        _topicController.text.isNotEmpty && !_isSubmitting
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.cancel,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: () => _topicController.clear(),
+                          )
+                        : null,
                   ),
                   maxLines: 2,
                   minLines: 1,
@@ -184,34 +270,61 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                   width: double.infinity,
                   height: 55,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE940A3), Color(0xFFFF5DAD)],
+                    gradient: LinearGradient(
+                      colors: _isSubmitting
+                          ? [Colors.grey.shade400, Colors.grey.shade400]
+                          : [const Color(0xFFE940A3), const Color(0xFFFF5DAD)],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFE940A3).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    boxShadow: _isSubmitting
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFFE940A3).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: _submitUpdate,
+                      onTap: _isSubmitting ? null : _submitUpdate,
                       borderRadius: BorderRadius.circular(16),
-                      child: const Center(
-                        child: Text(
-                          "Generate New Cards",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                      child: Center(
+                        child: _isSubmitting
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    "Crafting cards...",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Text(
+                                "Generate New Cards",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -226,8 +339,14 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
   void _submitUpdate() {
     if (_formKey.currentState!.validate() && _selectedDeck != null) {
+      setState(() {
+        _isSubmitting = true;
+      });
+
       final topic = _topicController.text.trim();
+
       widget.onGenerate(_selectedDeck!, topic);
+
       Navigator.of(context).pop();
     }
   }

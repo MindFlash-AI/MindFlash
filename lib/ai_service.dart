@@ -19,10 +19,6 @@ class AIService {
   final DeckStorageService _deckStorage = DeckStorageService();
   final CardStorageService _cardStorage = CardStorageService();
 
-  // ==========================================
-  // PASTE YOUR FIREBASE FUNCTION URL HERE:
-  // Make sure it ends with /generate-deck
-  // ==========================================
   final String backendUrl = dotenv.env['BACKEND_URL']!;
 
   Future<AIResponse> processInput({
@@ -30,7 +26,6 @@ class AIService {
     String? fileText,
     String? fileName,
   }) async {
-    // 1. Gather the user's current decks to send as context to the server
     final decks = await _deckStorage.getDecks();
     final allCards = await _cardStorage.getAllCards();
 
@@ -50,7 +45,6 @@ class AIService {
       }
     }
 
-    // 2. Make the HTTP request to your secure Firebase backend
     try {
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -67,7 +61,6 @@ class AIService {
         throw Exception("Server error: ${response.statusCode}");
       }
 
-      // 3. Parse the JSON returned by your server
       final Map<String, dynamic> data = jsonDecode(response.body);
 
       final String action = data['action'] ?? 'chat';
@@ -76,7 +69,6 @@ class AIService {
       Deck? newDeck;
       Deck? editedDeck;
 
-      // 4. Handle New Deck Creation
       if (action == 'create_deck' && data['cards'] != null) {
         final List<dynamic> cardsData = data['cards'];
 
@@ -104,7 +96,6 @@ class AIService {
           }
         }
       }
-      // 5. Handle Existing Deck Editing
       else if (action == 'edit_deck' &&
           data['targetDeckId'] != null &&
           data['cards'] != null) {

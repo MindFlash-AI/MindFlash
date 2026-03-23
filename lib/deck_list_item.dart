@@ -1,26 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'deck_model.dart';
 
 class DeckListItem extends StatelessWidget {
   final Deck deck;
   final VoidCallback onDelete;
-  final VoidCallback onTap; // --- ADDED THIS LINE ---
+  final VoidCallback onTap;
 
   const DeckListItem({
     super.key,
     required this.deck,
     required this.onDelete,
-    required this.onTap, // --- ADDED THIS LINE ---
+    required this.onTap,
   });
 
+  final LinearGradient _brandGradient = const LinearGradient(
+    colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   Future<bool?> _showDeleteConfirmation(BuildContext context) {
+    HapticFeedback.heavyImpact();
+
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           backgroundColor: Colors.white,
           title: const Text(
-            "Delete Deck",
+            "Delete Deck?",
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: Text(
@@ -30,14 +42,18 @@ class DeckListItem extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.black54),
-              ),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade50,
+                foregroundColor: Colors.red,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: const Text(
                 "Delete",
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -66,42 +82,68 @@ class DeckListItem extends StatelessWidget {
       },
       background: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
-          color: Colors.red.shade400,
+          gradient: LinearGradient(
+            colors: [Colors.red.shade300, Colors.red.shade500],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
-        child: const Icon(Icons.delete_forever, color: Colors.white, size: 32),
+        child: const Icon(
+          Icons.delete_forever_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Material(
           color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onTap,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   Container(
-                    width: 50,
-                    height: 50,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
-                      color: Colors.blue[200],
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: _brandGradient,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Center(
                       child: Text(
                         firstLetter,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
                           fontSize: 24,
                         ),
                       ),
@@ -115,40 +157,51 @@ class DeckListItem extends StatelessWidget {
                         Text(
                           deck.name,
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
                             fontSize: 16,
                             color: Colors.black87,
+                            letterSpacing: -0.3,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           deck.subject,
                           style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF5B4FE6).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            color: const Color(0xFFF4F6FF),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            "${deck.cardCount} cards",
+                            "${deck.cardCount} card${deck.cardCount == 1 ? '' : 's'}",
                             style: const TextStyle(
-                              color: Color(0xFF5B4FE6),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF5A6DFF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
                       ],
                     ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.grey.shade300,
+                    size: 28,
                   ),
                 ],
               ),

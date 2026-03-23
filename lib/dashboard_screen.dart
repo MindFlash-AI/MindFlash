@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'constants.dart';
 import 'dashboard_header.dart';
 import 'stat_card.dart';
@@ -18,15 +19,27 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with TickerProviderStateMixin {
   final DeckStorageService _storageService = DeckStorageService();
   List<Deck> _decks = [];
   bool _isLoading = true;
+  late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
     _loadDecks();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDecks() async {
@@ -50,13 +63,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadDecks();
   }
 
-  // --- NEW: Helper method to handle AI loading state and API calls ---
   Future<void> _processAIGeneration(BuildContext context, String prompt) async {
-    // 1. Show a loading dialog so the user knows AI is thinking
     showDialog(
       context: context,
-      barrierDismissible:
-          false, // Prevent user from dismissing it by tapping outside
+      barrierDismissible: false,
       builder: (loadingContext) => Center(
         child: Container(
           padding: const EdgeInsets.all(24),
@@ -74,8 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  decoration: TextDecoration
-                      .none, // Removes yellow underline from dialog text
+                  decoration: TextDecoration.none,
                   color: Colors.black87,
                 ),
               ),
@@ -86,42 +95,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     try {
-      // 2. Call your actual backend service
       final aiService = AIService();
       final response = await aiService.processInput(text: prompt);
 
-      // 3. Close the loading dialog safely
       if (context.mounted) Navigator.pop(context);
 
-      // 4. Refresh the decks to show the newly generated content
       _loadDecks();
 
-      // 5. Show success message from the server
       if (context.mounted) {
+        HapticFeedback.mediumImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(response.message),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
     } catch (e) {
-      // Close the loading dialog safely on error
       if (context.mounted) Navigator.pop(context);
 
-      // Show error message
       if (context.mounted) {
+        HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Generation Failed: ${e.toString()}"),
             backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
     }
   }
 
-  // --- AI Options Menu ---
   void _showAIOptionsModal(BuildContext parentContext) {
     showModalBottomSheet(
       context: parentContext,
@@ -137,6 +145,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -163,7 +182,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Option 1: Create New Deck
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Container(
@@ -185,6 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   "Generate a completely new deck from a prompt",
                 ),
                 onTap: () {
+                  HapticFeedback.lightImpact();
                   Navigator.pop(modalContext);
 
                   showModalBottomSheet(
@@ -192,7 +211,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
                     builder: (context) => CreateDeckAIDialog(
-                      // CONNECTED TO AI SERVICE
                       onGenerate: (topic) =>
                           _processAIGeneration(parentContext, topic),
                     ),
@@ -201,7 +219,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const Divider(height: 30),
 
-              // Option 2: Update Existing Deck
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Container(
@@ -220,15 +237,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   "Add newly generated cards to an existing deck",
                 ),
                 onTap: () {
+                  HapticFeedback.lightImpact();
                   Navigator.pop(modalContext);
 
                   if (_decks.isEmpty) {
+                    HapticFeedback.heavyImpact();
                     ScaffoldMessenger.of(parentContext).showSnackBar(
-                      const SnackBar(
-                        content: Text(
+                      SnackBar(
+                        content: const Text(
                           "You need to create a deck first before updating one!",
                         ),
                         backgroundColor: Colors.redAccent,
+                        behavior: SnackBarBehavior.floating,
+                        margin: const EdgeInsets.all(16),
                       ),
                     );
                     return;
@@ -240,9 +261,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     backgroundColor: Colors.transparent,
                     builder: (context) => UpdateDeckAIDialog(
                       decks: _decks,
-                      // CONNECTED TO AI SERVICE WITH CONTEXTUAL PROMPT
                       onGenerate: (Deck deck, String topic) {
-                        // We format the prompt so the backend knows exactly which deck to update
                         final engineeredPrompt =
                             "Update the deck '${deck.name}' with the following topic/cards: $topic";
                         _processAIGeneration(parentContext, engineeredPrompt);
@@ -348,32 +367,150 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30.0),
+    return Stack(
+      children: [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 60.0),
+            child: _buildAnimatedDeckGhost(),
+          ),
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                const Text(
+                  "No Decks Yet",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Create your first deck manually or\nlet AI build one for you!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontSize: 15,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnimatedDeckGhost() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(seconds: 3),
+      curve: Curves.easeInOut,
+      builder: (context, value, child) {
+        final floatValue = (value * 2 - 1).abs() - 1;
+        return Transform.translate(
+          offset: Offset(0, floatValue * 15),
+          child: Opacity(opacity: 0.15, child: child),
+        );
+      },
+      onEnd: () {
+        setState(() {});
+      },
+      child: Container(
+        height: 280,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white, width: 3),
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withOpacity(0.1),
+              Colors.white.withOpacity(0.05),
+            ],
+          ),
+        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildEmptyStateIcon(),
-            const SizedBox(height: 20),
-            const Text(
-              "No Decks Yet",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 160,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              "Create your first deck manually or\nlet AI build one for you!",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 14,
-                height: 1.5,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 200,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(
+                  3,
+                  (index) => Container(
+                    width: 50,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -403,18 +540,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             itemCount: _decks.length,
             itemBuilder: (context, index) {
               final deck = _decks[index];
-              return DeckListItem(
-                deck: deck,
-                onDelete: () => _deleteDeck(deck.id),
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DeckView(deck: deck),
+              return TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 30 * (1 - value)),
+                      child: child,
                     ),
                   );
-                  _loadDecks();
                 },
+                child: DeckListItem(
+                  deck: deck,
+                  onDelete: () => _deleteDeck(deck.id),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DeckView(deck: deck),
+                      ),
+                    );
+                    _loadDecks();
+                  },
+                ),
               );
             },
           ),
@@ -423,65 +574,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildEmptyStateIcon() {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Center(
-        child: Icon(Icons.menu_book_rounded, color: Colors.white, size: 40),
-      ),
-    );
-  }
-
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // AI Generate Button Menu Trigger
-        Container(
-          height: 55,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF2C1A8A), Color(0xFF5B4FE6)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+        AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, child) {
+            final scale =
+                1.0 +
+                (0.05 *
+                    (0.5 *
+                        (1 +
+                            ((_pulseController.value * 2 - 1).abs() - 0.5) *
+                                2)));
+            return Transform.scale(scale: scale, child: child);
+          },
+          child: Container(
+            height: 55,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2C1A8A), Color(0xFF5B4FE6)],
               ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _showAIOptionsModal(context),
               borderRadius: BorderRadius.circular(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.auto_awesome, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text(
-                    "Generate with AI",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _showAIOptionsModal(context);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.auto_awesome, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      "Generate with AI",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 12),
-        // Manual Create Button Bottom Sheet Trigger
         Container(
           height: 55,
           decoration: BoxDecoration(
@@ -497,8 +650,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: Material(
             color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: () {
+                HapticFeedback.lightImpact();
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,

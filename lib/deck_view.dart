@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'deck_model.dart';
 import 'card_model.dart';
 import 'card_storage_service.dart';
@@ -25,6 +26,18 @@ class _DeckViewState extends State<DeckView> {
   bool _isLoading = true;
   bool _isShuffleOn = false;
 
+  final LinearGradient _brandGradient = const LinearGradient(
+    colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  final LinearGradient _quizGradient = const LinearGradient(
+    colors: [Color(0xFFFF9100), Color(0xFFFF6D00)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -48,24 +61,53 @@ class _DeckViewState extends State<DeckView> {
     _loadCards();
   }
 
-  void _deleteCard(String cardId) async {
-    await _cardStorageService.deleteCard(cardId);
-    setState(() {
-      if (widget.deck.cardCount > 0) widget.deck.cardCount -= 1;
-    });
-    await _deckStorageService.updateDeck(widget.deck);
-    _loadCards();
+  Future<void> _confirmDeleteCard(String cardId) async {
+    HapticFeedback.heavyImpact();
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Delete Card?",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text("Are you sure? This action cannot be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade50,
+              foregroundColor: Colors.red,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              "Delete",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _cardStorageService.deleteCard(cardId);
+      setState(() {
+        if (widget.deck.cardCount > 0) widget.deck.cardCount -= 1;
+      });
+      await _deckStorageService.updateDeck(widget.deck);
+      _loadCards();
+    }
   }
 
   void _startReview() async {
-    if (_cards.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Add some cards first to start reviewing!"),
-        ),
-      );
-      return;
-    }
+    HapticFeedback.lightImpact();
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -80,18 +122,7 @@ class _DeckViewState extends State<DeckView> {
   }
 
   void _startQuiz() {
-    if (_cards.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "You need at least 4 cards in this deck to take a quiz!",
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
+    HapticFeedback.lightImpact();
     final quizQuestions = LocalQuizEngine.generateMCQ(_cards);
 
     Navigator.push(
@@ -109,43 +140,57 @@ class _DeckViewState extends State<DeckView> {
         ? widget.deck.name[0].toUpperCase()
         : "?";
 
+    final bool canReview = _cards.isNotEmpty;
+    final bool canQuiz = _cards.length >= 4;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFDF9FF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: const BackButton(color: Colors.black87),
         title: const Text(
           "Back",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
       body: Column(
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: Row(
               children: [
                 Container(
-                  width: 70,
-                  height: 70,
+                  width: 72,
+                  height: 72,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFA57A),
-                    borderRadius: BorderRadius.circular(16),
+                    gradient: _brandGradient,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
                       firstLetter,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                         fontSize: 32,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,23 +198,38 @@ class _DeckViewState extends State<DeckView> {
                       Text(
                         widget.deck.name,
                         style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E1E2C),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.deck.subject,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        "${widget.deck.cardCount} card${widget.deck.cardCount == 1 ? '' : 's'}",
-                        style: const TextStyle(
-                          color: Color(0xFF5B4FE6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F6FF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "${widget.deck.cardCount} card${widget.deck.cardCount == 1 ? '' : 's'}",
+                          style: const TextStyle(
+                            color: Color(0xFF5A6DFF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -179,140 +239,51 @@ class _DeckViewState extends State<DeckView> {
             ),
           ),
 
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 55,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF7A40F2),
-                                      Color(0xFF9830E8),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: _startReview,
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: const [
-                                        Icon(
-                                          Icons.play_arrow_outlined,
-                                          color: Colors.white,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          "Start Review",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Container(
-                                height: 55,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF3E8FF),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: () => setState(
-                                      () => _isShuffleOn = !_isShuffleOn,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.shuffle,
-                                          color: _isShuffleOn
-                                              ? const Color(0xFF7A40F2)
-                                              : Colors.black87,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _isShuffleOn
-                                              ? "Shuffle ON"
-                                              : "Shuffle OFF",
-                                          style: TextStyle(
-                                            color: _isShuffleOn
-                                                ? const Color(0xFF7A40F2)
-                                                : Colors.black87,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Container(
-                          height: 55,
-                          width: double.infinity,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Opacity(
+                        opacity: canReview ? 1.0 : 0.5,
+                        child: Container(
+                          height: 56,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            gradient: _brandGradient,
                             borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              if (canReview)
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF8B4EFF,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                            ],
                           ),
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: _startQuiz,
+                              onTap: canReview ? _startReview : null,
                               borderRadius: BorderRadius.circular(16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
                                   Icon(
-                                    Icons.quiz_outlined,
-                                    color: Color(0xFF8B4EFF),
+                                    Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 24,
                                   ),
-                                  SizedBox(width: 8),
+                                  SizedBox(width: 6),
                                   Text(
-                                    "Test My Knowledge (Quiz)",
+                                    "Review",
                                     style: TextStyle(
-                                      color: Color(0xFF8B4EFF),
+                                      color: Colors.white,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 15,
+                                      fontSize: 16,
                                     ),
                                   ),
                                 ],
@@ -320,42 +291,155 @@ class _DeckViewState extends State<DeckView> {
                             ),
                           ),
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: _isShuffleOn
+                              ? const Color(0xFFF4F6FF)
+                              : Colors.white,
+                          border: Border.all(
+                            color: _isShuffleOn
+                                ? const Color(0xFFD6DFFF)
+                                : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _isShuffleOn = !_isShuffleOn);
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.shuffle_rounded,
+                                  color: _isShuffleOn
+                                      ? const Color(0xFF5A6DFF)
+                                      : Colors.black54,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Shuffle",
+                                  style: TextStyle(
+                                    color: _isShuffleOn
+                                        ? const Color(0xFF5A6DFF)
+                                        : Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Opacity(
+                  opacity: canQuiz ? 1.0 : 0.5,
+                  child: Container(
+                    height: 56,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: _quizGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        if (canQuiz)
+                          BoxShadow(
+                            color: const Color(0xFFFF9100).withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
                       ],
                     ),
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Text(
-                      "Cards (${_cards.length})",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: canQuiz ? _startQuiz : null,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.quiz_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              canQuiz
+                                  ? "Take a Quiz"
+                                  : "Need 4+ Cards for Quiz",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  Expanded(
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          )
-                        : _cards.isEmpty
-                        ? _buildEmptyState()
-                        : _buildCardsList(),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
+
+          const SizedBox(height: 24),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Row(
+              children: [
+                const Text(
+                  "Card List",
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  "${_cards.length} Total",
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF8B4EFF)),
+                  )
+                : _cards.isEmpty
+                ? _buildEmptyState()
+                : _buildCardsList(),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          HapticFeedback.lightImpact();
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -366,7 +450,7 @@ class _DeckViewState extends State<DeckView> {
             ),
           );
         },
-        backgroundColor: const Color(0xFF7A40F2),
+        backgroundColor: const Color(0xFF1E1E2C),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
           "Add Card",
@@ -381,31 +465,31 @@ class _DeckViewState extends State<DeckView> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          width: 70,
-          height: 70,
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            color: Colors.white24,
-            borderRadius: BorderRadius.circular(18),
+            color: const Color(0xFFF4F6FF),
+            borderRadius: BorderRadius.circular(24),
           ),
           child: const Icon(
-            Icons.add_photo_alternate_outlined,
-            size: 36,
-            color: Colors.white,
+            Icons.style_outlined,
+            size: 40,
+            color: Color(0xFF5A6DFF),
           ),
         ),
         const SizedBox(height: 20, width: double.infinity),
         const Text(
-          "No Cards Yet",
+          "This deck is empty",
           style: TextStyle(
             fontSize: 20,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+            fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           "Add your first card to start studying!",
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
         ),
       ],
     );
@@ -414,126 +498,146 @@ class _DeckViewState extends State<DeckView> {
   Widget _buildCardsList() {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+      physics: const BouncingScrollPhysics(),
       itemCount: _cards.length,
       itemBuilder: (context, index) {
         final card = _cards[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7A40F2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      "#${index + 1}",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => EditCardDialog(
-                              card: card,
-                              onCardUpdated: (updatedCard) async {
-                                await _cardStorageService.updateCard(
-                                  updatedCard,
-                                );
-                                _loadCards();
-                              },
-                            ),
-                          );
-                        },
-                        child: const Icon(
-                          Icons.edit_outlined,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      InkWell(
-                        onTap: () => _deleteCard(card.id),
-                        child: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
 
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F6FF),
-                  borderRadius: BorderRadius.circular(8),
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: Duration(milliseconds: 400 + (index * 100).clamp(0, 600)),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 30 * (1 - value)),
+              child: Opacity(opacity: value, child: child),
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "QUESTION",
-                      style: TextStyle(
-                        color: Color(0xFF5A6DFF),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F6FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "#${index + 1}",
+                        style: const TextStyle(
+                          color: Color(0xFF5A6DFF),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      card.question,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    const Text(
-                      "ANSWER",
-                      style: TextStyle(
-                        color: Color(0xFFC042E6),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      card.answer,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            showDialog(
+                              context: context,
+                              builder: (context) => EditCardDialog(
+                                card: card,
+                                onCardUpdated: (updatedCard) async {
+                                  await _cardStorageService.updateCard(
+                                    updatedCard,
+                                  );
+                                  _loadCards();
+                                },
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.edit_rounded,
+                            color: Colors.black45,
+                            size: 20,
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: () => _confirmDeleteCard(card.id),
+                          icon: const Icon(
+                            Icons.delete_rounded,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+
+                const Text(
+                  "FRONT",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  card.question,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFF0F0F0),
+                  ),
+                ),
+
+                const Text(
+                  "BACK",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  card.answer,
+                  style: const TextStyle(color: Colors.black87, fontSize: 15),
+                ),
+              ],
+            ),
           ),
         );
       },
