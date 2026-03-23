@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-import 'deck_model.dart';
-import 'card_model.dart';
+import '../models/deck_model.dart';
+import '../models/card_model.dart';
 import 'deck_storage_service.dart';
 import 'card_storage_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';

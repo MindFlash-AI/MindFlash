@@ -1,5 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'deck_model.dart';
+import '../models/deck_model.dart';
 
 class DeckStorageService {
   static const String _decksKey = 'decks';

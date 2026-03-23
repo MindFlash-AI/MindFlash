@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dashboard_screen.dart';
-import 'constants.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../../constants.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -137,90 +137,92 @@ class _LoadingScreenState extends State<LoadingScreen>
               colors: AppColors.mainBackgroundGradient,
             ),
           ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FadeTransition(
-                  opacity: _logoFade,
-                  child: ScaleTransition(
-                    scale: _logoScale,
-                    child: AnimatedBuilder(
-                      animation: _breathingController,
-                      builder: (context, child) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(
-                                  0.15 + (_breathingController.value * 0.1),
+          child: SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FadeTransition(
+                    opacity: _logoFade,
+                    child: ScaleTransition(
+                      scale: _logoScale,
+                      child: AnimatedBuilder(
+                        animation: _breathingController,
+                        builder: (context, child) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(
+                                    0.15 + (_breathingController.value * 0.1),
+                                  ),
+                                  blurRadius:
+                                      40 + (_breathingController.value * 20),
+                                  spreadRadius:
+                                      5 + (_breathingController.value * 10),
                                 ),
-                                blurRadius:
-                                    40 + (_breathingController.value * 20),
-                                spreadRadius:
-                                    5 + (_breathingController.value * 10),
-                              ),
-                            ],
-                          ),
-                          child: child,
-                        );
-                      },
-                      child: Image.asset(
-                        'assets/MindFlash_logo.png',
-                        width: 140,
-                        height: 140,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                              Icons.auto_awesome,
-                              size: 100,
-                              color: Colors.white,
+                              ],
                             ),
+                            child: child,
+                          );
+                        },
+                        child: Image.asset(
+                          'assets/MindFlash_logo.png',
+                          width: 140,
+                          height: 140,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                                Icons.auto_awesome,
+                                size: 100,
+                                color: Colors.white,
+                              ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 32),
-
-                FadeTransition(
-                  opacity: _titleFade,
-                  child: SlideTransition(
-                    position: _titleSlide,
-                    child: const Text(
-                      'MindFlash',
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2.0,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black26,
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
+                  const SizedBox(height: 32),
+            
+                  FadeTransition(
+                    opacity: _titleFade,
+                    child: SlideTransition(
+                      position: _titleSlide,
+                      child: const Text(
+                        'MindFlash',
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2.0,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black26,
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-
-                FadeTransition(
-                  opacity: _subtitleFade,
-                  child: SlideTransition(
-                    position: _subtitleSlide,
-                    child: Text(
-                      'Supercharge your learning',
-                      style: TextStyle(
-                        fontSize: 16,
-                        letterSpacing: 1.2,
-                        color: Colors.white.withOpacity(0.85),
+                  const SizedBox(height: 8),
+            
+                  FadeTransition(
+                    opacity: _subtitleFade,
+                    child: SlideTransition(
+                      position: _subtitleSlide,
+                      child: Text(
+                        'Supercharge your learning',
+                        style: TextStyle(
+                          fontSize: 16,
+                          letterSpacing: 1.2,
+                          color: Colors.white.withOpacity(0.85),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

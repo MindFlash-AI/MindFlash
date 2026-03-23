@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'loading_screen.dart';
+import 'screens/loading_screen/loading_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

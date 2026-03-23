@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'deck_model.dart';
+import '../models/deck_model.dart';
 
 class DeckListItem extends StatelessWidget {
   final Deck deck;

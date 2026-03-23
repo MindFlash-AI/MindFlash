@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'card_model.dart';
+import '../models/card_model.dart';
 
 class EditCardDialog extends StatefulWidget {
   final Flashcard card;
@@ -118,6 +118,8 @@ class _EditCardDialogState extends State<EditCardDialog> {
         deckId: widget.card.deckId,
         question: _questionController.text.trim(),
         answer: _answerController.text.trim(),
+        isFlagged: widget.card.isFlagged, 
+        isMastered: widget.card.isMastered, // Preserve the mastered state when editing!
       );
 
       widget.onCardUpdated(updatedCard);
@@ -129,136 +131,138 @@ class _EditCardDialogState extends State<EditCardDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && context.mounted) {
-          Navigator.of(context).pop();
-        }
-      },
-      child: Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        elevation: 24,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Edit Card",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black87,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () async {
-                          HapticFeedback.selectionClick();
-                          final shouldPop = await _onWillPop();
-                          if (shouldPop && context.mounted) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        icon: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.black54,
-                            size: 20,
+    return SafeArea(
+      child: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) async {
+          if (didPop) return;
+          final shouldPop = await _onWillPop();
+          if (shouldPop && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          elevation: 24,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Edit Card",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black87,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  _buildInputLabel(
-                    "Question (Front)",
-                    Icons.help_outline_rounded,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildTextFormField(
-                    controller: _questionController,
-                    focusNode: _questionFocus,
-                    hint: "e.g., Enter the question or term...",
-                    textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) =>
-                        FocusScope.of(context).requestFocus(_answerFocus),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Question is required'
-                        : null,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  _buildInputLabel("Answer (Back)", Icons.edit_note_rounded),
-                  const SizedBox(height: 10),
-                  _buildTextFormField(
-                    controller: _answerController,
-                    focusNode: _answerFocus,
-                    hint: "e.g., Enter the answer or definition...",
-                    maxLines: 4,
-                    textInputAction: TextInputAction.done,
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Answer is required'
-                        : null,
-                  ),
-
-                  const SizedBox(height: 36),
-
-                  Container(
-                    width: double.infinity,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      gradient: _brandGradient,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF8B4EFF).withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
+                        IconButton(
+                          onPressed: () async {
+                            HapticFeedback.selectionClick();
+                            final shouldPop = await _onWillPop();
+                            if (shouldPop && context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          icon: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.black54,
+                              size: 20,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: ElevatedButton(
-                      onPressed: _updateCard,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                    const SizedBox(height: 24),
+      
+                    _buildInputLabel(
+                      "Question (Front)",
+                      Icons.help_outline_rounded,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTextFormField(
+                      controller: _questionController,
+                      focusNode: _questionFocus,
+                      hint: "e.g., Enter the question or term...",
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) =>
+                          FocusScope.of(context).requestFocus(_answerFocus),
+                      validator: (value) => value == null || value.trim().isEmpty
+                          ? 'Question is required'
+                          : null,
+                    ),
+      
+                    const SizedBox(height: 24),
+      
+                    _buildInputLabel("Answer (Back)", Icons.edit_note_rounded),
+                    const SizedBox(height: 10),
+                    _buildTextFormField(
+                      controller: _answerController,
+                      focusNode: _answerFocus,
+                      hint: "e.g., Enter the answer or definition...",
+                      maxLines: 4,
+                      textInputAction: TextInputAction.done,
+                      validator: (value) => value == null || value.trim().isEmpty
+                          ? 'Answer is required'
+                          : null,
+                    ),
+      
+                    const SizedBox(height: 36),
+      
+                    Container(
+                      width: double.infinity,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        gradient: _brandGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        "Save Changes",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
+                      child: ElevatedButton(
+                        onPressed: _updateCard,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          "Save Changes",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

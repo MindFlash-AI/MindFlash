@@ -1,6 +1,6 @@
 import 'dart:math';
-import 'quiz_question.dart';
-import 'card_model.dart';
+import '../models/quiz_question_model.dart';
+import '../models/card_model.dart';
 
 class _AnswerProfile {
   final String text;

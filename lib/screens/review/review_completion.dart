@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'deck_model.dart';
-import 'card_model.dart';
-import 'review.dart';
+import '../../models/deck_model.dart';
+import '../../models/card_model.dart';
+import 'review_screen.dart';
 
 class ReviewCompletionScreen extends StatefulWidget {
   final Deck deck;

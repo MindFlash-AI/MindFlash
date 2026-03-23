@@ -1,30 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
-import 'card_model.dart';
+import '../models/deck_model.dart';
 
-class CreateCardDialog extends StatefulWidget {
-  final String deckId;
-  final Function(Flashcard) onCardCreated;
+class CreateDeckDialog extends StatefulWidget {
+  final Function(Deck) onDeckCreated;
 
-  const CreateCardDialog({
-    super.key,
-    required this.deckId,
-    required this.onCardCreated,
-  });
+  const CreateDeckDialog({super.key, required this.onDeckCreated});
 
   @override
-  State<CreateCardDialog> createState() => _CreateCardDialogState();
+  State<CreateDeckDialog> createState() => _CreateDeckDialogState();
 }
 
-class _CreateCardDialogState extends State<CreateCardDialog> {
+class _CreateDeckDialogState extends State<CreateDeckDialog> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _questionController = TextEditingController();
-  final TextEditingController _answerController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController();
 
-  final FocusNode _questionFocus = FocusNode();
-  final FocusNode _answerFocus = FocusNode();
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _subjectFocus = FocusNode();
 
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -36,34 +31,37 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _questionFocus.requestFocus();
+      _nameFocus.requestFocus();
     });
 
-    _questionController.addListener(() => setState(() {}));
-    _answerController.addListener(() => setState(() {}));
+    _nameController.addListener(() => setState(() {}));
+    _subjectController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    _questionController.dispose();
-    _answerController.dispose();
-    _questionFocus.dispose();
-    _answerFocus.dispose();
+    _nameController.dispose();
+    _subjectController.dispose();
+    _nameFocus.dispose();
+    _subjectFocus.dispose();
     super.dispose();
   }
 
-  void _createCard() {
+  void _createDeck() {
     if (_formKey.currentState!.validate()) {
       HapticFeedback.lightImpact();
 
-      final newCard = Flashcard(
+      final name = _nameController.text.trim();
+      final subject = _subjectController.text.trim();
+
+      final newDeck = Deck(
         id: const Uuid().v4(),
-        deckId: widget.deckId,
-        question: _questionController.text.trim(),
-        answer: _answerController.text.trim(),
+        name: name,
+        subject: subject,
+        cardCount: 0,
       );
 
-      widget.onCardCreated(newCard);
+      widget.onDeckCreated(newDeck);
       Navigator.of(context).pop();
     } else {
       HapticFeedback.heavyImpact();
@@ -72,18 +70,17 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+        child: Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
             child: Form(
@@ -103,12 +100,12 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                       ),
                     ),
                   ),
-
+      
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Add New Card",
+                        "Create New Deck",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -128,7 +125,7 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.close_rounded,
+                            Icons.close,
                             color: Colors.black54,
                             size: 20,
                           ),
@@ -138,43 +135,52 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
-
-                  _buildInputLabel(
-                    "Question (Front)",
-                    Icons.flip_to_front_rounded,
+                  const SizedBox(height: 8),
+                  Text(
+                    "Enter the details for your new flashcard deck.",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
+                  const SizedBox(height: 28),
+      
+                  _buildInputLabel("Deck Name", Icons.style_rounded),
                   const SizedBox(height: 8),
                   _buildTextFormField(
-                    controller: _questionController,
-                    focusNode: _questionFocus,
-                    hint: "e.g., It is everything visible on the screen",
+                    controller: _nameController,
+                    focusNode: _nameFocus,
+                    hint: "e.g., CMSC 156",
+                    maxLength: 40,
                     textInputAction: TextInputAction.next,
                     onFieldSubmitted: (_) =>
-                        FocusScope.of(context).requestFocus(_answerFocus),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Question is required'
-                        : null,
+                        FocusScope.of(context).requestFocus(_subjectFocus),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Deck name is required';
+                      }
+                      return null;
+                    },
                   ),
-
-                  const SizedBox(height: 20),
-
-                  _buildInputLabel("Answer (Back)", Icons.flip_to_back_rounded),
+      
+                  const SizedBox(height: 16),
+      
+                  _buildInputLabel("Subject", Icons.bookmark_border_rounded),
                   const SizedBox(height: 8),
                   _buildTextFormField(
-                    controller: _answerController,
-                    focusNode: _answerFocus,
-                    hint: "e.g., Widgets",
-                    maxLines: 4,
-                    minLines: 2,
-                    textInputAction: TextInputAction.newline,
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Answer is required'
-                        : null,
+                    controller: _subjectController,
+                    focusNode: _subjectFocus,
+                    hint: "e.g., Flutter UI Foundations",
+                    maxLength: 30,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _createDeck(),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Subject is required';
+                      }
+                      return null;
+                    },
                   ),
-
-                  const SizedBox(height: 32),
-
+      
+                  const SizedBox(height: 24),
+      
                   Container(
                     width: double.infinity,
                     height: 56,
@@ -194,10 +200,10 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                       clipBehavior: Clip.antiAlias,
                       borderRadius: BorderRadius.circular(16),
                       child: InkWell(
-                        onTap: _createCard,
+                        onTap: _createDeck,
                         child: const Center(
                           child: Text(
-                            "Save Card",
+                            "Create Deck",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -239,8 +245,7 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
     required TextEditingController controller,
     required FocusNode focusNode,
     required String hint,
-    int? maxLines = 1,
-    int? minLines = 1,
+    required int maxLength,
     TextInputAction? textInputAction,
     Function(String)? onFieldSubmitted,
     required String? Function(String?) validator,
@@ -249,18 +254,17 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
       controller: controller,
       focusNode: focusNode,
       validator: validator,
-      maxLines: maxLines,
-      minLines: minLines,
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
-      textCapitalization: TextCapitalization.sentences,
+      textCapitalization: TextCapitalization.words,
+      inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
       style: const TextStyle(fontSize: 16, color: Colors.black87),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
         filled: true,
         fillColor: const Color(0xFFF8F9FA),
-        suffixIcon: controller.text.isNotEmpty && maxLines == 1
+        suffixIcon: controller.text.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),
                 onPressed: () {
