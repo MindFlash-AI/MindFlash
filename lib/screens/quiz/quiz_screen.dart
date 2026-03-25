@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/quiz_question_model.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -14,9 +15,7 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   int _currentIndex = 0;
-  int _score = 0;
-  bool _hasAnswered = false;
-  String? _selectedAnswer;
+  late List<String?> _answers;
 
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -24,45 +23,110 @@ class _QuizScreenState extends State<QuizScreen> {
     end: Alignment.centerRight,
   );
 
+  @override
+  void initState() {
+    super.initState();
+    _answers = List.filled(widget.quiz.length, null);
+    _loadProgress();
+  }
+
+  // --- Computed State Properties ---
+  bool get _hasAnsweredCurrent => _answers[_currentIndex] != null;
+  String? get _selectedAnswerCurrent => _answers[_currentIndex];
+
+  int get _correctCount {
+    int count = 0;
+    for (int i = 0; i < widget.quiz.length; i++) {
+      if (_answers[i] == widget.quiz[i].correctAnswer) count++;
+    }
+    return count;
+  }
+
+  int get _incorrectCount {
+    int count = 0;
+    for (int i = 0; i < widget.quiz.length; i++) {
+      if (_answers[i] != null && _answers[i] != widget.quiz[i].correctAnswer) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  int get _remainingCount =>
+      widget.quiz.length - _answers.where((a) => a != null).length;
+
+  // --- Progress Saving & Loading ---
+  Future<void> _saveProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Convert nulls to empty strings for saving
+    final savedAnswers = _answers.map((e) => e ?? '').toList();
+    await prefs.setStringList('quiz_answers_${widget.deckTitle}', savedAnswers);
+    await prefs.setInt('quiz_index_${widget.deckTitle}', _currentIndex);
+  }
+
+  Future<void> _loadProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedAnswers = prefs.getStringList('quiz_answers_${widget.deckTitle}');
+    final savedIndex = prefs.getInt('quiz_index_${widget.deckTitle}');
+
+    if (savedAnswers != null && savedAnswers.length == widget.quiz.length) {
+      setState(() {
+        _answers = savedAnswers.map((e) => e.isEmpty ? null : e).toList();
+        _currentIndex = savedIndex ?? 0;
+      });
+    }
+  }
+
+  Future<void> _clearProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('quiz_answers_${widget.deckTitle}');
+    await prefs.remove('quiz_index_${widget.deckTitle}');
+  }
+
+  // --- Quiz Interactions ---
   void _checkAnswer(String answer) {
-    if (_hasAnswered) return;
+    if (_hasAnsweredCurrent) return;
 
     HapticFeedback.lightImpact();
 
     setState(() {
-      _hasAnswered = true;
-      _selectedAnswer = answer;
-      if (answer == widget.quiz[_currentIndex].correctAnswer) {
-        _score++;
-      }
+      _answers[_currentIndex] = answer;
     });
+    
+    _saveProgress();
   }
 
   void _nextQuestion() {
     if (_currentIndex < widget.quiz.length - 1) {
       setState(() {
         _currentIndex++;
-        _hasAnswered = false;
-        _selectedAnswer = null;
       });
+      _saveProgress();
     } else {
       _showResults();
     }
   }
 
-  Future<bool> _onWillPop() async {
-    if (_currentIndex == 0 && !_hasAnswered) return true;
+  void _previousQuestion() {
+    if (_currentIndex > 0) {
+      setState(() {
+        _currentIndex--;
+      });
+      _saveProgress();
+    }
+  }
 
+  Future<bool> _onWillPop() async {
     final shouldPop = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          "Quit Quiz?",
+          "Pause Quiz?",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          "You will lose your current progress. Are you sure?",
+          "Your progress has been automatically saved. You can resume later.",
         ),
         actions: [
           TextButton(
@@ -72,15 +136,15 @@ class _QuizScreenState extends State<QuizScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade50,
-              foregroundColor: Colors.red,
+              backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+              foregroundColor: const Color(0xFF8B4EFF),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: const Text(
-              "Quit",
+              "Exit",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -90,7 +154,10 @@ class _QuizScreenState extends State<QuizScreen> {
     return shouldPop ?? false;
   }
 
-  void _showResults() {
+  void _showResults() async {
+    await _clearProgress(); // Wipe progress when quiz is completed
+    
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -118,7 +185,7 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "You scored $_score out of ${widget.quiz.length}.",
+              "You scored $_correctCount out of ${widget.quiz.length}.",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ],
@@ -152,11 +219,28 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
+  // Helper widget for Stats
+  Widget _buildStatBadge(IconData icon, Color color, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.quiz[_currentIndex];
-    final progress =
-        (_currentIndex + (_hasAnswered ? 1 : 0)) / widget.quiz.length;
+    final progress = (_currentIndex + (_hasAnsweredCurrent ? 1 : 0)) / widget.quiz.length;
 
     return PopScope(
       canPop: false,
@@ -189,6 +273,7 @@ class _QuizScreenState extends State<QuizScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Progress Bar
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(begin: 0, end: progress),
                 duration: const Duration(milliseconds: 400),
@@ -213,9 +298,22 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
               ),
 
+              // Stats Display
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatBadge(Icons.check_circle_rounded, Colors.green.shade600, '$_correctCount'),
+                    _buildStatBadge(Icons.cancel_rounded, Colors.red.shade500, '$_incorrectCount'),
+                    _buildStatBadge(Icons.help_outline_rounded, Colors.grey.shade500, '$_remainingCount'),
+                  ],
+                ),
+              ),
+
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -230,7 +328,7 @@ class _QuizScreenState extends State<QuizScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       Expanded(
                         flex: 3,
@@ -264,7 +362,7 @@ class _QuizScreenState extends State<QuizScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 20),
 
                       Expanded(
                         flex: 5,
@@ -280,14 +378,14 @@ class _QuizScreenState extends State<QuizScreen> {
                             IconData? feedbackIcon;
                             Color iconColor = Colors.transparent;
 
-                            if (_hasAnswered) {
+                            if (_hasAnsweredCurrent) {
                               if (option == currentQuestion.correctAnswer) {
                                 buttonColor = Colors.green.shade50;
                                 borderColor = Colors.green.shade400;
                                 textColor = Colors.green.shade800;
                                 feedbackIcon = Icons.check_circle_rounded;
                                 iconColor = Colors.green.shade500;
-                              } else if (option == _selectedAnswer) {
+                              } else if (option == _selectedAnswerCurrent) {
                                 buttonColor = Colors.red.shade50;
                                 borderColor = Colors.red.shade400;
                                 textColor = Colors.red.shade800;
@@ -297,7 +395,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             }
 
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
+                              padding: const EdgeInsets.only(bottom: 12.0),
                               child: InkWell(
                                 onTap: () => _checkAnswer(option),
                                 borderRadius: BorderRadius.circular(16),
@@ -306,7 +404,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                   curve: Curves.easeInOut,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 20,
-                                    vertical: 18,
+                                    vertical: 16,
                                   ),
                                   decoration: BoxDecoration(
                                     color: buttonColor,
@@ -350,50 +448,76 @@ class _QuizScreenState extends State<QuizScreen> {
                         ),
                       ),
 
+                      // Navigation Buttons
                       SizedBox(
                         height: 56,
-                        child: AnimatedOpacity(
-                          opacity: _hasAnswered ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 200),
-                          child: IgnorePointer(
-                            ignoring: !_hasAnswered,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: _brandGradient,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF8B4EFF,
-                                    ).withOpacity(0.3),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 6),
+                        child: Row(
+                          children: [
+                            if (_currentIndex > 0)
+                              Expanded(
+                                flex: 1,
+                                child: OutlinedButton(
+                                  onPressed: _previousQuestion,
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    side: BorderSide(color: Colors.grey.shade300, width: 2),
                                   ),
-                                ],
+                                  child: Text(
+                                    "Previous",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade700,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              child: ElevatedButton(
-                                onPressed: _nextQuestion,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
+                              
+                            if (_currentIndex > 0 && _hasAnsweredCurrent)
+                              const SizedBox(width: 12),
+                              
+                            if (_hasAnsweredCurrent)
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: _brandGradient,
                                     borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                child: Text(
-                                  _currentIndex < widget.quiz.length - 1
-                                      ? "Next Question"
-                                      : "Finish Quiz",
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5,
+                                  child: ElevatedButton(
+                                    onPressed: _nextQuestion,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _currentIndex < widget.quiz.length - 1
+                                          ? "Next Question"
+                                          : "Finish Quiz",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
+                          ],
                         ),
                       ),
                     ],

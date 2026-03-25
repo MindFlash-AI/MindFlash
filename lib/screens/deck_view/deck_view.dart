@@ -33,7 +33,6 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
 
   List<Flashcard> _cards = [];
   bool _isLoading = true;
-  bool _isShuffleOn = false;
 
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -140,7 +139,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
         builder: (context) => ReviewScreen(
           deck: widget.deck,
           cards: _cards,
-          isShuffleOn: _isShuffleOn,
+          isShuffleOn: false, // Users now shuffle directly inside the review screen
         ),
       ),
     );
@@ -156,7 +155,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
         builder: (context) => ReviewScreen(
           deck: widget.deck,
           cards: flaggedCards,
-          isShuffleOn: _isShuffleOn,
+          isShuffleOn: false,
         ),
       ),
     );
@@ -305,19 +304,6 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
             children: [
               Expanded(
                 child: _buildToolButton(
-                  icon: Icons.shuffle_rounded,
-                  label: "Shuffle",
-                  color: const Color(0xFF5A6DFF), 
-                  isActive: _isShuffleOn,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isShuffleOn = !_isShuffleOn);
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildToolButton(
                   icon: Icons.quiz_rounded,
                   label: "Quiz",
                   color: const Color(0xFFFF9100), 
@@ -328,7 +314,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                   },
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildToolButton(
                   icon: Icons.auto_awesome_rounded,
@@ -364,7 +350,6 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF9FF),
       appBar: AppBar(
-        // 💡 FIX: Tells the system to render status bar text/icons in a dark color (visible against white)
         systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
           statusBarColor: Colors.transparent,
         ),

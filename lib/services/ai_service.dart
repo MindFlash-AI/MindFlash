@@ -58,7 +58,25 @@ class AIService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception("Server error: ${response.statusCode}");
+        String errorMessage = "Server error: ${response.statusCode}";
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['details'] != null) {
+            final details = errorData['details'].toString();
+            
+            if (details.contains("503") || details.contains("high demand")) {
+              errorMessage = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+            } else {
+              errorMessage += "\nDetails: $details";
+            }
+          } else if (errorData['error'] != null) {
+            errorMessage += "\nError: ${errorData['error']}";
+          }
+        } catch (_) {
+          // Fallback if the body isn't JSON
+          errorMessage += "\nBody: ${response.body}";
+        }
+        throw Exception(errorMessage);
       }
 
       final Map<String, dynamic> data = jsonDecode(response.body);
@@ -130,6 +148,10 @@ class AIService {
         editedDeck: editedDeck,
       );
     } catch (e) {
+      // Re-throw the exact user-friendly string we formatted, or fall back to standard error
+      if (e.toString().contains("Exception: The AI service")) {
+         rethrow;
+      }
       throw Exception("Failed to connect to backend: $e");
     }
   }
