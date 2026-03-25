@@ -9,16 +9,20 @@ const app = express();
 app.use(cors({ origin: true })); 
 app.use(express.json({ limit: '50mb' }));
 
-// 3. Initialize Gemini.
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// 4. The Generation Route
+// 3. The Generation Route
 app.post('/generate-deck', async (req, res) => {
   try {
+    // Check if the API key is actually loaded
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("CRITICAL: GEMINI_API_KEY is missing from the environment.");
+      return res.status(500).json({ error: 'Server configuration error: Missing API Key.' });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
     const userPrompt = req.body.prompt || req.body.text || ""; 
     const { fileText, fileName, userContext } = req.body;
     
-    // --- MIGRATION TO 3.1 FLASH-LITE PREVIEW ---
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-3.1-flash-lite-preview', 
       generationConfig: { 
@@ -61,9 +65,14 @@ app.post('/generate-deck', async (req, res) => {
     }
 
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: 'Failed to generate content' });
+    // Expose the actual error message to the logs AND the frontend response
+    console.error("Detailed Gemini Error:", error.message || error);
+    res.status(500).json({ 
+      error: 'Failed to generate content', 
+      details: error.message || "Unknown error occurred" 
+    });
   }
 });
 
-exports.api = onRequest(app);
+// INCREASE TIMEOUT TO 5 MINUTES (300 SECONDS)
+exports.api = onRequest({ timeoutSeconds: 300, memory: "512MiB" }, app);
