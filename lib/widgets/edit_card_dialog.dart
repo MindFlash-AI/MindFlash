@@ -118,8 +118,8 @@ class _EditCardDialogState extends State<EditCardDialog> {
         deckId: widget.card.deckId,
         question: _questionController.text.trim(),
         answer: _answerController.text.trim(),
-        isFlagged: widget.card.isFlagged, 
-        isMastered: widget.card.isMastered, // Preserve the mastered state when editing!
+        isFlagged: widget.card.isFlagged,
+        isMastered: widget.card.isMastered,
       );
 
       widget.onCardUpdated(updatedCard);
@@ -143,8 +143,13 @@ class _EditCardDialogState extends State<EditCardDialog> {
         },
         child: Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
           elevation: 24,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
@@ -192,7 +197,7 @@ class _EditCardDialogState extends State<EditCardDialog> {
                       ],
                     ),
                     const SizedBox(height: 24),
-      
+
                     _buildInputLabel(
                       "Question (Front)",
                       Icons.help_outline_rounded,
@@ -205,13 +210,14 @@ class _EditCardDialogState extends State<EditCardDialog> {
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) =>
                           FocusScope.of(context).requestFocus(_answerFocus),
-                      validator: (value) => value == null || value.trim().isEmpty
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
                           ? 'Question is required'
                           : null,
                     ),
-      
+
                     const SizedBox(height: 24),
-      
+
                     _buildInputLabel("Answer (Back)", Icons.edit_note_rounded),
                     const SizedBox(height: 10),
                     _buildTextFormField(
@@ -220,13 +226,14 @@ class _EditCardDialogState extends State<EditCardDialog> {
                       hint: "e.g., Enter the answer or definition...",
                       maxLines: 4,
                       textInputAction: TextInputAction.done,
-                      validator: (value) => value == null || value.trim().isEmpty
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
                           ? 'Answer is required'
                           : null,
                     ),
-      
+
                     const SizedBox(height: 36),
-      
+
                     Container(
                       width: double.infinity,
                       height: 54,

@@ -104,7 +104,7 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                         ),
                       ),
                     ),
-      
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -140,7 +140,7 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                       ],
                     ),
                     const SizedBox(height: 28),
-      
+
                     _buildInputLabel(
                       "Question (Front)",
                       Icons.flip_to_front_rounded,
@@ -153,14 +153,18 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) =>
                           FocusScope.of(context).requestFocus(_answerFocus),
-                      validator: (value) => value == null || value.trim().isEmpty
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
                           ? 'Question is required'
                           : null,
                     ),
-      
+
                     const SizedBox(height: 20),
-      
-                    _buildInputLabel("Answer (Back)", Icons.flip_to_back_rounded),
+
+                    _buildInputLabel(
+                      "Answer (Back)",
+                      Icons.flip_to_back_rounded,
+                    ),
                     const SizedBox(height: 8),
                     _buildTextFormField(
                       controller: _answerController,
@@ -169,13 +173,14 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                       maxLines: 4,
                       minLines: 2,
                       textInputAction: TextInputAction.newline,
-                      validator: (value) => value == null || value.trim().isEmpty
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
                           ? 'Answer is required'
                           : null,
                     ),
-      
+
                     const SizedBox(height: 32),
-      
+
                     Container(
                       width: double.infinity,
                       height: 56,

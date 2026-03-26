@@ -26,7 +26,6 @@ class ChatMessage {
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
-  // Added serialization methods to save locally
   Map<String, dynamic> toJson() {
     return {
       'text': text,
@@ -99,8 +98,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   void initState() {
     super.initState();
     _aiService = AIService();
-    
-    // Load history first, then decide whether to send a new welcome message
+
     _loadChatHistory().then((_) {
       if (_messages.isEmpty) {
         _initAIContext();
@@ -110,12 +108,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
-  // --- PERSISTENCE METHODS ---
   Future<void> _loadChatHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Uses the unique deck ID to isolate the chat history
-      final String? historyJson = prefs.getString('chat_history_${widget.deck.id}');
+      final String? historyJson = prefs.getString(
+        'chat_history_${widget.deck.id}',
+      );
       if (historyJson != null) {
         final List<dynamic> decoded = jsonDecode(historyJson);
         setState(() {
@@ -130,7 +128,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
   Future<void> _saveChatHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String historyJson = jsonEncode(_messages.map((m) => m.toJson()).toList());
+      final String historyJson = jsonEncode(
+        _messages.map((m) => m.toJson()).toList(),
+      );
       await prefs.setString('chat_history_${widget.deck.id}', historyJson);
     } catch (e) {
       debugPrint("Failed to save chat history: $e");
@@ -143,8 +143,13 @@ class _AIChatScreenState extends State<AIChatScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Clear Chat?", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text("This will permanently delete your conversation history with the AI Tutor for this deck."),
+        title: const Text(
+          "Clear Chat?",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "This will permanently delete your conversation history with the AI Tutor for this deck.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -156,9 +161,14 @@ class _AIChatScreenState extends State<AIChatScreen> {
               backgroundColor: Colors.red.shade50,
               foregroundColor: Colors.red,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text("Clear", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Clear",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -174,15 +184,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
       _initAIContext();
     }
   }
-  // -------------------------
 
   Future<void> _initAIContext() async {
     try {
       String cardContext = widget.cards
           .map((c) => "Q: ${c.question} A: ${c.answer}")
           .join("\n");
-          
-      String initPrompt = "System Initialization: The user is studying a flashcard deck named '${widget.deck.name}'. The subject is '${widget.deck.subject}'. Here are the exact flashcards in their deck:\n\n$cardContext\n\nAct as a highly encouraging, expert personal tutor exclusively for this deck. You can quiz them, explain hard concepts simply, or provide mnemonics. Keep your responses concise and formatted cleanly. Reply ONLY with the exact word 'ACKNOWLEDGED' to confirm you understand.";
+
+      String initPrompt =
+          "System Initialization: The user is studying a flashcard deck named '${widget.deck.name}'. The subject is '${widget.deck.subject}'. Here are the exact flashcards in their deck:\n\n$cardContext\n\nAct as a highly encouraging, expert personal tutor exclusively for this deck. You can quiz them, explain hard concepts simply, or provide mnemonics. Keep your responses concise and formatted cleanly. Reply ONLY with the exact word 'ACKNOWLEDGED' to confirm you understand.";
 
       await _aiService.processInput(text: initPrompt);
 
@@ -190,7 +200,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
         setState(() {
           _messages.add(
             ChatMessage(
-              text: "Hi! I'm your AI Tutor for **${widget.deck.name}**.\n\n"
+              text:
+                  "Hi! I'm your AI Tutor for **${widget.deck.name}**.\n\n"
                   "I have fully memorized all ${widget.cards.length} cards in this deck. How can I help you study today?\n\n"
                   "* Ask me to explain a confusing concept\n"
                   "* Tell me to quiz you\n"
@@ -213,12 +224,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
       String cardContext = widget.cards
           .map((c) => "Q: ${c.question} A: ${c.answer}")
           .join("\n");
-          
-      // Restore the context silently so the AI remembers the deck when returning
-      String initPrompt = "System Initialization: The user is returning to their flashcard deck named '${widget.deck.name}'. The subject is '${widget.deck.subject}'. Here are the exact flashcards:\n\n$cardContext\n\nAct as a highly encouraging, expert personal tutor. Reply ONLY with the exact word 'ACKNOWLEDGED' to confirm.";
+
+      String initPrompt =
+          "System Initialization: The user is returning to their flashcard deck named '${widget.deck.name}'. The subject is '${widget.deck.subject}'. Here are the exact flashcards:\n\n$cardContext\n\nAct as a highly encouraging, expert personal tutor. Reply ONLY with the exact word 'ACKNOWLEDGED' to confirm.";
 
       await _aiService.processInput(text: initPrompt);
-      
+
       if (mounted) {
         setState(() {
           _isInitializing = false;
@@ -237,7 +248,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 500),
-          curve: Curves.easeOutCubic, 
+          curve: Curves.easeOutCubic,
         );
       }
     });
@@ -256,10 +267,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
     try {
       AIResponse aiResponse = await _aiService.processInput(text: text);
-      
-      // Prevent showing the raw 'ACKNOWLEDGED' if the AI bugs out on context init
-      String reply = aiResponse.message == 'ACKNOWLEDGED' 
-          ? "I'm ready! What would you like to know?" 
+
+      String reply = aiResponse.message == 'ACKNOWLEDGED'
+          ? "I'm ready! What would you like to know?"
           : aiResponse.message;
 
       setState(() {
@@ -283,10 +293,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
   void _showError(String error) {
     setState(() {
       _isTyping = false;
-      _messages.add(ChatMessage(
-        text: "⚠️ **Error:** ${error.replaceAll('Exception: ', '')}",
-        isUser: false,
-      ));
+      _messages.add(
+        ChatMessage(
+          text: "⚠️ **Error:** ${error.replaceAll('Exception: ', '')}",
+          isUser: false,
+        ),
+      );
     });
     _saveChatHistory();
     _scrollToBottom();
@@ -313,11 +325,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
             icon: const Icon(Icons.delete_sweep_rounded, color: Colors.black54),
             onPressed: _clearChatHistory,
             tooltip: "Clear Chat",
-          )
+          ),
         ],
       ),
       body: SafeArea(
-        top: false, 
+        top: false,
         child: Stack(
           children: [
             Column(
@@ -331,26 +343,29 @@ class _AIChatScreenState extends State<AIChatScreen> {
                         )
                       : ListView.builder(
                           controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 100, 16, 140), 
+                          padding: const EdgeInsets.fromLTRB(16, 100, 16, 140),
                           itemCount: _messages.length + (_isTyping ? 1 : 0),
                           itemBuilder: (context, index) {
-                            if (index == _messages.length) return _buildShimmerLoading();
-                            
+                            if (index == _messages.length)
+                              return _buildShimmerLoading();
+
                             bool isLastInGroup = true;
                             if (index < _messages.length - 1) {
-                              isLastInGroup = _messages[index].isUser != _messages[index + 1].isUser;
+                              isLastInGroup =
+                                  _messages[index].isUser !=
+                                  _messages[index + 1].isUser;
                             }
-  
-                            return _buildMessageBubble(_messages[index], isLastInGroup);
+
+                            return _buildMessageBubble(
+                              _messages[index],
+                              isLastInGroup,
+                            );
                           },
                         ),
                 ),
               ],
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: _buildInputArea(),
-            ),
+            Align(alignment: Alignment.bottomCenter, child: _buildInputArea()),
           ],
         ),
       ),
@@ -363,7 +378,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)]),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
@@ -374,12 +391,20 @@ class _AIChatScreenState extends State<AIChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "Deck Tutor", 
-                style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)
+                "Deck Tutor",
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               Text(
                 widget.deck.name,
-                style: const TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.normal),
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -395,7 +420,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
     return Padding(
       padding: EdgeInsets.only(bottom: isLastInGroup ? 16.0 : 4.0),
       child: Row(
-        mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: message.isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (isAi)
@@ -404,47 +431,73 @@ class _AIChatScreenState extends State<AIChatScreen> {
               child: isLastInGroup
                   ? Container(
                       margin: const EdgeInsets.only(right: 8),
-                      width: 24, height: 24,
+                      width: 24,
+                      height: 24,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)]),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+                        ),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 12),
+                      child: const Icon(
+                        Icons.auto_awesome,
+                        color: Colors.white,
+                        size: 12,
+                      ),
                     )
                   : const SizedBox.shrink(),
             ),
           Flexible(
             child: Column(
-              crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: message.isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    color: message.isUser ? const Color(0xFF8B4EFF) : Colors.white,
+                    color: message.isUser
+                        ? const Color(0xFF8B4EFF)
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(18).copyWith(
-                      bottomRight: (message.isUser && isLastInGroup) ? const Radius.circular(4) : null,
-                      bottomLeft: (isAi && isLastInGroup) ? const Radius.circular(4) : null,
+                      bottomRight: (message.isUser && isLastInGroup)
+                          ? const Radius.circular(4)
+                          : null,
+                      bottomLeft: (isAi && isLastInGroup)
+                          ? const Radius.circular(4)
+                          : null,
                     ),
                     boxShadow: [
-                      if (isAi) 
+                      if (isAi)
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04), 
-                          blurRadius: 10, 
-                          offset: const Offset(0, 4)
-                        )
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
                     ],
                   ),
                   child: MarkdownBody(
                     data: message.text,
                     styleSheet: MarkdownStyleSheet(
-                      p: TextStyle(color: message.isUser ? Colors.white : Colors.black87, fontSize: 15, height: 1.4),
+                      p: TextStyle(
+                        color: message.isUser ? Colors.white : Colors.black87,
+                        fontSize: 15,
+                        height: 1.4,
+                      ),
                       strong: const TextStyle(fontWeight: FontWeight.bold),
-                      listBullet: TextStyle(color: message.isUser ? Colors.white : Colors.black87),
+                      listBullet: TextStyle(
+                        color: message.isUser ? Colors.white : Colors.black87,
+                      ),
                     ),
                   ),
                 ),
-                if (message.generatedDeck != null) _buildDeckCard(message.generatedDeck!, "New Deck"),
-                if (message.editedDeck != null) _buildDeckCard(message.editedDeck!, "Updated Deck"),
+                if (message.generatedDeck != null)
+                  _buildDeckCard(message.generatedDeck!, "New Deck"),
+                if (message.editedDeck != null)
+                  _buildDeckCard(message.editedDeck!, "Updated Deck"),
               ],
             ),
           ),
@@ -464,7 +517,14 @@ class _AIChatScreenState extends State<AIChatScreen> {
           children: [
             const CircleAvatar(radius: 12, backgroundColor: Colors.white),
             const SizedBox(width: 10),
-            Container(width: 200, height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              width: 200,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ],
         ),
       ),
@@ -488,20 +548,31 @@ class _AIChatScreenState extends State<AIChatScreen> {
               children: [
                 const Icon(Icons.layers, color: Color(0xFF8B4EFF)),
                 const SizedBox(width: 10),
-                Expanded(child: Text(deck.name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                Expanded(
+                  child: Text(
+                    deck.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DeckView(deck: deck))),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DeckView(deck: deck)),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B4EFF),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 minimumSize: const Size(double.infinity, 36),
               ),
               child: Text("View $label"),
-            )
+            ),
           ],
         ),
       ),
@@ -516,7 +587,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.85),
-            border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.2))),
+            border: Border(
+              top: BorderSide(color: Colors.grey.withOpacity(0.2)),
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -527,12 +600,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(24)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
                       child: TextField(
                         controller: _textController,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                          hintText: "Ask your tutor...", 
+                          hintText: "Ask your tutor...",
                           border: InputBorder.none,
                           hintStyle: TextStyle(color: Colors.black38),
                         ),
@@ -552,23 +628,40 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   Widget _buildSuggestionChips() {
-    final suggestions = ["Quiz me on this", "Explain the hardest card", "Summarize key points"];
+    final suggestions = [
+      "Quiz me on this",
+      "Explain the hardest card",
+      "Summarize key points",
+    ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        children: suggestions.map((s) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ActionChip(
-            label: Text(s, style: const TextStyle(fontSize: 12, color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold)),
-            backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
-            shape: const StadiumBorder(side: BorderSide(color: Colors.transparent)),
-            onPressed: () {
-              HapticFeedback.selectionClick();
-              _handleTextSubmit(s);
-            },
-          ),
-        )).toList(),
+        children: suggestions
+            .map(
+              (s) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ActionChip(
+                  label: Text(
+                    s,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF8B4EFF),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                  shape: const StadiumBorder(
+                    side: BorderSide(color: Colors.transparent),
+                  ),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    _handleTextSubmit(s);
+                  },
+                ),
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -576,7 +669,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
   Widget _buildSendButton() {
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)]),
+        gradient: LinearGradient(
+          colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+        ),
         shape: BoxShape.circle,
       ),
       child: IconButton(

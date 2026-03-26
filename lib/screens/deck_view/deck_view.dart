@@ -27,7 +27,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   final CardStorageService _cardStorageService = CardStorageService();
   final DeckStorageService _deckStorageService = DeckStorageService();
   final ScrollController _scrollController = ScrollController();
-  
+
   late AnimationController _actionsExpandController;
   late Animation<double> _expandAnimation;
 
@@ -43,14 +43,14 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    
+
     _actionsExpandController = AnimationController(
-      vsync: this, 
-      duration: const Duration(milliseconds: 300)
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
     );
     _expandAnimation = CurvedAnimation(
-      parent: _actionsExpandController, 
-      curve: Curves.easeOutCubic
+      parent: _actionsExpandController,
+      curve: Curves.easeOutCubic,
     );
 
     _scrollController.addListener(() {
@@ -136,11 +136,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReviewScreen(
-          deck: widget.deck,
-          cards: _cards,
-          isShuffleOn: false, // Users now shuffle directly inside the review screen
-        ),
+        builder: (context) =>
+            ReviewScreen(deck: widget.deck, cards: _cards, isShuffleOn: false),
       ),
     );
     _loadCards();
@@ -180,10 +177,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AIChatScreen(
-          deck: widget.deck, 
-          cards: _cards
-        ),
+        builder: (context) => AIChatScreen(deck: widget.deck, cards: _cards),
       ),
     );
   }
@@ -201,14 +195,18 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildActionButtons(bool canReview, bool canQuiz, bool hasFlagged, int flaggedCount) {
+  Widget _buildActionButtons(
+    bool canReview,
+    bool canQuiz,
+    bool hasFlagged,
+    int flaggedCount,
+  ) {
     return Container(
       color: const Color(0xFFFDF9FF),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // PRIMARY ACTION
           Opacity(
             opacity: canReview ? 1.0 : 0.5,
             child: Container(
@@ -229,14 +227,20 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: canReview 
-                      ? _startReview 
-                      : () => _showDisabledSnackBar("Add some cards first to start a review."),
+                  onTap: canReview
+                      ? _startReview
+                      : () => _showDisabledSnackBar(
+                          "Add some cards first to start a review.",
+                        ),
                   borderRadius: BorderRadius.circular(16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
-                      Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 28),
+                      Icon(
+                        Icons.play_circle_fill_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                       SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -256,8 +260,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               ),
             ),
           ),
-          
-          // CONDITIONAL ACTION
+
           if (hasFlagged) ...[
             const SizedBox(height: 12),
             Container(
@@ -276,7 +279,11 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 20),
+                      const Icon(
+                        Icons.flag_rounded,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -299,18 +306,21 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
             const SizedBox(height: 16),
           ],
 
-          // SECONDARY ACTIONS
           Row(
             children: [
               Expanded(
                 child: _buildToolButton(
                   icon: Icons.quiz_rounded,
                   label: "Quiz",
-                  color: const Color(0xFFFF9100), 
+                  color: const Color(0xFFFF9100),
                   isDisabled: !canQuiz,
                   onTap: () {
-                    if (canQuiz) _startQuiz();
-                    else _showDisabledSnackBar("You need at least 4 cards to take a quiz.");
+                    if (canQuiz)
+                      _startQuiz();
+                    else
+                      _showDisabledSnackBar(
+                        "You need at least 4 cards to take a quiz.",
+                      );
                   },
                 ),
               ),
@@ -319,11 +329,15 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                 child: _buildToolButton(
                   icon: Icons.auto_awesome_rounded,
                   label: "AI Tutor",
-                  color: const Color(0xFFE841A1), 
+                  color: const Color(0xFFE841A1),
                   isDisabled: !canReview,
                   onTap: () {
-                    if (canReview) _openAITutor();
-                    else _showDisabledSnackBar("Add cards to chat with the tutor.");
+                    if (canReview)
+                      _openAITutor();
+                    else
+                      _showDisabledSnackBar(
+                        "Add cards to chat with the tutor.",
+                      );
                   },
                 ),
               ),
@@ -368,9 +382,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           children: [
-            // --- STATIC HEADER SECTION ---
             Container(
-              margin: const EdgeInsets.fromLTRB(20, 10, 20, 0), 
+              margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -467,7 +480,6 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               ),
             ),
 
-            // --- SCROLLABLE AREA ---
             Expanded(
               child: CustomScrollView(
                 controller: _scrollController,
@@ -482,29 +494,37 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                           actionsHeight: actionsHeight,
                           expandProgress: _expandAnimation.value,
                           cardCount: _cards.length,
-                          actionButtons: _buildActionButtons(canReview, canQuiz, hasFlagged, flaggedCount),
+                          actionButtons: _buildActionButtons(
+                            canReview,
+                            canQuiz,
+                            hasFlagged,
+                            flaggedCount,
+                          ),
                           onExpand: () {
-                            if (!_actionsExpandController.isAnimating && !_actionsExpandController.isCompleted) {
+                            if (!_actionsExpandController.isAnimating &&
+                                !_actionsExpandController.isCompleted) {
                               HapticFeedback.selectionClick();
                               _actionsExpandController.forward();
                             }
                           },
                           onCollapse: () {
-                            if (!_actionsExpandController.isAnimating && _actionsExpandController.value > 0) {
+                            if (!_actionsExpandController.isAnimating &&
+                                _actionsExpandController.value > 0) {
                               HapticFeedback.selectionClick();
                               _actionsExpandController.reverse();
                             }
-                          }
+                          },
                         ),
                       );
                     },
                   ),
-                  
-                  // CARDS LIST SECTION
+
                   if (_isLoading)
                     const SliverFillRemaining(
                       child: Center(
-                        child: CircularProgressIndicator(color: Color(0xFF8B4EFF)),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF8B4EFF),
+                        ),
                       ),
                     )
                   else if (_cards.isEmpty)
@@ -561,7 +581,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            height: 76, 
+            height: 76,
             decoration: BoxDecoration(
               color: isActive ? color : Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -569,22 +589,20 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                 color: isActive ? color : Colors.grey.shade300,
                 width: 1.5,
               ),
-              boxShadow: isActive ? [
-                BoxShadow(
-                  color: color.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ] : [],
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  color: isActive ? Colors.white : color,
-                  size: 24,
-                ),
+                Icon(icon, color: isActive ? Colors.white : color, size: 24),
                 const SizedBox(height: 6),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -646,187 +664,191 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final card = _cards[index];
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final card = _cards[index];
 
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: Duration(milliseconds: 400 + (index * 100).clamp(0, 600)),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Transform.translate(
-                  offset: Offset(0, 30 * (1 - value)),
-                  child: Opacity(opacity: value, child: child),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (card.isFlagged)
-                                Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 14),
-                                )
-                              else if (card.isMastered)
-                                Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.check_rounded, color: Colors.green, size: 14),
-                                ),
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF4F6FF),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    "#${index + 1}",
-                                    style: const TextStyle(
-                                      color: Color(0xFF5A6DFF),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(milliseconds: 400 + (index * 100).clamp(0, 600)),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, 30 * (1 - value)),
+                child: Opacity(opacity: value, child: child),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              onPressed: () {
-                                HapticFeedback.selectionClick();
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => EditCardDialog(
-                                    card: card,
-                                    onCardUpdated: (updatedCard) async {
-                                      await _cardStorageService.updateCard(
-                                        updatedCard,
-                                      );
-                                      _loadCards();
-                                    },
+                            if (card.isFlagged)
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.flag_rounded,
+                                  color: Colors.redAccent,
+                                  size: 14,
+                                ),
+                              )
+                            else if (card.isMastered)
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check_rounded,
+                                  color: Colors.green,
+                                  size: 14,
+                                ),
+                              ),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF4F6FF),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "#${index + 1}",
+                                  style: const TextStyle(
+                                    color: Color(0xFF5A6DFF),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.edit_rounded,
-                                color: Colors.black45,
-                                size: 20,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              padding: const EdgeInsets.all(8),
-                              constraints: const BoxConstraints(),
-                            ),
-                            const SizedBox(width: 4),
-                            IconButton(
-                              onPressed: () => _confirmDeleteCard(card.id),
-                              icon: const Icon(
-                                Icons.delete_rounded,
-                                color: Colors.redAccent,
-                                size: 20,
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              constraints: const BoxConstraints(),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              showDialog(
+                                context: context,
+                                builder: (context) => EditCardDialog(
+                                  card: card,
+                                  onCardUpdated: (updatedCard) async {
+                                    await _cardStorageService.updateCard(
+                                      updatedCard,
+                                    );
+                                    _loadCards();
+                                  },
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.edit_rounded,
+                              color: Colors.black45,
+                              size: 20,
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: () => _confirmDeleteCard(card.id),
+                            icon: const Icon(
+                              Icons.delete_rounded,
+                              color: Colors.redAccent,
+                              size: 20,
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
 
-                    const Text(
-                      "FRONT",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
+                  const Text(
+                    "FRONT",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      card.question,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    card.question,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
 
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Color(0xFFF0F0F0),
-                      ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFF0F0F0),
                     ),
+                  ),
 
-                    const Text(
-                      "BACK",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
+                  const Text(
+                    "BACK",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      card.answer,
-                      style: const TextStyle(color: Colors.black87, fontSize: 15),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    card.answer,
+                    style: const TextStyle(color: Colors.black87, fontSize: 15),
+                  ),
+                ],
               ),
-            );
-          },
-          childCount: _cards.length,
-        ),
+            ),
+          );
+        }, childCount: _cards.length),
       ),
     );
   }
 }
 
-// --- COMBINED SLIVER DELEGATE ---
 class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double actionsHeight;
   final double expandProgress;
@@ -851,13 +873,16 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get minExtent => 64.0 + (actionsHeight * expandProgress);
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return ClipRect(
       child: Container(
-        color: const Color(0xFFFDF9FF), 
+        color: const Color(0xFFFDF9FF),
         child: Stack(
           children: [
-            // The Action Buttons Container
             Positioned(
               bottom: 64.0,
               left: 0,
@@ -865,8 +890,7 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
               height: actionsHeight,
               child: actionButtons,
             ),
-            
-            // The Sticky Card List Handle
+
             Positioned(
               bottom: 0,
               left: 0,
@@ -889,7 +913,7 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
                               color: Colors.black.withOpacity(0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
-                            )
+                            ),
                           ]
                         : [],
                   ),
@@ -941,7 +965,7 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _DeckActionsHeaderDelegate oldDelegate) {
     return oldDelegate.actionsHeight != actionsHeight ||
-           oldDelegate.expandProgress != expandProgress ||
-           oldDelegate.cardCount != cardCount;
+        oldDelegate.expandProgress != expandProgress ||
+        oldDelegate.cardCount != cardCount;
   }
 }

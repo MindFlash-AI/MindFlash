@@ -67,7 +67,10 @@ class FlashcardStackView extends StatelessWidget {
               duration: const Duration(milliseconds: 500),
               transitionBuilder: (Widget child, Animation<double> animation) {
                 final rotateAnim = Tween(begin: pi, end: 0.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
                 );
 
                 return AnimatedBuilder(
@@ -75,7 +78,9 @@ class FlashcardStackView extends StatelessWidget {
                   child: child,
                   builder: (context, widget) {
                     final isFront = widget!.key == const ValueKey("front");
-                    final rotation = isFront ? rotateAnim.value : -rotateAnim.value;
+                    final rotation = isFront
+                        ? rotateAnim.value
+                        : -rotateAnim.value;
 
                     if (rotateAnim.value > pi / 2) {
                       return const SizedBox.shrink();
@@ -120,7 +125,6 @@ class FlashcardStackView extends StatelessWidget {
   }
 }
 
-// Extracted internal physical card rendering to adhere to DRY
 class _FlashcardSide extends StatelessWidget {
   final String tagLabel;
   final Color tagColor;
@@ -165,7 +169,10 @@ class _FlashcardSide extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: tagBgColor,
                     borderRadius: BorderRadius.circular(20),
@@ -193,7 +200,11 @@ class _FlashcardSide extends StatelessWidget {
                             color: Colors.red.shade50,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 20),
+                          child: const Icon(
+                            Icons.flag_rounded,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
                         )
                       else if (card.isMastered)
                         Container(
@@ -202,7 +213,11 @@ class _FlashcardSide extends StatelessWidget {
                             color: Colors.green.shade50,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check_rounded, color: Colors.green, size: 20),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.green,
+                            size: 20,
+                          ),
                         ),
                     ],
                   ),

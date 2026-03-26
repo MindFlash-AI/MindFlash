@@ -13,7 +13,7 @@ class ReviewProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double progress = totalCards == 0 ? 0 : (currentIndex + 1) / totalCards;
-    
+
     return Container(
       height: 6,
       margin: const EdgeInsets.symmetric(horizontal: 20),

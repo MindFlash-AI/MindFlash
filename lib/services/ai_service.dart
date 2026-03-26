@@ -63,9 +63,10 @@ class AIService {
           final errorData = jsonDecode(response.body);
           if (errorData['details'] != null) {
             final details = errorData['details'].toString();
-            
+
             if (details.contains("503") || details.contains("high demand")) {
-              errorMessage = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+              errorMessage =
+                  "The AI service is currently experiencing high demand. Please try again in a few moments.";
             } else {
               errorMessage += "\nDetails: $details";
             }
@@ -73,7 +74,6 @@ class AIService {
             errorMessage += "\nError: ${errorData['error']}";
           }
         } catch (_) {
-          // Fallback if the body isn't JSON
           errorMessage += "\nBody: ${response.body}";
         }
         throw Exception(errorMessage);
@@ -113,8 +113,7 @@ class AIService {
             await _cardStorage.addCard(newCard);
           }
         }
-      }
-      else if (action == 'edit_deck' &&
+      } else if (action == 'edit_deck' &&
           data['targetDeckId'] != null &&
           data['cards'] != null) {
         final targetId = data['targetDeckId'];
@@ -148,9 +147,8 @@ class AIService {
         editedDeck: editedDeck,
       );
     } catch (e) {
-      // Re-throw the exact user-friendly string we formatted, or fall back to standard error
       if (e.toString().contains("Exception: The AI service")) {
-         rethrow;
+        rethrow;
       }
       throw Exception("Failed to connect to backend: $e");
     }

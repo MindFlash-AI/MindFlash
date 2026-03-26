@@ -21,7 +21,9 @@ class ReviewHeader extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text(
             "Shuffle Cards?",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -66,10 +68,17 @@ class ReviewHeader extends StatelessWidget {
           Flexible(
             child: TextButton.icon(
               onPressed: onExit,
-              icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 18),
+              icon: const Icon(
+                Icons.arrow_back,
+                color: Colors.black87,
+                size: 18,
+              ),
               label: const Text(
                 "Exit",
-                style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),

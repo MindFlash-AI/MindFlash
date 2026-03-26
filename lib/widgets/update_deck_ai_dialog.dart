@@ -116,11 +116,14 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
           ],
         ),
         child: SafeArea(
-          top: false, // Ensures background color reaches the absolute bottom
+          top: false,
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 32.0,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -136,7 +139,9 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE940A3).withOpacity(0.1),
+                                  color: const Color(
+                                    0xFFE940A3,
+                                  ).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -179,7 +184,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                       ),
                     ),
                     const SizedBox(height: 24),
-        
+
                     const Text(
                       "SELECT DECK",
                       style: TextStyle(
@@ -192,11 +197,14 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                     const SizedBox(height: 8),
                     DropdownButtonFormField<Deck>(
                       value: _selectedDeck,
-                      isExpanded: true, // Prevents overflow if deck name is incredibly long
+                      isExpanded: true,
                       items: widget.decks.map((deck) {
                         return DropdownMenuItem<Deck>(
                           value: deck,
-                          child: Text(deck.name, overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            deck.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
                       }).toList(),
                       onChanged: _isSubmitting
@@ -232,9 +240,9 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                         color: Colors.grey,
                       ),
                     ),
-        
+
                     const SizedBox(height: 20),
-        
+
                     const Text(
                       "WHAT SHOULD WE ADD?",
                       style: TextStyle(
@@ -259,7 +267,10 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                       },
                       decoration: InputDecoration(
                         hintText: "e.g., More about widgets...",
-                        hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        hintStyle: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 14,
+                        ),
                         filled: true,
                         fillColor: const Color(0xFFF5F5F5),
                         border: OutlineInputBorder(
@@ -275,11 +286,17 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.red, width: 1),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 1,
+                          ),
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.red, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -300,9 +317,9 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                       maxLines: 2,
                       minLines: 1,
                     ),
-        
+
                     const SizedBox(height: 30),
-        
+
                     Container(
                       width: double.infinity,
                       height: 55,
@@ -310,7 +327,10 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                         gradient: LinearGradient(
                           colors: _isSubmitting
                               ? [Colors.grey.shade400, Colors.grey.shade400]
-                              : [const Color(0xFFE940A3), const Color(0xFFFF5DAD)],
+                              : [
+                                  const Color(0xFFE940A3),
+                                  const Color(0xFFFF5DAD),
+                                ],
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
@@ -319,7 +339,9 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                             ? null
                             : [
                                 BoxShadow(
-                                  color: const Color(0xFFE940A3).withOpacity(0.3),
+                                  color: const Color(
+                                    0xFFE940A3,
+                                  ).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),

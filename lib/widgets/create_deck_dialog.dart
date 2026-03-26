@@ -100,7 +100,7 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                       ),
                     ),
                   ),
-      
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -141,7 +141,7 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 28),
-      
+
                   _buildInputLabel("Deck Name", Icons.style_rounded),
                   const SizedBox(height: 8),
                   _buildTextFormField(
@@ -159,9 +159,9 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                       return null;
                     },
                   ),
-      
+
                   const SizedBox(height: 16),
-      
+
                   _buildInputLabel("Subject", Icons.bookmark_border_rounded),
                   const SizedBox(height: 8),
                   _buildTextFormField(
@@ -178,9 +178,9 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                       return null;
                     },
                   ),
-      
+
                   const SizedBox(height: 24),
-      
+
                   Container(
                     width: double.infinity,
                     height: 56,

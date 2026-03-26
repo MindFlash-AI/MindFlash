@@ -30,7 +30,6 @@ class _QuizScreenState extends State<QuizScreen> {
     _loadProgress();
   }
 
-  // --- Computed State Properties ---
   bool get _hasAnsweredCurrent => _answers[_currentIndex] != null;
   String? get _selectedAnswerCurrent => _answers[_currentIndex];
 
@@ -55,10 +54,8 @@ class _QuizScreenState extends State<QuizScreen> {
   int get _remainingCount =>
       widget.quiz.length - _answers.where((a) => a != null).length;
 
-  // --- Progress Saving & Loading ---
   Future<void> _saveProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    // Convert nulls to empty strings for saving
     final savedAnswers = _answers.map((e) => e ?? '').toList();
     await prefs.setStringList('quiz_answers_${widget.deckTitle}', savedAnswers);
     await prefs.setInt('quiz_index_${widget.deckTitle}', _currentIndex);
@@ -66,7 +63,9 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedAnswers = prefs.getStringList('quiz_answers_${widget.deckTitle}');
+    final savedAnswers = prefs.getStringList(
+      'quiz_answers_${widget.deckTitle}',
+    );
     final savedIndex = prefs.getInt('quiz_index_${widget.deckTitle}');
 
     if (savedAnswers != null && savedAnswers.length == widget.quiz.length) {
@@ -83,7 +82,6 @@ class _QuizScreenState extends State<QuizScreen> {
     await prefs.remove('quiz_index_${widget.deckTitle}');
   }
 
-  // --- Quiz Interactions ---
   void _checkAnswer(String answer) {
     if (_hasAnsweredCurrent) return;
 
@@ -92,7 +90,7 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() {
       _answers[_currentIndex] = answer;
     });
-    
+
     _saveProgress();
   }
 
@@ -155,8 +153,8 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _showResults() async {
-    await _clearProgress(); // Wipe progress when quiz is completed
-    
+    await _clearProgress();
+
     if (!mounted) return;
     showDialog(
       context: context,
@@ -219,7 +217,6 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
-  // Helper widget for Stats
   Widget _buildStatBadge(IconData icon, Color color, String text) {
     return Row(
       children: [
@@ -240,7 +237,8 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.quiz[_currentIndex];
-    final progress = (_currentIndex + (_hasAnsweredCurrent ? 1 : 0)) / widget.quiz.length;
+    final progress =
+        (_currentIndex + (_hasAnsweredCurrent ? 1 : 0)) / widget.quiz.length;
 
     return PopScope(
       canPop: false,
@@ -273,7 +271,6 @@ class _QuizScreenState extends State<QuizScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Progress Bar
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(begin: 0, end: progress),
                 duration: const Duration(milliseconds: 400),
@@ -298,22 +295,39 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
               ),
 
-              // Stats Display
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildStatBadge(Icons.check_circle_rounded, Colors.green.shade600, '$_correctCount'),
-                    _buildStatBadge(Icons.cancel_rounded, Colors.red.shade500, '$_incorrectCount'),
-                    _buildStatBadge(Icons.help_outline_rounded, Colors.grey.shade500, '$_remainingCount'),
+                    _buildStatBadge(
+                      Icons.check_circle_rounded,
+                      Colors.green.shade600,
+                      '$_correctCount',
+                    ),
+                    _buildStatBadge(
+                      Icons.cancel_rounded,
+                      Colors.red.shade500,
+                      '$_incorrectCount',
+                    ),
+                    _buildStatBadge(
+                      Icons.help_outline_rounded,
+                      Colors.grey.shade500,
+                      '$_remainingCount',
+                    ),
                   ],
                 ),
               ),
 
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0,
+                    vertical: 8.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -448,7 +462,6 @@ class _QuizScreenState extends State<QuizScreen> {
                         ),
                       ),
 
-                      // Navigation Buttons
                       SizedBox(
                         height: 56,
                         child: Row(
@@ -459,11 +472,16 @@ class _QuizScreenState extends State<QuizScreen> {
                                 child: OutlinedButton(
                                   onPressed: _previousQuestion,
                                   style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
-                                    side: BorderSide(color: Colors.grey.shade300, width: 2),
+                                    side: BorderSide(
+                                      color: Colors.grey.shade300,
+                                      width: 2,
+                                    ),
                                   ),
                                   child: Text(
                                     "Previous",
@@ -475,10 +493,10 @@ class _QuizScreenState extends State<QuizScreen> {
                                   ),
                                 ),
                               ),
-                              
+
                             if (_currentIndex > 0 && _hasAnsweredCurrent)
                               const SizedBox(width: 12),
-                              
+
                             if (_hasAnsweredCurrent)
                               Expanded(
                                 flex: 2,
@@ -488,7 +506,9 @@ class _QuizScreenState extends State<QuizScreen> {
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                                        color: const Color(
+                                          0xFF8B4EFF,
+                                        ).withOpacity(0.3),
                                         blurRadius: 15,
                                         offset: const Offset(0, 6),
                                       ),
