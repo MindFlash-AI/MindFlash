@@ -6,45 +6,59 @@ class EnergyService {
   static const String _dateKey = 'ai_last_reset_date';
 
   int _currentEnergy = maxEnergy;
-  late SharedPreferences _prefs;
+
+  // FIX 1: Track whether init() has completed. If any method is called before
+  // init() returns, we await the same Future instead of running a second
+  // getInstance() call or silently returning stale data.
+  Future<void>? _initFuture;
+  SharedPreferences? _prefs;
 
   int get currentEnergy => _currentEnergy;
 
-  // Initializes the service and checks if it's a new day
-  Future<void> init() async {
+  // FIX 1: init() is now idempotent — calling it multiple times (e.g. from
+  // multiple widgets) only runs the setup logic once.
+  Future<void> init() {
+    _initFuture ??= _initialize();
+    return _initFuture!;
+  }
+
+  Future<void> _initialize() async {
     _prefs = await SharedPreferences.getInstance();
     _checkDailyReset();
   }
 
+  // FIX 2: Extracted guard so every public method can safely await init
+  // before touching _prefs. This prevents a null crash if someone calls
+  // deductEnergy() before the first init() completes.
+  Future<SharedPreferences> _ensureReady() async {
+    await init();
+    return _prefs!;
+  }
+
   void _checkDailyReset() {
-    // Get today's date as a string (e.g., "2023-10-27")
-    String today = DateTime.now().toIso8601String().split('T')[0];
-    String? lastReset = _prefs.getString(_dateKey);
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final String? lastReset = _prefs!.getString(_dateKey);
 
     if (lastReset != today) {
-      // It's a new day! Reset energy to max
       _currentEnergy = maxEnergy;
-      _prefs.setInt(_energyKey, _currentEnergy);
-      _prefs.setString(_dateKey, today);
+      _prefs!.setInt(_energyKey, _currentEnergy);
+      _prefs!.setString(_dateKey, today);
     } else {
-      // Same day, load the saved energy count (default to max if null)
-      _currentEnergy = _prefs.getInt(_energyKey) ?? maxEnergy;
+      _currentEnergy = _prefs!.getInt(_energyKey) ?? maxEnergy;
     }
   }
 
-  // Deduct 1 energy. Returns true if successful, false if out of energy.
   Future<bool> deductEnergy() async {
-    if (_currentEnergy > 0) {
-      _currentEnergy--;
-      await _prefs.setInt(_energyKey, _currentEnergy);
-      return true;
-    }
-    return false;
+    final prefs = await _ensureReady();
+    if (_currentEnergy <= 0) return false;
+    _currentEnergy--;
+    await prefs.setInt(_energyKey, _currentEnergy);
+    return true;
   }
 
-  // Refill energy to max (called after watching a rewarded ad)
   Future<void> refillEnergy() async {
+    final prefs = await _ensureReady();
     _currentEnergy = maxEnergy;
-    await _prefs.setInt(_energyKey, _currentEnergy);
+    await prefs.setInt(_energyKey, _currentEnergy);
   }
 }

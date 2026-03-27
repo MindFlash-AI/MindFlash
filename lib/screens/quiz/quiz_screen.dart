@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +18,12 @@ class _QuizScreenState extends State<QuizScreen> {
   int _currentIndex = 0;
   late List<String?> _answers;
 
+  // FIX: Debounce timer — instead of writing to SharedPreferences on every
+  // answer and every navigation tap (up to 40 writes for a 20-question quiz),
+  // we schedule a write 800 ms after the last state change. If the user taps
+  // quickly through questions, intermediate states are skipped entirely.
+  Timer? _saveDebounce;
+
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
     begin: Alignment.centerLeft,
@@ -28,6 +35,15 @@ class _QuizScreenState extends State<QuizScreen> {
     super.initState();
     _answers = List.filled(widget.quiz.length, null);
     _loadProgress();
+  }
+
+  @override
+  void dispose() {
+    // FIX: Flush any pending debounced save immediately on dispose so progress
+    // is never lost when the user backgrounds the app mid-quiz.
+    _saveDebounce?.cancel();
+    _flushSave();
+    super.dispose();
   }
 
   bool get _hasAnsweredCurrent => _answers[_currentIndex] != null;
@@ -54,7 +70,14 @@ class _QuizScreenState extends State<QuizScreen> {
   int get _remainingCount =>
       widget.quiz.length - _answers.where((a) => a != null).length;
 
-  Future<void> _saveProgress() async {
+  // FIX: Schedules a debounced save. Only the final state within the 800 ms
+  // window is persisted, collapsing many rapid taps into a single write.
+  void _scheduleSave() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 800), _flushSave);
+  }
+
+  Future<void> _flushSave() async {
     final prefs = await SharedPreferences.getInstance();
     final savedAnswers = _answers.map((e) => e ?? '').toList();
     await prefs.setStringList('quiz_answers_${widget.deckTitle}', savedAnswers);
@@ -63,9 +86,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedAnswers = prefs.getStringList(
-      'quiz_answers_${widget.deckTitle}',
-    );
+    final savedAnswers =
+        prefs.getStringList('quiz_answers_${widget.deckTitle}');
     final savedIndex = prefs.getInt('quiz_index_${widget.deckTitle}');
 
     if (savedAnswers != null && savedAnswers.length == widget.quiz.length) {
@@ -77,6 +99,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _clearProgress() async {
+    _saveDebounce?.cancel(); // discard any pending debounced save
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('quiz_answers_${widget.deckTitle}');
     await prefs.remove('quiz_index_${widget.deckTitle}');
@@ -84,22 +107,17 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _checkAnswer(String answer) {
     if (_hasAnsweredCurrent) return;
-
     HapticFeedback.lightImpact();
-
     setState(() {
       _answers[_currentIndex] = answer;
     });
-
-    _saveProgress();
+    _scheduleSave(); // debounced, not immediate
   }
 
   void _nextQuestion() {
     if (_currentIndex < widget.quiz.length - 1) {
-      setState(() {
-        _currentIndex++;
-      });
-      _saveProgress();
+      setState(() => _currentIndex++);
+      _scheduleSave(); // debounced
     } else {
       _showResults();
     }
@@ -107,29 +125,31 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _previousQuestion() {
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-      });
-      _saveProgress();
+      setState(() => _currentIndex--);
+      _scheduleSave(); // debounced
     }
   }
 
   Future<bool> _onWillPop() async {
+    // Flush immediately so progress is saved before the screen is popped.
+    _saveDebounce?.cancel();
+    await _flushSave();
+
     final shouldPop = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          "Pause Quiz?",
+          'Pause Quiz?',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          "Your progress has been automatically saved. You can resume later.",
+          'Your progress has been automatically saved. You can resume later.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -142,7 +162,7 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
             ),
             child: const Text(
-              "Exit",
+              'Exit',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -154,7 +174,6 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _showResults() async {
     await _clearProgress();
-
     if (!mounted) return;
     showDialog(
       context: context,
@@ -162,7 +181,7 @@ class _QuizScreenState extends State<QuizScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text(
-          "Quiz Complete!",
+          'Quiz Complete!',
           textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
@@ -183,8 +202,9 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "You scored $_correctCount out of ${widget.quiz.length}.",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              'You scored $_correctCount out of ${widget.quiz.length}.',
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -204,11 +224,9 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
               ),
               child: const Text(
-                "Return to Deck",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Return to Deck',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -245,16 +263,15 @@ class _QuizScreenState extends State<QuizScreen> {
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
-        if (shouldPop && context.mounted) {
-          Navigator.of(context).pop();
-        }
+        if (shouldPop && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFFDF9FF),
         appBar: AppBar(
           title: Text(
             widget.deckTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            style:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           backgroundColor: const Color(0xFFFDF9FF),
           elevation: 0,
@@ -296,10 +313,8 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
 
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 12,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -325,15 +340,13 @@ class _QuizScreenState extends State<QuizScreen> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 8.0,
-                  ),
+                      horizontal: 20.0, vertical: 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Center(
                         child: Text(
-                          "Question ${_currentIndex + 1} of ${widget.quiz.length}",
+                          'Question ${_currentIndex + 1} of ${widget.quiz.length}',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontWeight: FontWeight.w700,
@@ -414,22 +427,20 @@ class _QuizScreenState extends State<QuizScreen> {
                                 onTap: () => _checkAnswer(option),
                                 borderRadius: BorderRadius.circular(16),
                                 child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
+                                  duration:
+                                      const Duration(milliseconds: 250),
                                   curve: Curves.easeInOut,
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
+                                      horizontal: 20, vertical: 16),
                                   decoration: BoxDecoration(
                                     color: buttonColor,
-                                    border: Border.all(
-                                      color: borderColor,
-                                      width: 2,
-                                    ),
+                                    border:
+                                        Border.all(color: borderColor, width: 2),
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.03),
+                                        color:
+                                            Colors.black.withOpacity(0.03),
                                         blurRadius: 10,
                                         offset: const Offset(0, 4),
                                       ),
@@ -448,11 +459,8 @@ class _QuizScreenState extends State<QuizScreen> {
                                         ),
                                       ),
                                       if (feedbackIcon != null)
-                                        Icon(
-                                          feedbackIcon,
-                                          color: iconColor,
-                                          size: 24,
-                                        ),
+                                        Icon(feedbackIcon,
+                                            color: iconColor, size: 24),
                                     ],
                                   ),
                                 ),
@@ -473,18 +481,16 @@ class _QuizScreenState extends State<QuizScreen> {
                                   onPressed: _previousQuestion,
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
+                                        vertical: 16),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius:
+                                          BorderRadius.circular(16),
                                     ),
                                     side: BorderSide(
-                                      color: Colors.grey.shade300,
-                                      width: 2,
-                                    ),
+                                        color: Colors.grey.shade300, width: 2),
                                   ),
                                   child: Text(
-                                    "Previous",
+                                    'Previous',
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: Colors.grey.shade700,
@@ -503,12 +509,12 @@ class _QuizScreenState extends State<QuizScreen> {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     gradient: _brandGradient,
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius:
+                                        BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(
-                                          0xFF8B4EFF,
-                                        ).withOpacity(0.3),
+                                        color: const Color(0xFF8B4EFF)
+                                            .withOpacity(0.3),
                                         blurRadius: 15,
                                         offset: const Offset(0, 6),
                                       ),
@@ -520,13 +526,14 @@ class _QuizScreenState extends State<QuizScreen> {
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius:
+                                            BorderRadius.circular(16),
                                       ),
                                     ),
                                     child: Text(
                                       _currentIndex < widget.quiz.length - 1
-                                          ? "Next Question"
-                                          : "Finish Quiz",
+                                          ? 'Next Question'
+                                          : 'Finish Quiz',
                                       style: const TextStyle(
                                         fontSize: 16,
                                         color: Colors.white,
