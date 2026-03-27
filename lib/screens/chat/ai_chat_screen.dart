@@ -1,577 +1,492 @@
-import 'dart:convert';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:shimmer/shimmer.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../services/ai_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../models/deck_model.dart';
-import '../../models/card_model.dart';
-import '../deck_view/deck_view.dart';
-
-class ChatMessage {
-  final String text;
-  final bool isUser;
-  final Deck? generatedDeck;
-  final Deck? editedDeck;
-  final DateTime timestamp;
-
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-    this.generatedDeck,
-    this.editedDeck,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
-
-  Map<String, dynamic> toJson() {
-    return {
-      'text': text,
-      'isUser': isUser,
-      'timestamp': timestamp.toIso8601String(),
-      if (generatedDeck != null)
-        'generatedDeck': {
-          'id': generatedDeck!.id,
-          'name': generatedDeck!.name,
-          'subject': generatedDeck!.subject,
-          'cardCount': generatedDeck!.cardCount,
-        },
-      if (editedDeck != null)
-        'editedDeck': {
-          'id': editedDeck!.id,
-          'name': editedDeck!.name,
-          'subject': editedDeck!.subject,
-          'cardCount': editedDeck!.cardCount,
-        },
-    };
-  }
-
-  factory ChatMessage.fromJson(Map<String, dynamic> json) {
-    return ChatMessage(
-      text: json['text'],
-      isUser: json['isUser'],
-      timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'])
-          : DateTime.now(),
-      generatedDeck: json['generatedDeck'] != null
-          ? Deck(
-              id: json['generatedDeck']['id'],
-              name: json['generatedDeck']['name'],
-              subject: json['generatedDeck']['subject'],
-              cardCount: json['generatedDeck']['cardCount'],
-            )
-          : null,
-      editedDeck: json['editedDeck'] != null
-          ? Deck(
-              id: json['editedDeck']['id'],
-              name: json['editedDeck']['name'],
-              subject: json['editedDeck']['subject'],
-              cardCount: json['editedDeck']['cardCount'],
-            )
-          : null,
-    );
-  }
-}
+import '../../services/ai_service.dart';
+import '../../services/ad_helper.dart';
+import '../../services/energy_service.dart'; // Import EnergyService
 
 class AIChatScreen extends StatefulWidget {
   final Deck deck;
-  final List<Flashcard> cards;
 
-  const AIChatScreen({super.key, required this.deck, required this.cards});
+  const AIChatScreen({super.key, required this.deck});
 
   @override
   State<AIChatScreen> createState() => _AIChatScreenState();
 }
 
-class _AIChatScreenState extends State<AIChatScreen> {
-  final TextEditingController _textController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  late final AIService _aiService;
+class ChatMessage {
+  final String text;
+  final bool isUser;
 
-  List<ChatMessage> _messages = [];
-  bool _isTyping = false;
-  bool _isInitializing = true;
+  ChatMessage({required this.text, required this.isUser});
+}
+
+class _AIChatScreenState extends State<AIChatScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final AIService _aiService = AIService();
+  final EnergyService _energyService = EnergyService(); // Initialize EnergyService
+  
+  final List<ChatMessage> _messages = [];
+  bool _isLoading = false;
+
+  // Energy State
+  int _currentEnergy = 0;
+  bool _isEnergyLoaded = false;
+
+  // Banner Ad State
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+
+  // Rewarded Ad State
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _aiService = AIService();
-
-    _loadChatHistory().then((_) {
-      if (_messages.isEmpty) {
-        _initAIContext();
-      } else {
-        _restoreAIContext();
-      }
-    });
-  }
-
-  Future<void> _loadChatHistory() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? historyJson = prefs.getString(
-        'chat_history_${widget.deck.id}',
-      );
-      if (historyJson != null) {
-        final List<dynamic> decoded = jsonDecode(historyJson);
-        setState(() {
-          _messages = decoded.map((e) => ChatMessage.fromJson(e)).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint("Failed to load chat history: $e");
-    }
-  }
-
-  Future<void> _saveChatHistory() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String historyJson = jsonEncode(
-        _messages.map((m) => m.toJson()).toList(),
-      );
-      await prefs.setString('chat_history_${widget.deck.id}', historyJson);
-    } catch (e) {
-      debugPrint("Failed to save chat history: $e");
-    }
-  }
-
-  void _clearChatHistory() async {
-    HapticFeedback.mediumImpact();
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          "Clear Chat?",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          "This will permanently delete your conversation history with the AI Tutor for this deck.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade50,
-              foregroundColor: Colors.red,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              "Clear",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+    _initEnergySystem();
+    _loadBannerAd();
+    _loadRewardedAd();
+    
+    // Initial greeting
+    _messages.add(
+      ChatMessage(
+        text: "Hi! I'm your AI tutor for **${widget.deck.name}**. What would you like to discuss or learn more about?",
+        isUser: false,
       ),
     );
+  }
 
-    if (confirm == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('chat_history_${widget.deck.id}');
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    _bannerAd?.dispose();
+    _rewardedAd?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initEnergySystem() async {
+    await _energyService.init();
+    if (mounted) {
       setState(() {
-        _messages.clear();
-        _isInitializing = true;
+        _currentEnergy = _energyService.currentEnergy;
+        _isEnergyLoaded = true;
       });
-      _initAIContext();
     }
   }
 
-  Future<void> _initAIContext() async {
-    try {
-      String cardContext = widget.cards
-          .map((c) => "Q: ${c.question} A: ${c.answer}")
-          .join("\n");
+  void _loadBannerAd() {
+    if (kIsWeb) return;
 
-      String initPrompt =
-          "System Initialization: The user is studying a flashcard deck named '${widget.deck.name}'. The subject is '${widget.deck.subject}'. Here are the exact flashcards in their deck:\n\n$cardContext\n\nAct as a highly encouraging, expert personal tutor exclusively for this deck. You can quiz them, explain hard concepts simply, or provide mnemonics. Keep your responses concise and formatted cleanly. Reply ONLY with the exact word 'ACKNOWLEDGED' to confirm you understand.";
+    _bannerAd = BannerAd(
+      adUnitId: AdHelper.bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('Failed to load a banner ad: ${err.message}');
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
 
-      await _aiService.processInput(text: initPrompt);
+  void _loadRewardedAd() {
+    if (kIsWeb) return;
 
-      if (mounted) {
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              text:
-                  "Hi! I'm your AI Tutor for **${widget.deck.name}**.\n\n"
-                  "I have fully memorized all ${widget.cards.length} cards in this deck. How can I help you study today?\n\n"
-                  "* Ask me to explain a confusing concept\n"
-                  "* Tell me to quiz you\n"
-                  "* Ask for a summary or memory tricks",
-              isUser: false,
-            ),
+    RewardedAd.load(
+      adUnitId: AdHelper.rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              _loadRewardedAd(); // Preload the next ad instantly
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+              _loadRewardedAd(); // Attempt reload on failure
+            },
           );
-          _isInitializing = false;
-        });
-        _saveChatHistory();
-      }
-    } catch (e) {
-      _showError("Failed to sync deck context with AI: $e");
-      if (mounted) setState(() => _isInitializing = false);
+          setState(() {
+            _rewardedAd = ad;
+            _isRewardedAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('Failed to load a rewarded ad: ${err.message}');
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+        },
+      ),
+    );
+  }
+
+  void _showRewardedAd() {
+    HapticFeedback.mediumImpact();
+    
+    // Fallback for web testing so you don't get stuck
+    if (kIsWeb) {
+      _grantEnergyReward();
+      return;
+    }
+
+    if (_isRewardedAdLoaded && _rewardedAd != null) {
+      _rewardedAd!.show(
+        onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+          _grantEnergyReward();
+        },
+      );
+      // Reset state so we wait for the preloaded ad
+      setState(() {
+        _rewardedAd = null;
+        _isRewardedAdLoaded = false;
+      });
+    } else {
+      // Provide a backup if ad fails to load due to connection
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Ad not ready yet. Please ensure you have internet and try again."),
+          backgroundColor: Colors.black87,
+        ),
+      );
+      _loadRewardedAd(); // Retry loading
     }
   }
 
-  Future<void> _restoreAIContext() async {
+  Future<void> _grantEnergyReward() async {
+    await _energyService.refillEnergy();
+    if (mounted) {
+      setState(() {
+        _currentEnergy = _energyService.currentEnergy;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚡ 15 Energy Restored!"),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    // Phase 3: Energy System Check
+    if (_currentEnergy <= 0) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
+
+    // Deduct 1 energy
+    final hasEnergy = await _energyService.deductEnergy();
+    if (!hasEnergy) return;
+
+    setState(() {
+      _currentEnergy = _energyService.currentEnergy;
+      _messages.add(ChatMessage(text: text, isUser: true));
+      _isLoading = true;
+    });
+
+    _messageController.clear();
+    _scrollToBottom();
+    HapticFeedback.lightImpact();
+
     try {
-      String cardContext = widget.cards
-          .map((c) => "Q: ${c.question} A: ${c.answer}")
-          .join("\n");
-
-      String initPrompt =
-          "System Initialization: The user is returning to their flashcard deck named '${widget.deck.name}'. The subject is '${widget.deck.subject}'. Here are the exact flashcards:\n\n$cardContext\n\nAct as a highly encouraging, expert personal tutor. Reply ONLY with the exact word 'ACKNOWLEDGED' to confirm.";
-
-      await _aiService.processInput(text: initPrompt);
-
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-        _scrollToBottom();
-      }
+      final response = await _aiService.processInput(
+        text: "Regarding my deck '${widget.deck.name}': $text"
+      );
+      setState(() {
+        _messages.add(ChatMessage(text: response.message, isUser: false));
+        _isLoading = false;
+      });
+      _scrollToBottom();
+      HapticFeedback.mediumImpact();
     } catch (e) {
-      _showError("Failed to sync deck context with AI: $e");
-      if (mounted) setState(() => _isInitializing = false);
+      setState(() {
+        _messages.add(
+          ChatMessage(
+            text: "Sorry, I encountered an error: ${e.toString()}",
+            isUser: false,
+          ),
+        );
+        _isLoading = false;
+      });
+      _scrollToBottom();
     }
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
         );
       }
     });
-  }
-
-  Future<void> _handleTextSubmit(String text) async {
-    if (text.trim().isEmpty || _isInitializing) return;
-
-    _textController.clear();
-    setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true));
-      _isTyping = true;
-    });
-    _saveChatHistory();
-    _scrollToBottom();
-
-    try {
-      AIResponse aiResponse = await _aiService.processInput(text: text);
-
-      String reply = aiResponse.message == 'ACKNOWLEDGED'
-          ? "I'm ready! What would you like to know?"
-          : aiResponse.message;
-
-      setState(() {
-        _isTyping = false;
-        _messages.add(
-          ChatMessage(
-            text: reply,
-            isUser: false,
-            generatedDeck: aiResponse.generatedDeck,
-            editedDeck: aiResponse.editedDeck,
-          ),
-        );
-      });
-      _saveChatHistory();
-      _scrollToBottom();
-    } catch (e) {
-      _showError(e.toString());
-    }
-  }
-
-  void _showError(String error) {
-    setState(() {
-      _isTyping = false;
-      _messages.add(
-        ChatMessage(
-          text: "⚠️ **Error:** ${error.replaceAll('Exception: ', '')}",
-          isUser: false,
-        ),
-      );
-    });
-    _saveChatHistory();
-    _scrollToBottom();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFFDF9FF),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.white.withOpacity(0.8)),
-          ),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        shadowColor: Colors.black12,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: _buildAppBarTitle(),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "AI Tutor",
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+            Text(
+              widget.deck.name,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep_rounded, color: Colors.black54),
-            onPressed: _clearChatHistory,
-            tooltip: "Clear Chat",
-          ),
+          // Phase 3: Energy Indicator
+          if (_isEnergyLoaded)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: _currentEnergy > 0 
+                  ? const Color(0xFF6B48FF).withOpacity(0.1) 
+                  : Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.bolt_rounded,
+                    color: _currentEnergy > 0 ? const Color(0xFF6B48FF) : Colors.red,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "$_currentEnergy",
+                    style: TextStyle(
+                      color: _currentEnergy > 0 ? const Color(0xFF6B48FF) : Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
       body: SafeArea(
-        top: false,
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                Expanded(
-                  child: _isInitializing
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF8B4EFF),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 100, 16, 140),
-                          itemCount: _messages.length + (_isTyping ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == _messages.length)
-                              return _buildShimmerLoading();
-
-                            bool isLastInGroup = true;
-                            if (index < _messages.length - 1) {
-                              isLastInGroup =
-                                  _messages[index].isUser !=
-                                  _messages[index + 1].isUser;
-                            }
-
-                            return _buildMessageBubble(
-                              _messages[index],
-                              isLastInGroup,
-                            );
-                          },
-                        ),
-                ),
-              ],
+            // AdMob Banner Ad placement at the top
+            if (_isBannerAdLoaded && _bannerAd != null)
+              Container(
+                alignment: Alignment.center,
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                color: Colors.white,
+                child: AdWidget(ad: _bannerAd!),
+              ),
+              
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16.0),
+                itemCount: _messages.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _messages.length && _isLoading) {
+                    return _buildLoadingIndicator();
+                  }
+                  final msg = _messages[index];
+                  return _buildMessageBubble(msg);
+                },
+              ),
             ),
-            Align(alignment: Alignment.bottomCenter, child: _buildInputArea()),
+            
+            // Phase 3: Dynamic Input Area (Input vs Refill Button)
+            _isEnergyLoaded && _currentEnergy <= 0
+                ? _buildAdRefillButton()
+                : _buildMessageInput(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAppBarTitle() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Deck Tutor",
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Text(
-                widget.deck.name,
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMessageBubble(ChatMessage message, bool isLastInGroup) {
-    bool isAi = !message.isUser;
-
+  // ... (Keep _buildMessageBubble and _buildLoadingIndicator exactly the same as before)
+  Widget _buildMessageBubble(ChatMessage message) {
+    final isUser = message.isUser;
+    
     return Padding(
-      padding: EdgeInsets.only(bottom: isLastInGroup ? 16.0 : 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        mainAxisAlignment: message.isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (isAi)
-            SizedBox(
-              width: 32,
-              child: isLastInGroup
-                  ? Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                        size: 12,
-                      ),
-                    )
-                  : const SizedBox.shrink(),
+          if (!isUser) ...[
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFF6B48FF).withOpacity(0.1),
+              child: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF6B48FF)),
             ),
+            const SizedBox(width: 8),
+          ],
           Flexible(
-            child: Column(
-              crossAxisAlignment: message.isUser
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: message.isUser
-                        ? const Color(0xFF8B4EFF)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(18).copyWith(
-                      bottomRight: (message.isUser && isLastInGroup)
-                          ? const Radius.circular(4)
-                          : null,
-                      bottomLeft: (isAi && isLastInGroup)
-                          ? const Radius.circular(4)
-                          : null,
-                    ),
-                    boxShadow: [
-                      if (isAi)
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                    ],
-                  ),
-                  child: MarkdownBody(
-                    data: message.text,
-                    styleSheet: MarkdownStyleSheet(
-                      p: TextStyle(
-                        color: message.isUser ? Colors.white : Colors.black87,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                      strong: const TextStyle(fontWeight: FontWeight.bold),
-                      listBullet: TextStyle(
-                        color: message.isUser ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isUser ? const Color(0xFF6B48FF) : Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isUser ? 20 : 4),
+                  bottomRight: Radius.circular(isUser ? 4 : 20),
                 ),
-                if (message.generatedDeck != null)
-                  _buildDeckCard(message.generatedDeck!, "New Deck"),
-                if (message.editedDeck != null)
-                  _buildDeckCard(message.editedDeck!, "Updated Deck"),
-              ],
+                boxShadow: isUser ? [] : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: isUser 
+                  ? Text(
+                      message.text,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    )
+                  : MarkdownBody(
+                      data: message.text,
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.4),
+                        code: TextStyle(
+                          backgroundColor: Colors.grey.shade100,
+                          fontFamily: 'monospace',
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
             ),
           ),
-          if (message.isUser) const SizedBox(width: 8),
+          if (isUser) ...[
+            const SizedBox(width: 8),
+            const CircleAvatar(
+              radius: 16,
+              backgroundColor: Color(0xFFE0E0E0),
+              child: Icon(Icons.person, size: 16, color: Colors.black54),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildShimmerLoading() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: Row(
-          children: [
-            const CircleAvatar(radius: 12, backgroundColor: Colors.white),
-            const SizedBox(width: 10),
-            Container(
-              width: 200,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeckCard(Deck deck, String label) {
+  Widget _buildLoadingIndicator() {
     return Padding(
-      padding: const EdgeInsets.only(top: 8.0),
-      child: Container(
-        width: 240,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEBC1FF)),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.layers, color: Color(0xFF8B4EFF)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    deck.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: const Color(0xFF6B48FF).withOpacity(0.1),
+            child: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF6B48FF)),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(20),
+              ),
             ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => DeckView(deck: deck)),
+            child: const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFF6B48FF),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B4EFF),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                minimumSize: const Size(double.infinity, 36),
-              ),
-              child: Text("View $label"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdRefillButton() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          )
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _showRewardedAd,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6B48FF),
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.play_circle_outline_rounded, size: 24),
+            SizedBox(width: 8),
+            Text(
+              "Watch Ad to Restore Energy ⚡",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -579,107 +494,54 @@ class _AIChatScreenState extends State<AIChatScreen> {
     );
   }
 
-  Widget _buildInputArea() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            border: Border(
-              top: BorderSide(color: Colors.grey.withOpacity(0.2)),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_messages.length < 3) _buildSuggestionChips(),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: TextField(
-                        controller: _textController,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: "Ask your tutor...",
-                          border: InputBorder.none,
-                          hintStyle: TextStyle(color: Colors.black38),
-                        ),
-                        onSubmitted: _handleTextSubmit,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildSendButton(),
-                ],
-              ),
-            ],
-          ),
-        ),
+  Widget _buildMessageInput() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          )
+        ],
       ),
-    );
-  }
-
-  Widget _buildSuggestionChips() {
-    final suggestions = [
-      "Quiz me on this",
-      "Explain the hardest card",
-      "Summarize key points",
-    ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        children: suggestions
-            .map(
-              (s) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ActionChip(
-                  label: Text(
-                    s,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF8B4EFF),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
-                  shape: const StadiumBorder(
-                    side: BorderSide(color: Colors.transparent),
-                  ),
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    _handleTextSubmit(s);
-                  },
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              enabled: !_isLoading,
+              textCapitalization: TextCapitalization.sentences,
+              minLines: 1,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: "Ask a question about this deck...",
+                hintStyle: TextStyle(color: Colors.grey.shade400),
+                filled: true,
+                fillColor: const Color(0xFFF8F9FA),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
                 ),
               ),
-            )
-            .toList(),
-      ),
-    );
-  }
-
-  Widget _buildSendButton() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-        ),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          _handleTextSubmit(_textController.text);
-        },
-        icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              onSubmitted: (_) => _sendMessage(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: _isLoading ? Colors.grey.shade300 : const Color(0xFF6B48FF),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.send_rounded, color: Colors.white),
+              onPressed: _isLoading ? null : _sendMessage,
+            ),
+          ),
+        ],
       ),
     );
   }

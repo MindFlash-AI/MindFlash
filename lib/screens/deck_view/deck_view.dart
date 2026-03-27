@@ -177,7 +177,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AIChatScreen(deck: widget.deck, cards: _cards),
+        builder: (context) => AIChatScreen(deck: widget.deck),
       ),
     );
   }

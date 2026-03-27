@@ -1,67 +1,39 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
-/// A helper class to manage AdMob Unit IDs.
-/// It automatically uses Google's official test IDs during development
-/// to prevent your AdMob account from being banned.
 class AdHelper {
-  // TODO: Replace these boolean toggles with environment variables in the future
   static const bool _isProduction = kReleaseMode;
 
-  /// Returns the Banner Ad Unit ID
   static String get bannerAdUnitId {
-    if (_isProduction) {
-      // TODO: Replace with your actual AdMob PRODUCTION Banner ID when publishing
+    if (!_isProduction) {
+      // Test Banner ID
       return Platform.isAndroid 
-          ? 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY' 
-          : 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY';
+          ? 'ca-app-pub-3940256099942544/6300978111' 
+          : 'ca-app-pub-3940256099942544/2934735716';
     }
-    
-    // Official Google Test IDs for Banners
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/6300978111';
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/2934735716';
-    } else {
-      throw UnsupportedError('Unsupported platform');
-    }
+    // Replace with your actual Production Banner ID
+    return Platform.isAndroid ? 'YOUR_ANDROID_BANNER_ID' : 'YOUR_IOS_BANNER_ID';
   }
 
-  /// Returns the Interstitial Ad Unit ID
   static String get interstitialAdUnitId {
-    if (_isProduction) {
-      // TODO: Replace with your actual AdMob PRODUCTION Interstitial ID when publishing
+    if (!_isProduction) {
+      // Test Interstitial ID
       return Platform.isAndroid 
-          ? 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY' 
-          : 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY';
+          ? 'ca-app-pub-3940256099942544/1033173712' 
+          : 'ca-app-pub-3940256099942544/4411468910';
     }
-
-    // Official Google Test IDs for Interstitials
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/1033173712';
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/4411468910';
-    } else {
-      throw UnsupportedError('Unsupported platform');
-    }
+    // Replace with your actual Production Interstitial ID
+    return Platform.isAndroid ? 'YOUR_ANDROID_INTERSTITIAL_ID' : 'YOUR_IOS_INTERSTITIAL_ID';
   }
 
-  /// Returns the Rewarded Ad Unit ID
   static String get rewardedAdUnitId {
-    if (_isProduction) {
-      // TODO: Replace with your actual AdMob PRODUCTION Rewarded ID when publishing
+    if (!_isProduction) {
+      // Test Rewarded ID
       return Platform.isAndroid 
-          ? 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY' 
-          : 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY';
+          ? 'ca-app-pub-3940256099942544/5224354917' 
+          : 'ca-app-pub-3940256099942544/1712485313';
     }
-
-    // Official Google Test IDs for Rewarded Ads
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/5224354917';
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/1712485313';
-    } else {
-      throw UnsupportedError('Unsupported platform');
-    }
+    // Replace with your actual Production Rewarded ID
+    return Platform.isAndroid ? 'YOUR_ANDROID_REWARDED_ID' : 'YOUR_IOS_REWARDED_ID';
   }
 }
