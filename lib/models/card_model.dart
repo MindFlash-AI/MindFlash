@@ -41,6 +41,6 @@ class Flashcard {
 
   String toJson() => json.encode(toMap());
 
-  factory Flashcard.fromJson(String source) => 
+  factory Flashcard.fromJson(String source) =>
       Flashcard.fromMap(json.decode(source));
 }

@@ -182,7 +182,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                     ),
                   ),
                   const SizedBox(height: 32),
-            
+
                   FadeTransition(
                     opacity: _titleFade,
                     child: SlideTransition(
@@ -206,7 +206,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                     ),
                   ),
                   const SizedBox(height: 8),
-            
+
                   FadeTransition(
                     opacity: _subtitleFade,
                     child: SlideTransition(

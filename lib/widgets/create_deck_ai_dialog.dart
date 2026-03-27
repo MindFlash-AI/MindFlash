@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:shimmer/shimmer.dart'; // Added Shimmer for premium loading feedback
-import 'package:flutter/foundation.dart'; // REQUIRED FOR compute() BACKGROUND ISOLATE
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter/foundation.dart';
 
-// --- TOP LEVEL FUNCTION FOR BACKGROUND ISOLATE ---
-// This must be outside the class. It runs on a separate CPU thread to prevent UI freezing.
-Future<String> _extractFileContentInBackground(Map<String, dynamic> data) async {
+Future<String> _extractFileContentInBackground(
+  Map<String, dynamic> data,
+) async {
   String path = data['path'];
   String extension = data['extension'];
   File file = File(path);
@@ -30,7 +30,12 @@ Future<String> _extractFileContentInBackground(Map<String, dynamic> data) async 
 }
 
 class CreateDeckAIDialog extends StatefulWidget {
-  final Future<String> Function(String topic, String? fileText, String? fileName) onGenerate;
+  final Future<String> Function(
+    String topic,
+    String? fileText,
+    String? fileName,
+  )
+  onGenerate;
 
   const CreateDeckAIDialog({super.key, required this.onGenerate});
 
@@ -97,13 +102,11 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
           _isFileProcessing = true;
         });
 
-        // FORCE Flutter to render the loading indicator frame before starting heavy work
         await Future.delayed(const Duration(milliseconds: 50));
 
         String fileName = result.files.single.name;
         String extension = result.files.single.extension?.toLowerCase() ?? '';
 
-        // OFFLOAD the heavy parsing/encoding to a background thread
         String fileContent = await compute(_extractFileContentInBackground, {
           'path': result.files.single.path!,
           'extension': extension,
@@ -115,7 +118,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
             _extractedFileText = fileContent;
             _isFileProcessing = false;
           });
-          HapticFeedback.mediumImpact(); 
+          HapticFeedback.mediumImpact();
         }
       }
     } catch (e) {
@@ -151,8 +154,9 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       final prompt = _promptController.text.trim();
       final numCards = _numCards.toInt();
 
-      String engineeredPrompt = "Create a flashcard deck named '$deckName'. Generate exactly $numCards cards.";
-      
+      String engineeredPrompt =
+          "Create a flashcard deck named '$deckName'. Generate exactly $numCards cards.";
+
       if (topic.isNotEmpty) {
         engineeredPrompt += " Topic: $topic.";
       }
@@ -166,11 +170,11 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
 
       try {
         final successMessage = await widget.onGenerate(
-          engineeredPrompt, 
-          _extractedFileText, 
-          _selectedFileName
+          engineeredPrompt,
+          _extractedFileText,
+          _selectedFileName,
         );
-        
+
         if (mounted) {
           Navigator.of(context).pop(successMessage);
         }
@@ -199,7 +203,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: SafeArea(
-          top: false, 
+          top: false,
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Padding(
@@ -221,7 +225,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                         ),
                       ),
                     ),
-      
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -231,7 +235,9 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                  color: const Color(
+                                    0xFF8B4EFF,
+                                  ).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
@@ -290,7 +296,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       ),
                     ),
                     const SizedBox(height: 28),
-      
+
                     _buildInputLabel("Deck Name", Icons.style_rounded),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -313,7 +319,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       ),
                     ),
                     const SizedBox(height: 20),
-      
+
                     _buildInputLabel("Topic", Icons.bookmark_border_rounded),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -325,8 +331,8 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       onFieldSubmitted: (_) =>
                           FocusScope.of(context).requestFocus(_promptFocus),
                       validator: (value) {
-                        // Make topic optional ONLY if a file is attached
-                        if ((value == null || value.trim().isEmpty) && _selectedFileName == null) {
+                        if ((value == null || value.trim().isEmpty) &&
+                            _selectedFileName == null) {
                           return 'Please enter a topic or attach a file';
                         }
                         return null;
@@ -338,111 +344,138 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                     ),
                     const SizedBox(height: 20),
 
-                    _buildInputLabel("Attach File or Photo (Optional)", Icons.attach_file_rounded),
+                    _buildInputLabel(
+                      "Attach File or Photo (Optional)",
+                      Icons.attach_file_rounded,
+                    ),
                     const SizedBox(height: 8),
-                    
-                    // --- UPGRADED FILE UPLOAD CONTAINER WITH SHIMMER ---
+
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: _isSubmitting || _isFileProcessing ? null : _handleFileUpload,
+                        onTap: _isSubmitting || _isFileProcessing
+                            ? null
+                            : _handleFileUpload,
                         borderRadius: BorderRadius.circular(16),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
                           decoration: BoxDecoration(
-                            color: _isFileProcessing 
+                            color: _isFileProcessing
                                 ? const Color(0xFF8B4EFF).withOpacity(0.08)
-                                : (_selectedFileName != null 
-                                    ? const Color(0xFF8B4EFF).withOpacity(0.05) 
-                                    : const Color(0xFFF8F9FA)),
+                                : (_selectedFileName != null
+                                      ? const Color(
+                                          0xFF8B4EFF,
+                                        ).withOpacity(0.05)
+                                      : const Color(0xFFF8F9FA)),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: _isFileProcessing 
+                              color: _isFileProcessing
                                   ? const Color(0xFF8B4EFF).withOpacity(0.4)
-                                  : (_selectedFileName != null ? const Color(0xFF8B4EFF) : Colors.transparent),
+                                  : (_selectedFileName != null
+                                        ? const Color(0xFF8B4EFF)
+                                        : Colors.transparent),
                               width: 2,
                             ),
                           ),
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 200),
-                            child: _isFileProcessing 
-                              // Premium Loading State
-                              ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  key: const ValueKey("processing"),
-                                  children: [
-                                    const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5, 
-                                        color: Color(0xFF8B4EFF),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Shimmer.fromColors(
-                                      baseColor: const Color(0xFF8B4EFF),
-                                      highlightColor: const Color(0xFFE841A1),
-                                      child: const Text(
-                                        "Reading file contents...",
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
+                            child: _isFileProcessing
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    key: const ValueKey("processing"),
+                                    children: [
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Color(0xFF8B4EFF),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                )
-                              // Default / Success State
-                              : Row(
-                                  key: const ValueKey("idle"),
-                                  children: [
-                                    Icon(
-                                      _getFileIcon(),
-                                      color: _selectedFileName != null ? const Color(0xFF8B4EFF) : Colors.grey.shade500,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        _selectedFileName ?? "Upload PDF, TXT, or Image",
-                                        style: TextStyle(
-                                          color: _selectedFileName != null ? Colors.black87 : Colors.grey.shade500,
-                                          fontSize: 15,
-                                          fontWeight: _selectedFileName != null ? FontWeight.w600 : FontWeight.normal,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (_selectedFileName != null && !_isSubmitting)
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
-                                          const SizedBox(width: 8),
-                                          IconButton(
-                                            icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),
-                                            onPressed: () {
-                                              HapticFeedback.selectionClick();
-                                              setState(() {
-                                                _selectedFileName = null;
-                                                _extractedFileText = null;
-                                              });
-                                            },
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
+                                      const SizedBox(width: 12),
+                                      Shimmer.fromColors(
+                                        baseColor: const Color(0xFF8B4EFF),
+                                        highlightColor: const Color(0xFFE841A1),
+                                        child: const Text(
+                                          "Reading file contents...",
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                        ],
+                                        ),
                                       ),
-                                  ],
-                                ),
+                                    ],
+                                  )
+                                : Row(
+                                    key: const ValueKey("idle"),
+                                    children: [
+                                      Icon(
+                                        _getFileIcon(),
+                                        color: _selectedFileName != null
+                                            ? const Color(0xFF8B4EFF)
+                                            : Colors.grey.shade500,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _selectedFileName ??
+                                              "Upload PDF, TXT, or Image",
+                                          style: TextStyle(
+                                            color: _selectedFileName != null
+                                                ? Colors.black87
+                                                : Colors.grey.shade500,
+                                            fontSize: 15,
+                                            fontWeight:
+                                                _selectedFileName != null
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (_selectedFileName != null &&
+                                          !_isSubmitting)
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.check_circle_rounded,
+                                              color: Colors.green,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.cancel,
+                                                color: Colors.grey,
+                                                size: 20,
+                                              ),
+                                              onPressed: () {
+                                                HapticFeedback.selectionClick();
+                                                setState(() {
+                                                  _selectedFileName = null;
+                                                  _extractedFileText = null;
+                                                });
+                                              },
+                                              padding: EdgeInsets.zero,
+                                              constraints:
+                                                  const BoxConstraints(),
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
-      
+
                     _buildInputLabel(
                       "Specific Instructions (Optional)",
                       Icons.tune_rounded,
@@ -463,11 +496,16 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                       minLines: 1,
                     ),
                     const SizedBox(height: 28),
-      
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(child: _buildInputLabel("Number of Cards", Icons.layers_rounded)),
+                        Expanded(
+                          child: _buildInputLabel(
+                            "Number of Cards",
+                            Icons.layers_rounded,
+                          ),
+                        ),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -508,34 +546,45 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                         divisions: 9,
                         activeColor: const Color(0xFF8B4EFF),
                         inactiveColor: const Color(0xFF8B4EFF).withOpacity(0.2),
-                        onChanged: _isSubmitting ? null : (value) {
-                          if (value != _numCards) {
-                            HapticFeedback.selectionClick();
-                          }
-                          setState(() {
-                            _numCards = value;
-                          });
-                        },
+                        onChanged: _isSubmitting
+                            ? null
+                            : (value) {
+                                if (value != _numCards) {
+                                  HapticFeedback.selectionClick();
+                                }
+                                setState(() {
+                                  _numCards = value;
+                                });
+                              },
                       ),
                     ),
-      
+
                     const SizedBox(height: 32),
-      
+
                     Container(
                       width: double.infinity,
                       height: 56,
                       decoration: BoxDecoration(
-                        gradient: _isSubmitting 
-                          ? LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade400])
-                          : _brandGradient,
+                        gradient: _isSubmitting
+                            ? LinearGradient(
+                                colors: [
+                                  Colors.grey.shade400,
+                                  Colors.grey.shade400,
+                                ],
+                              )
+                            : _brandGradient,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: _isSubmitting ? null : [
-                          BoxShadow(
-                            color: const Color(0xFF8B4EFF).withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                        boxShadow: _isSubmitting
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF8B4EFF,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
                       ),
                       child: Material(
                         color: Colors.transparent,

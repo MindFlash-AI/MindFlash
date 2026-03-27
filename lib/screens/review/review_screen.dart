@@ -30,13 +30,13 @@ class ReviewScreen extends StatefulWidget {
 
 class _ReviewScreenState extends State<ReviewScreen> {
   final ICardStorageService _cardStorageService = CardStorageService();
-  
+
   late List<Flashcard> _reviewCards;
   late PageController _pageController;
   int _currentIndex = 0;
   bool _showAnswer = false;
   int _correctCount = 0;
-  int _incorrectCount = 0; 
+  int _incorrectCount = 0;
 
   @override
   void initState() {
@@ -44,7 +44,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _pageController = PageController(initialPage: 0);
     
     _reviewCards = List.from(widget.cards);
-    
+
     _correctCount = _reviewCards.where((c) => c.isMastered).length;
     _incorrectCount = _reviewCards.where((c) => c.isFlagged).length;
 
@@ -81,21 +81,21 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   void _handleAnswer(bool wasCorrect) {
     Flashcard currentCard = _reviewCards[_currentIndex];
-    
+
     if (wasCorrect) {
       if (!currentCard.isMastered) _correctCount++;
       if (currentCard.isFlagged) _incorrectCount--;
-      
+
       currentCard.isMastered = true;
       currentCard.isFlagged = false;
     } else {
       if (!currentCard.isFlagged) _incorrectCount++;
       if (currentCard.isMastered) _correctCount--;
-      
+
       currentCard.isFlagged = true;
       currentCard.isMastered = false;
     }
-    
+
     _cardStorageService.updateCard(currentCard);
     _nextCard();
   }
@@ -127,10 +127,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Widget build(BuildContext context) {
     if (_reviewCards.isEmpty) return const Scaffold();
 
-    // 💡 FIX: AnnotatedRegion forces the status bar icons to be DARK (black).
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent, // Ensures it doesn't add a weird solid block
+        statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFFDF9FF),
@@ -143,14 +142,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 onExit: () => Navigator.pop(context),
                 onShuffle: _handleShuffle,
               ),
-              
+
               ReviewProgressBar(
                 currentIndex: _currentIndex,
                 totalCards: _reviewCards.length,
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               SessionStatsBar(
                 correctCount: _correctCount,
                 incorrectCount: _incorrectCount,

@@ -1,8 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/card_model.dart';
 
-// SOLID: Dependency Inversion Principle
-// We define an interface so the UI depends on the abstraction, not the implementation.
 abstract class ICardStorageService {
   Future<List<Flashcard>> getAllCards();
   Future<List<Flashcard>> getCardsForDeck(String deckId);
@@ -32,8 +30,9 @@ class CardStorageService implements ICardStorageService {
 
   Future<void> _saveCards(List<Flashcard> cards) async {
     final prefs = await SharedPreferences.getInstance();
-    final List<String> cardStrings =
-        cards.map((card) => card.toJson()).toList();
+    final List<String> cardStrings = cards
+        .map((card) => card.toJson())
+        .toList();
     await prefs.setStringList(_cardsKey, cardStrings);
   }
 

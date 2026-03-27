@@ -58,15 +58,13 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         elevation: 24,
         shadowColor: Colors.black45,
         child: ConstrainedBox(
-          // Safety Constraints: Never overflows vertically on small devices
           constraints: BoxConstraints(
-            maxWidth: 500, 
-            maxHeight: MediaQuery.of(context).size.height * 0.85
+            maxWidth: 500,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // --- HEADER ---
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 16, 10),
                 child: Row(
@@ -120,8 +118,6 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                 ),
               ),
 
-              // --- SLIDER AREA ---
-              // Flexible ensures it attempts to reach 380px but scales down seamlessly if needed
               Flexible(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 380),
@@ -142,9 +138,14 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildStepDetail(Icons.add_circle_outline_rounded, "Tap \"Create New Deck\""),
+                            _buildStepDetail(
+                              Icons.add_circle_outline_rounded,
+                              "Tap \"Create New Deck\"",
+                            ),
                             const SizedBox(height: 12),
-                            _buildStepSubtext("Give it a name like \"Spanish Words\" or \"Biology Terms\""),
+                            _buildStepSubtext(
+                              "Give it a name like \"Spanish Words\" or \"Biology Terms\"",
+                            ),
                           ],
                         ),
                       ),
@@ -156,9 +157,14 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildStepDetail(Icons.chrome_reader_mode_outlined, "Open your deck"),
+                            _buildStepDetail(
+                              Icons.chrome_reader_mode_outlined,
+                              "Open your deck",
+                            ),
                             const SizedBox(height: 12),
-                            _buildStepSubtext("Tap \"Add Card\" and write a question and answer manually"),
+                            _buildStepSubtext(
+                              "Tap \"Add Card\" and write a question and answer manually",
+                            ),
                           ],
                         ),
                       ),
@@ -172,12 +178,20 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                           children: [
                             Row(
                               children: const [
-                                Icon(Icons.auto_awesome, color: Color(0xFF2979FF), size: 22),
+                                Icon(
+                                  Icons.auto_awesome,
+                                  color: Color(0xFF2979FF),
+                                  size: 22,
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     "The Magic Shortcut",
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2979FF), fontSize: 16),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2979FF),
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -185,12 +199,21 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                             const SizedBox(height: 12),
                             const Text(
                               "Don't want to type? Let our AI do the heavy lifting.",
-                              style: TextStyle(fontSize: 14, color: Colors.black54),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            _buildMiniInstruction("📝", "Provide a topic or paste your notes"),
+                            _buildMiniInstruction(
+                              "📝",
+                              "Provide a topic or paste your notes",
+                            ),
                             const SizedBox(height: 10),
-                            _buildMiniInstruction("⚡", "Watch as a full deck is created instantly!"),
+                            _buildMiniInstruction(
+                              "⚡",
+                              "Watch as a full deck is created instantly!",
+                            ),
                           ],
                         ),
                       ),
@@ -204,12 +227,20 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                           children: [
                             Row(
                               children: const [
-                                Icon(Icons.play_arrow_outlined, color: Color(0xFF00C853), size: 24),
+                                Icon(
+                                  Icons.play_arrow_outlined,
+                                  color: Color(0xFF00C853),
+                                  size: 24,
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     "Review Mode",
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00C853), fontSize: 16),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF00C853),
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -217,12 +248,21 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                             const SizedBox(height: 12),
                             const Text(
                               "See the question, think of the answer, then tap to flip and check",
-                              style: TextStyle(fontSize: 14, color: Colors.black54),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            _buildMiniInstruction("👆", "Tap the card to flip it over"),
+                            _buildMiniInstruction(
+                              "👆",
+                              "Tap the card to flip it over",
+                            ),
                             const SizedBox(height: 10),
-                            _buildMiniInstruction("➡️", "Swipe left or right to navigate"),
+                            _buildMiniInstruction(
+                              "➡️",
+                              "Swipe left or right to navigate",
+                            ),
                           ],
                         ),
                       ),
@@ -236,12 +276,20 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                           children: [
                             Row(
                               children: const [
-                                Icon(Icons.quiz_outlined, color: Color(0xFF5A6DFF), size: 22),
+                                Icon(
+                                  Icons.quiz_outlined,
+                                  color: Color(0xFF5A6DFF),
+                                  size: 22,
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     "Quiz Mode",
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF5A6DFF), fontSize: 16),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF5A6DFF),
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -249,12 +297,21 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                             const SizedBox(height: 12),
                             const Text(
                               "Ready for a challenge? Take an automatically generated multiple-choice test.",
-                              style: TextStyle(fontSize: 14, color: Colors.black54),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            _buildMiniInstruction("🎯", "Select the correct answer from 4 options"),
+                            _buildMiniInstruction(
+                              "🎯",
+                              "Select the correct answer from 4 options",
+                            ),
                             const SizedBox(height: 10),
-                            _buildMiniInstruction("🏆", "Track your final score and master the subject"),
+                            _buildMiniInstruction(
+                              "🏆",
+                              "Track your final score and master the subject",
+                            ),
                           ],
                         ),
                       ),
@@ -264,30 +321,38 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                 ),
               ),
 
-              // --- BOTTOM CONTROLS ---
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Previous Button
                     TextButton(
                       onPressed: _currentPage == 0 ? null : _prevPage,
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.grey.shade600,
-                        disabledForegroundColor: Colors.transparent, // Hides button naturally on page 0
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        disabledForegroundColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
-                      child: const Text("Prev", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      child: const Text(
+                        "Prev",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
 
-                    // Dot Indicators
                     Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: List.generate(_totalPages, (index) => _buildDot(index)),
+                      children: List.generate(
+                        _totalPages,
+                        (index) => _buildDot(index),
+                      ),
                     ),
 
-                    // Next / Finish Button
                     _currentPage == _totalPages - 1
                         ? Container(
                             height: 44,
@@ -296,10 +361,12 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                                  color: const Color(
+                                    0xFF8B4EFF,
+                                  ).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
-                                )
+                                ),
                               ],
                             ),
                             child: ElevatedButton(
@@ -307,25 +374,46 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                               ),
                               child: const Text(
                                 "Let's Go!",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
                             ),
                           )
                         : ElevatedButton(
                             onPressed: _nextPage,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                              backgroundColor: const Color(
+                                0xFF8B4EFF,
+                              ).withOpacity(0.1),
                               foregroundColor: const Color(0xFF8B4EFF),
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
                             ),
-                            child: const Text("Next", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            child: const Text(
+                              "Next",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
                           ),
                   ],
                 ),
@@ -480,9 +568,15 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildBulletPoint("Shuffle your cards before studying to mix things up"),
-                _buildBulletPoint("Everything saves automatically - works even without internet!"),
-                _buildBulletPoint("Use Quiz Mode only after you feel confident in Review Mode"),
+                _buildBulletPoint(
+                  "Shuffle your cards before studying to mix things up",
+                ),
+                _buildBulletPoint(
+                  "Everything saves automatically - works even without internet!",
+                ),
+                _buildBulletPoint(
+                  "Use Quiz Mode only after you feel confident in Review Mode",
+                ),
               ],
             ),
           ),

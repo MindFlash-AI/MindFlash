@@ -66,7 +66,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     _loadDecks();
   }
 
-  void _showFeedbackModal(BuildContext context, bool isSuccess, String message) {
+  void _showFeedbackModal(
+    BuildContext context,
+    bool isSuccess,
+    String message,
+  ) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -149,10 +153,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<String> _processAIGeneration(
-    BuildContext context, 
-    String prompt, 
-    {String? fileText, String? fileName}
-  ) async {
+    BuildContext context,
+    String prompt, {
+    String? fileText,
+    String? fileName,
+  }) async {
     try {
       final aiService = AIService();
       final response = await aiService.processInput(
@@ -172,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           "Failed to generate flashcards. Please check your connection and try again.\n\nError: ${e.toString().replaceAll('Exception:', '').trim()}",
         );
       }
-      rethrow; 
+      rethrow;
     }
   }
 
@@ -182,7 +187,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (modalContext) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(modalContext).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+        ),
         child: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -193,7 +200,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 30.0,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +263,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                       ),
                       title: const Text(
                         "Create New Deck with AI",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       subtitle: const Text(
                         "Generate a completely new deck from a prompt",
@@ -262,24 +275,29 @@ class _DashboardScreenState extends State<DashboardScreen>
                         HapticFeedback.lightImpact();
                         Navigator.pop(modalContext);
 
-                        final successMessage = await showModalBottomSheet<String>(
-                          context: parentContext,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) => CreateDeckAIDialog(
-                            onGenerate: (topic, fileText, fileName) =>
-                                _processAIGeneration(
-                                  parentContext, 
-                                  topic, 
-                                  fileText: fileText, 
-                                  fileName: fileName
-                                ),
-                          ),
-                        );
+                        final successMessage =
+                            await showModalBottomSheet<String>(
+                              context: parentContext,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => CreateDeckAIDialog(
+                                onGenerate: (topic, fileText, fileName) =>
+                                    _processAIGeneration(
+                                      parentContext,
+                                      topic,
+                                      fileText: fileText,
+                                      fileName: fileName,
+                                    ),
+                              ),
+                            );
 
                         if (successMessage != null && parentContext.mounted) {
                           HapticFeedback.mediumImpact();
-                          _showFeedbackModal(parentContext, true, successMessage);
+                          _showFeedbackModal(
+                            parentContext,
+                            true,
+                            successMessage,
+                          );
                         }
                       },
                     ),
@@ -293,11 +311,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                           color: const Color(0xFFE940A3).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.update, color: Color(0xFFE940A3)),
+                        child: const Icon(
+                          Icons.update,
+                          color: Color(0xFFE940A3),
+                        ),
                       ),
                       title: const Text(
                         "Update Deck with AI",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       subtitle: const Text(
                         "Add newly generated cards to an existing deck",
@@ -325,14 +349,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                             onGenerate: (Deck deck, String topic) {
                               final engineeredPrompt =
                                   "Update the deck '${deck.name}' with the following topic/cards: $topic";
-                              return _processAIGeneration(parentContext, engineeredPrompt);
+                              return _processAIGeneration(
+                                parentContext,
+                                engineeredPrompt,
+                              );
                             },
                           ),
                         );
 
                         if (successMessage != null && parentContext.mounted) {
                           HapticFeedback.mediumImpact();
-                          _showFeedbackModal(parentContext, true, successMessage);
+                          _showFeedbackModal(
+                            parentContext,
+                            true,
+                            successMessage,
+                          );
                         }
                       },
                     ),
@@ -349,10 +380,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // 💡 FIX: AnnotatedRegion forces the status bar icons to be DARK (black) so they are visible against the white background.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent, // Keeps the background of the status bar transparent
+        statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
         backgroundColor: Colors.white,

@@ -107,7 +107,11 @@ class ReviewActionButtons extends StatelessWidget {
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    Icon(Icons.swipe_right_rounded, color: Colors.white70, size: 20),
+                    Icon(
+                      Icons.swipe_right_rounded,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       "Swipe for Previous / Next",
@@ -119,7 +123,11 @@ class ReviewActionButtons extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.swipe_left_rounded, color: Colors.white70, size: 20),
+                    Icon(
+                      Icons.swipe_left_rounded,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
                   ],
                 ),
         ),

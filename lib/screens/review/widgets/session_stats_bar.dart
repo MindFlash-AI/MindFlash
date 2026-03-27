@@ -13,8 +13,8 @@ class SessionStatsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     int totalAnswered = correctCount + incorrectCount;
-    String percentStr = totalAnswered == 0 
-        ? "--%" 
+    String percentStr = totalAnswered == 0
+        ? "--%"
         : "${((correctCount / totalAnswered) * 100).round()}%";
 
     return Padding(
@@ -48,7 +48,6 @@ class SessionStatsBar extends StatelessWidget {
   }
 }
 
-// Extracted private component to adhere to DRY principle
 class _StatBadge extends StatelessWidget {
   final IconData icon;
   final String value;
