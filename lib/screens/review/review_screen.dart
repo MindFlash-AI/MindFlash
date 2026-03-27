@@ -32,16 +32,17 @@ class _ReviewScreenState extends State<ReviewScreen> {
   final ICardStorageService _cardStorageService = CardStorageService();
   
   late List<Flashcard> _reviewCards;
+  late PageController _pageController;
   int _currentIndex = 0;
   bool _showAnswer = false;
   int _correctCount = 0;
   int _incorrectCount = 0; 
 
-  final double _cardHeight = 420.0;
-
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: 0);
+    
     _reviewCards = List.from(widget.cards);
     
     _correctCount = _reviewCards.where((c) => c.isMastered).length;
@@ -52,12 +53,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _nextCard() {
     if (_currentIndex < _reviewCards.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _showAnswer = false;
-      });
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     } else {
       _finishReview();
     }
@@ -65,10 +72,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   void _previousCard() {
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-        _showAnswer = false;
-      });
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
@@ -113,16 +120,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       _currentIndex = 0;
       _showAnswer = false;
     });
-  }
-
-  void _onSwipe(DragEndDetails details) {
-    if (details.primaryVelocity! < -300) {
-      HapticFeedback.lightImpact();
-      _nextCard();
-    } else if (details.primaryVelocity! > 300) {
-      HapticFeedback.lightImpact();
-      _previousCard();
-    }
+    _pageController.jumpToPage(0);
   }
 
   @override
@@ -173,16 +171,20 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     children: [
                       Expanded(
                         child: FlashcardStackView(
+                          cards: _reviewCards,
                           currentIndex: _currentIndex,
-                          totalCards: _reviewCards.length,
-                          currentCard: _reviewCards[_currentIndex],
-                          showAnswer: _showAnswer,
-                          cardHeight: _cardHeight,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() => _showAnswer = !_showAnswer);
+                          pageController: _pageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentIndex = index;
+                              _showAnswer = false; // Reset answer state when swiping
+                            });
                           },
-                          onSwipe: _onSwipe,
+                          onFlip: (isFront) {
+                            setState(() {
+                              _showAnswer = !isFront;
+                            });
+                          },
                         ),
                       ),
                       ReviewActionButtons(
