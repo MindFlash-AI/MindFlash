@@ -6,6 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../services/ad_helper.dart';
 
 Future<String> _extractFileContentInBackground(
   Map<String, dynamic> data,
@@ -57,6 +59,9 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
   double _numCards = 10;
   bool _isSubmitting = false;
 
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
+
   String? _selectedFileName;
   String? _extractedFileText;
   bool _isFileProcessing = false;
@@ -70,6 +75,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
   @override
   void initState() {
     super.initState();
+    _loadInterstitialAd();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _nameFocus.requestFocus();
     });
@@ -81,6 +87,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
 
   @override
   void dispose() {
+    _interstitialAd?.dispose();
     _deckNameController.dispose();
     _topicController.dispose();
     _promptController.dispose();
@@ -88,6 +95,33 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     _topicFocus.dispose();
     _promptFocus.dispose();
     super.dispose();
+  }
+
+  void _loadInterstitialAd() {
+    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+
+    InterstitialAd.load(
+      adUnitId: AdHelper.interstitialAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+            },
+          );
+          _interstitialAd = ad;
+          _isAdLoaded = true;
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('Failed to load an interstitial ad: ${err.message}');
+          _isAdLoaded = false;
+        },
+      ),
+    );
   }
 
   Future<void> _handleFileUpload() async {
@@ -167,6 +201,11 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       setState(() {
         _isSubmitting = true;
       });
+
+      if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
+        _interstitialAd!.show();
+        _isAdLoaded = false;
+      }
 
       try {
         final successMessage = await widget.onGenerate(

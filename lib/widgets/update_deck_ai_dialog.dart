@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Required for kIsWeb
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/deck_model.dart';
+import '../services/ad_helper.dart';
 
 class UpdateDeckAIDialog extends StatefulWidget {
   final List<Deck> decks;
@@ -21,9 +24,13 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
   final TextEditingController _topicController = TextEditingController();
   bool _isSubmitting = false;
 
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
+    _loadInterstitialAd();
     if (widget.decks.isNotEmpty) {
       _selectedDeck = widget.decks.first;
     }
@@ -32,8 +39,36 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
   @override
   void dispose() {
+    _interstitialAd?.dispose();
     _topicController.dispose();
     super.dispose();
+  }
+
+  void _loadInterstitialAd() {
+    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+
+    InterstitialAd.load(
+      adUnitId: AdHelper.interstitialAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+            },
+          );
+          _interstitialAd = ad;
+          _isAdLoaded = true;
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('Failed to load an interstitial ad: ${err.message}');
+          _isAdLoaded = false;
+        },
+      ),
+    );
   }
 
   void _submitUpdate() async {
@@ -41,6 +76,11 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
       setState(() {
         _isSubmitting = true;
       });
+
+      if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
+        _interstitialAd!.show();
+        _isAdLoaded = false;
+      }
 
       final topic = _topicController.text.trim();
 
