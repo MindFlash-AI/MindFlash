@@ -50,9 +50,11 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SafeArea(
       child: Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         elevation: 24,
@@ -74,22 +76,22 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             "How to Use MindFlash",
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: Colors.black87,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                               letterSpacing: -0.5,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             "Your simple guide to mastering anything",
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.black54,
+                              color: isDark ? Colors.white70 : Colors.black54,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -104,12 +106,12 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                       icon: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: isDark ? Colors.white12 : Colors.grey.shade100,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close,
-                          color: Colors.black54,
+                          color: isDark ? Colors.white54 : Colors.black54,
                           size: 20,
                         ),
                       ),
@@ -134,7 +136,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                         number: "1",
                         title: "Create Your Deck",
                         color: const Color(0xFF5B4FE6),
-                        bgColor: const Color(0xFFEEF0FF),
+                        bgColor: isDark ? const Color(0xFF5B4FE6).withOpacity(0.15) : const Color(0xFFEEF0FF),
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -153,7 +155,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                         number: "2",
                         title: "Add Your Cards",
                         color: const Color(0xFFD041E6),
-                        bgColor: const Color(0xFFFBF0FF),
+                        bgColor: isDark ? const Color(0xFFD041E6).withOpacity(0.15) : const Color(0xFFFBF0FF),
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -172,7 +174,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                         number: "3",
                         title: "Generate with AI",
                         color: const Color(0xFF2979FF),
-                        bgColor: const Color(0xFFEDF2FF),
+                        bgColor: isDark ? const Color(0xFF2979FF).withOpacity(0.15) : const Color(0xFFEDF2FF),
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -197,11 +199,11 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               "Don't want to type? Let our AI do the heavy lifting.",
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.black54,
+                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -221,7 +223,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                         number: "4",
                         title: "Study Your Cards",
                         color: const Color(0xFF00C853),
-                        bgColor: const Color(0xFFE8F5E9),
+                        bgColor: isDark ? const Color(0xFF00C853).withOpacity(0.15) : const Color(0xFFE8F5E9),
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -246,11 +248,11 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               "See the question, think of the answer, then tap to flip and check",
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.black54,
+                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -270,7 +272,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                         number: "5",
                         title: "Test Your Knowledge",
                         color: const Color(0xFF5A6DFF),
-                        bgColor: const Color(0xFFF4F6FF),
+                        bgColor: isDark ? const Color(0xFF5A6DFF).withOpacity(0.15) : const Color(0xFFF4F6FF),
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -295,11 +297,11 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               "Ready for a challenge? Take an automatically generated multiple-choice test.",
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.black54,
+                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -426,6 +428,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
   }
 
   Widget _buildDot(int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isActive = _currentPage == index;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -433,7 +436,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
       height: 8,
       width: isActive ? 24 : 8,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF8B4EFF) : Colors.grey.shade300,
+        color: isActive ? const Color(0xFF8B4EFF) : (isDark ? Colors.white24 : Colors.grey.shade300),
         borderRadius: BorderRadius.circular(4),
       ),
     );
@@ -446,6 +449,8 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
     required Color bgColor,
     required Widget content,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -481,10 +486,10 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 22,
-              color: Colors.black87,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               letterSpacing: -0.5,
             ),
           ),
@@ -492,12 +497,12 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: bgColor, width: 2),
+              border: Border.all(color: isDark ? Colors.white12 : bgColor, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -511,6 +516,8 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
   }
 
   Widget _buildProTipsBlock() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -521,7 +528,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF9E6),
+              color: isDark ? const Color(0xFFF9A825).withOpacity(0.15) : const Color(0xFFFFF9E6),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -540,13 +547,13 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             "Pro Tips",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 22,
-              color: Colors.black87,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               letterSpacing: -0.5,
             ),
           ),
@@ -554,12 +561,12 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFFFF9E6), width: 2),
+              border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFFFF9E6), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -589,15 +596,15 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 22, color: Colors.black87),
+        Icon(icon, size: 22, color: Theme.of(context).iconTheme.color),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
         ),
@@ -606,13 +613,15 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
   }
 
   Widget _buildStepSubtext(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.only(left: 34.0),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 14,
-          color: Colors.grey.shade600,
+          color: isDark ? Colors.white70 : Colors.grey.shade600,
           height: 1.4,
         ),
       ),
@@ -627,9 +636,9 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: Colors.black87,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -657,9 +666,9 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
                 height: 1.4,
                 fontWeight: FontWeight.w500,
               ),

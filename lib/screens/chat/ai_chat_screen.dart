@@ -114,9 +114,13 @@ class _AIChatScreenState extends State<AIChatScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Clear Chat?"),
-        content: const Text("This will permanently delete your conversation history with the AI Tutor for this deck."),
+        title: Text("Clear Chat?", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+        content: Text(
+          "This will permanently delete your conversation history with the AI Tutor for this deck.",
+          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -214,17 +218,18 @@ class _AIChatScreenState extends State<AIChatScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.bolt, color: Colors.amber, size: 28),
-            SizedBox(width: 8),
-            Text("Out of Energy", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.bolt, color: Colors.amber, size: 28),
+            const SizedBox(width: 8),
+            Text("Out of Energy", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
           ],
         ),
-        content: const Text(
+        content: Text(
           "You've run out of AI energy for now. Watch a short ad to refill your energy completely?",
-          style: TextStyle(height: 1.4),
+          style: TextStyle(height: 1.4, color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
         actions: [
           TextButton(
@@ -343,8 +348,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF9FF),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Column(
           children: [
@@ -356,22 +363,22 @@ class _AIChatScreenState extends State<AIChatScreen> {
               widget.deck.name,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade600,
+                color: isDark ? Colors.white70 : Colors.grey.shade600,
                 fontWeight: FontWeight.normal,
               ),
             ),
           ],
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).appBarTheme.foregroundColor),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.black54),
+            icon: Icon(Icons.delete_outline_rounded, color: isDark ? Colors.white54 : Colors.black54),
             onPressed: _clearChat,
             tooltip: 'Clear Chat',
           ),
@@ -451,7 +458,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
                   Text(
                     "AI Tutor is typing...",
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: isDark ? Colors.white54 : Colors.grey.shade500,
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
                     ),
@@ -469,10 +476,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
                   : 16
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
                   offset: const Offset(0, -4),
                   blurRadius: 16,
                 ),
@@ -488,11 +495,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     maxLines: 4,
                     minLines: 1,
                     textInputAction: TextInputAction.newline,
+                    style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
                     decoration: InputDecoration(
                       hintText: "Ask a question...",
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400),
                       filled: true,
-                      fillColor: const Color(0xFFF8F9FA),
+                      fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 14
                       ),
@@ -528,6 +536,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   Widget _buildMessageBubble(ChatMessage message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
@@ -554,7 +564,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
               decoration: BoxDecoration(
-                color: message.isUser ? null : Colors.white,
+                color: message.isUser ? null : Theme.of(context).cardColor,
                 gradient: message.isUser
                     ? const LinearGradient(
                         colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -572,7 +582,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     ? null
                     : [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -592,48 +602,48 @@ class _AIChatScreenState extends State<AIChatScreen> {
                       data: message.text,
                       selectable: true, // Allows user to copy the AI's response!
                       styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(
-                          color: Colors.black87,
+                        p: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
                           fontSize: 16,
                           height: 1.5,
                         ),
-                        strong: const TextStyle(
+                        strong: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
-                        em: const TextStyle(
+                        em: TextStyle(
                           fontStyle: FontStyle.italic,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white70 : Colors.black87,
                         ),
                         listBullet: const TextStyle(
                           color: Color(0xFF8B4EFF),
                           fontSize: 16,
                         ),
-                        h1: const TextStyle(
+                        h1: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
-                        h2: const TextStyle(
+                        h2: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
-                        h3: const TextStyle(
+                        h3: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                         code: TextStyle(
-                          backgroundColor: Colors.grey.shade100,
+                          backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                           color: const Color(0xFFE841A1),
                           fontFamily: 'monospace',
                           fontSize: 14,
                         ),
                         codeblockDecoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
                         ),
                         blockquoteDecoration: BoxDecoration(
                           border: const Border(

@@ -105,28 +105,34 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     if (widget.decks.isEmpty) {
       return SafeArea(
         child: Container(
           padding: const EdgeInsets.all(32),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.layers_clear, size: 48, color: Colors.grey),
+              Icon(Icons.layers_clear, size: 48, color: isDark ? Colors.white38 : Colors.grey),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 "No Decks Available",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 "Please create a deck first before generating AI cards.",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54),
+                style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
               ),
               const SizedBox(height: 24),
               TextButton(
@@ -149,11 +155,11 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -198,13 +204,13 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    const Flexible(
+                                    Flexible(
                                       child: Text(
                                         "Update with AI",
                                         style: TextStyle(
                                           fontSize: 22,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: Theme.of(context).textTheme.bodyLarge?.color,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -216,7 +222,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                                 onPressed: () {
                                   if (!_isSubmitting) Navigator.of(context).pop();
                                 },
-                                icon: const Icon(Icons.close, color: Colors.grey),
+                                icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.grey),
                                 tooltip: 'Close',
                               ),
                             ],
@@ -226,18 +232,18 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                             "Select an existing deck and tell MindFlash what new flashcards you want to add to it.",
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.white70 : Colors.grey[600],
                               height: 1.4,
                             ),
                           ),
                           const SizedBox(height: 24),
 
-                          const Text(
+                          Text(
                             "SELECT DECK",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF6B7280),
+                              color: isDark ? Colors.white54 : const Color(0xFF6B7280),
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -245,12 +251,14 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                           DropdownButtonFormField<Deck>(
                             value: _selectedDeck,
                             isExpanded: true,
+                            dropdownColor: Theme.of(context).cardColor,
                             items: widget.decks.map((deck) {
                               return DropdownMenuItem<Deck>(
                                 value: deck,
                                 child: Text(
                                   deck.name,
                                   overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
                                 ),
                               );
                             }).toList(),
@@ -265,7 +273,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                                 value == null ? 'Please select a deck' : null,
                             decoration: InputDecoration(
                               filled: true,
-                              fillColor: const Color(0xFFF5F5F5),
+                              fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF5F5F5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
@@ -290,12 +298,12 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
                           const SizedBox(height: 20),
 
-                          const Text(
+                          Text(
                             "WHAT SHOULD WE ADD?",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF6B7280),
+                              color: isDark ? Colors.white54 : const Color(0xFF6B7280),
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -306,6 +314,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                             textInputAction: TextInputAction.send,
                             enabled: !_isSubmitting,
                             onFieldSubmitted: (_) => _submitUpdate(),
+                            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Please enter a topic to add';
@@ -315,11 +324,11 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                             decoration: InputDecoration(
                               hintText: "e.g., More about widgets...",
                               hintStyle: TextStyle(
-                                color: Colors.grey[500],
+                                color: isDark ? Colors.white38 : Colors.grey[500],
                                 fontSize: 14,
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFF5F5F5),
+                              fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF5F5F5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
@@ -450,7 +459,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
                       child: Container(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -463,12 +472,12 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            const Text(
+                            Text(
                               "Updating Deck...",
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.black87,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -478,7 +487,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.grey.shade700,
+                                color: isDark ? Colors.white70 : Colors.grey.shade700,
                                 height: 1.4,
                                 fontWeight: FontWeight.w500,
                               ),

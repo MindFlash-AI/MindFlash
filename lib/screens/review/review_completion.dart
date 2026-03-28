@@ -49,8 +49,34 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
     );
   }
 
+  Widget _buildStatColumn(String label, String value, bool isDark) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: isDark ? Colors.white54 : Colors.grey.shade600,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -79,7 +105,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                   ),
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
@@ -133,7 +159,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -146,7 +172,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                           horizontal: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF9F5FF),
+                          color: isDark ? const Color(0xFF1A1128) : const Color(0xFFF9F5FF),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: const Color(0xFF8B4EFF).withOpacity(0.1),
@@ -158,16 +184,18 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                             _buildStatColumn(
                               "Cards",
                               widget.totalCards.toString(),
+                              isDark,
                             ),
                             if (widget.correctCards != null) ...[
                               Container(
                                 width: 1,
                                 height: 40,
-                                color: Colors.grey.shade300,
+                                color: isDark ? Colors.white24 : Colors.grey.shade300,
                               ),
                               _buildStatColumn(
                                 "Accuracy",
                                 "${((widget.correctCards! / widget.totalCards) * 100).round()}%",
+                                isDark,
                               ),
                             ],
                           ],
@@ -227,7 +255,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                           },
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: Colors.grey.shade300,
+                              color: isDark ? Colors.white24 : Colors.grey.shade300,
                               width: 2,
                             ),
                             shape: RoundedRectangleBorder(
@@ -237,7 +265,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                           child: Text(
                             "Back to Deck",
                             style: TextStyle(
-                              color: Colors.grey.shade800,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -252,34 +280,6 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStatColumn(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            color: Colors.black45,
-            letterSpacing: 1.0,
-          ),
-        ),
-        const SizedBox(height: 6),
-        ShaderMask(
-          shaderCallback: (bounds) => _brandGradient.createShader(bounds),
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

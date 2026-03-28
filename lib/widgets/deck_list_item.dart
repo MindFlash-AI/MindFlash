@@ -22,6 +22,7 @@ class DeckListItem extends StatelessWidget {
 
   Future<bool?> _showDeleteConfirmation(BuildContext context) {
     HapticFeedback.heavyImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return showDialog<bool>(
       context: context,
@@ -30,14 +31,17 @@ class DeckListItem extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: Colors.white,
-          title: const Text(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          title: Text(
             "Delete Deck?",
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
           ),
           content: Text(
             "Are you sure you want to delete '${deck.name}'? All cards inside will be lost. This action cannot be undone.",
-            style: TextStyle(color: Colors.grey[700]),
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[700]),
           ),
           actions: [
             TextButton(
@@ -47,8 +51,8 @@ class DeckListItem extends StatelessWidget {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade50,
-                foregroundColor: Colors.red,
+                backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
+                foregroundColor: isDark ? Colors.redAccent : Colors.red,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -67,6 +71,8 @@ class DeckListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     String firstLetter = deck.name.isNotEmpty
         ? deck.name[0].toUpperCase()
         : '?';
@@ -101,11 +107,12 @@ class DeckListItem extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
+          border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
               blurRadius: 15,
               offset: const Offset(0, 4),
             ),
@@ -156,10 +163,10 @@ class DeckListItem extends StatelessWidget {
                       children: [
                         Text(
                           deck.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
-                            color: Colors.black87,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
                             letterSpacing: -0.3,
                           ),
                           maxLines: 1,
@@ -169,7 +176,7 @@ class DeckListItem extends StatelessWidget {
                         Text(
                           deck.subject,
                           style: TextStyle(
-                            color: Colors.grey.shade500,
+                            color: isDark ? Colors.white70 : Colors.grey.shade500,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -183,13 +190,13 @@ class DeckListItem extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF4F6FF),
+                            color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.1) : const Color(0xFFF4F6FF),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             "${deck.cardCount} card${deck.cardCount == 1 ? '' : 's'}",
-                            style: const TextStyle(
-                              color: Color(0xFF5A6DFF),
+                            style: TextStyle(
+                              color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF),
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
@@ -200,7 +207,7 @@ class DeckListItem extends StatelessWidget {
                   ),
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: Colors.grey.shade300,
+                    color: isDark ? Colors.white38 : Colors.grey.shade300,
                     size: 28,
                   ),
                 ],

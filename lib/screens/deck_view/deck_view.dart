@@ -88,15 +88,24 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
 
   Future<void> _confirmDeleteCard(String cardId) async {
     HapticFeedback.heavyImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        title: Text(
           "Delete Card?",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
-        content: const Text("Are you sure? This action cannot be undone."),
+        content: Text(
+          "Are you sure? This action cannot be undone.",
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -105,8 +114,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade50,
-              foregroundColor: Colors.red,
+              backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
+              foregroundColor: isDark ? Colors.redAccent : Colors.red,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -201,8 +210,10 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     bool hasFlagged,
     int flaggedCount,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      color: const Color(0xFFFDF9FF),
+      color: Theme.of(context).scaffoldBackgroundColor,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -267,9 +278,12 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               height: 52,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: isDark ? Colors.red.withOpacity(0.1) : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.shade100, width: 1.5),
+                border: Border.all(
+                  color: isDark ? Colors.red.withOpacity(0.3) : Colors.red.shade100, 
+                  width: 1.5,
+                ),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -279,17 +293,17 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.flag_rounded,
-                        color: Colors.redAccent,
+                        color: isDark ? Colors.redAccent.shade200 : Colors.redAccent,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           "Focus Weaknesses ($flaggedCount Card${flaggedCount == 1 ? '' : 's'})",
-                          style: const TextStyle(
-                            color: Colors.redAccent,
+                          style: TextStyle(
+                            color: isDark ? Colors.redAccent.shade200 : Colors.redAccent,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
                           ),
@@ -350,6 +364,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     String firstLetter = widget.deck.name.isNotEmpty
         ? widget.deck.name[0].toUpperCase()
         : "?";
@@ -362,18 +378,18 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     final double actionsHeight = hasFlagged ? 248.0 : 184.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF9FF),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
+        systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark.copyWith(
           statusBarColor: Colors.transparent,
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: Theme.of(context).appBarTheme.foregroundColor),
+        title: Text(
           "Deck Details",
           style: TextStyle(
-            color: Colors.black87,
+            color: Theme.of(context).appBarTheme.foregroundColor,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -386,15 +402,15 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.25),
+                  color: isDark ? Colors.white12 : const Color(0xFF8B4EFF).withOpacity(0.25),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B4EFF).withOpacity(0.12),
+                    color: isDark ? Colors.black45 : const Color(0xFF8B4EFF).withOpacity(0.12),
                     blurRadius: 24,
                     offset: const Offset(0, 8),
                   ),
@@ -434,10 +450,10 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                       children: [
                         Text(
                           widget.deck.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
-                            color: Colors.black87,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
                             letterSpacing: -0.5,
                           ),
                           maxLines: 1,
@@ -447,7 +463,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                         Text(
                           widget.deck.subject,
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: isDark ? Colors.white70 : Colors.grey.shade600,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -461,13 +477,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF4F6FF),
+                            color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.15) : const Color(0xFFF4F6FF),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             "${widget.deck.cardCount} card${widget.deck.cardCount == 1 ? '' : 's'}",
-                            style: const TextStyle(
-                              color: Color(0xFF5A6DFF),
+                            style: TextStyle(
+                              color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF),
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -554,7 +570,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               ),
             );
           },
-          backgroundColor: const Color(0xFF1E1E2C),
+          backgroundColor: isDark ? const Color(0xFF8B4EFF) : const Color(0xFF1E1E2C),
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text(
             "Add Card",
@@ -573,6 +589,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     bool isActive = false,
     bool isDisabled = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Opacity(
       opacity: isDisabled ? 0.5 : 1.0,
       child: Material(
@@ -583,10 +601,12 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
           child: Container(
             height: 76,
             decoration: BoxDecoration(
-              color: isActive ? color : Colors.white,
+              color: isActive ? color : Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isActive ? color : Colors.grey.shade300,
+                color: isActive 
+                    ? color 
+                    : (isDark ? Colors.white12 : Colors.grey.shade300),
                 width: 1.5,
               ),
               boxShadow: isActive
@@ -609,7 +629,9 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: isActive ? Colors.white : Colors.black87,
+                      color: isActive 
+                          ? Colors.white 
+                          : Theme.of(context).textTheme.bodyLarge?.color,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -626,6 +648,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -633,34 +657,39 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: const Color(0xFFF4F6FF),
+            color: isDark ? const Color(0xFF1A1128) : const Color(0xFFF4F6FF),
             borderRadius: BorderRadius.circular(24),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.style_outlined,
             size: 40,
-            color: Color(0xFF5A6DFF),
+            color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF),
           ),
         ),
         const SizedBox(height: 20, width: double.infinity),
-        const Text(
+        Text(
           "This deck is empty",
           style: TextStyle(
             fontSize: 20,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           "Add your first card to start studying!",
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.grey.shade600, 
+            fontSize: 15,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildSliverCardsList() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
       sliver: SliverList(
@@ -681,11 +710,12 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
+                border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -706,12 +736,12 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                                 margin: const EdgeInsets.only(right: 8),
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.shade50,
+                                  color: isDark ? Colors.red.withOpacity(0.15) : Colors.red.shade50,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.flag_rounded,
-                                  color: Colors.redAccent,
+                                  color: isDark ? Colors.redAccent.shade200 : Colors.redAccent,
                                   size: 14,
                                 ),
                               )
@@ -720,12 +750,12 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                                 margin: const EdgeInsets.only(right: 8),
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
+                                  color: isDark ? Colors.green.withOpacity(0.15) : Colors.green.shade50,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.check_rounded,
-                                  color: Colors.green,
+                                  color: isDark ? Colors.greenAccent.shade400 : Colors.green,
                                   size: 14,
                                 ),
                               ),
@@ -736,13 +766,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF4F6FF),
+                                  color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.1) : const Color(0xFFF4F6FF),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   "#${index + 1}",
-                                  style: const TextStyle(
-                                    color: Color(0xFF5A6DFF),
+                                  style: TextStyle(
+                                    color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF),
                                     fontSize: 11,
                                     fontWeight: FontWeight.w900,
                                   ),
@@ -772,9 +802,9 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                                 ),
                               );
                             },
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.edit_rounded,
-                              color: Colors.black45,
+                              color: isDark ? Colors.white54 : Colors.black45,
                               size: 20,
                             ),
                             padding: const EdgeInsets.all(8),
@@ -783,9 +813,9 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                           const SizedBox(width: 4),
                           IconButton(
                             onPressed: () => _confirmDeleteCard(card.id),
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.delete_rounded,
-                              color: Colors.redAccent,
+                              color: isDark ? Colors.redAccent.shade200 : Colors.redAccent,
                               size: 20,
                             ),
                             padding: const EdgeInsets.all(8),
@@ -797,10 +827,10 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 12),
 
-                  const Text(
+                  Text(
                     "FRONT",
                     style: TextStyle(
-                      color: Colors.grey,
+                      color: isDark ? Colors.white54 : Colors.grey,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
@@ -809,26 +839,26 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                   const SizedBox(height: 4),
                   Text(
                     card.question,
-                    style: const TextStyle(
-                      color: Colors.black87,
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Divider(
                       height: 1,
                       thickness: 1,
-                      color: Color(0xFFF0F0F0),
+                      color: isDark ? Colors.white12 : const Color(0xFFF0F0F0),
                     ),
                   ),
 
-                  const Text(
+                  Text(
                     "BACK",
                     style: TextStyle(
-                      color: Colors.grey,
+                      color: isDark ? Colors.white54 : Colors.grey,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
@@ -837,7 +867,10 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                   const SizedBox(height: 4),
                   Text(
                     card.answer,
-                    style: const TextStyle(color: Colors.black87, fontSize: 15),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color, 
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
@@ -878,9 +911,11 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return ClipRect(
       child: Container(
-        color: const Color(0xFFFDF9FF),
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: Stack(
           children: [
             Positioned(
@@ -906,11 +941,11 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFDF9FF),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     boxShadow: (overlapsContent || expandProgress > 0)
                         ? [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withOpacity(isDark ? 0.4 : 0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -926,16 +961,16 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: isDark ? Colors.white38 : Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                       Row(
                         children: [
-                          const Text(
+                          Text(
                             "Card List",
                             style: TextStyle(
-                              color: Colors.black87,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                             ),
@@ -943,8 +978,8 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
                           const Spacer(),
                           Text(
                             "$cardCount Total",
-                            style: const TextStyle(
-                              color: Colors.grey,
+                            style: TextStyle(
+                              color: isDark ? Colors.white54 : Colors.grey,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),

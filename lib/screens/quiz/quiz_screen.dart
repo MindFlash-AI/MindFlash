@@ -186,17 +186,21 @@ class _QuizScreenState extends State<QuizScreen> {
     if (!_canPop) {
       await _flushSave();
     }
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final shouldPop = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Pause Quiz?',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
         ),
-        content: const Text(
+        content: Text(
           'Your progress has been automatically saved. You can resume later.',
+          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
         actions: [
           TextButton(
@@ -206,8 +210,8 @@ class _QuizScreenState extends State<QuizScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
-              foregroundColor: const Color(0xFF8B4EFF),
+              backgroundColor: isDark ? const Color(0xFF8B4EFF).withOpacity(0.2) : const Color(0xFF8B4EFF).withOpacity(0.1),
+              foregroundColor: isDark ? const Color(0xFFB48AFF) : const Color(0xFF8B4EFF),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -249,23 +253,26 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _showResultsDialog() {
     if (!mounted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
+        title: Text(
           'Quiz Complete!',
           textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF9F5FF),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1A1128) : const Color(0xFFF9F5FF),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -277,8 +284,11 @@ class _QuizScreenState extends State<QuizScreen> {
             const SizedBox(height: 16),
             Text(
               'You scored $_correctCount out of ${widget.quiz.length}.',
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
             ),
           ],
         ),
@@ -331,6 +341,7 @@ class _QuizScreenState extends State<QuizScreen> {
     final currentQuestion = widget.quiz[_currentIndex];
     final progress =
         (_currentIndex + (_hasAnsweredCurrent ? 1 : 0)) / widget.quiz.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
       canPop: _canPop,
@@ -347,18 +358,21 @@ class _QuizScreenState extends State<QuizScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFFDF9FF),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: Text(
             widget.deckTitle,
-            style:
-                const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            style: TextStyle(
+              fontWeight: FontWeight.bold, 
+              fontSize: 18,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+            ),
           ),
-          backgroundColor: const Color(0xFFFDF9FF),
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.black87),
+            icon: Icon(Icons.close, color: Theme.of(context).appBarTheme.foregroundColor),
             onPressed: () async {
               if (_canPop) {
                 Navigator.of(context).pop();
@@ -391,7 +405,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       height: 6,
                       margin: const EdgeInsets.symmetric(horizontal: 20),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: isDark ? Colors.white12 : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(3),
                       ),
                       alignment: Alignment.centerLeft,
@@ -415,17 +429,17 @@ class _QuizScreenState extends State<QuizScreen> {
                       children: [
                         _buildStatBadge(
                           Icons.check_circle_rounded,
-                          Colors.green.shade600,
+                          isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
                           '$_correctCount',
                         ),
                         _buildStatBadge(
                           Icons.cancel_rounded,
-                          Colors.red.shade500,
+                          isDark ? Colors.redAccent.shade200 : Colors.red.shade500,
                           '$_incorrectCount',
                         ),
                         _buildStatBadge(
                           Icons.help_outline_rounded,
-                          Colors.grey.shade500,
+                          isDark ? Colors.white54 : Colors.grey.shade500,
                           '$_remainingCount',
                         ),
                       ],
@@ -443,7 +457,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             child: Text(
                               'Question ${_currentIndex + 1} of ${widget.quiz.length}',
                               style: TextStyle(
-                                color: Colors.grey.shade600,
+                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.5,
                                 fontSize: 13,
@@ -458,11 +472,12 @@ class _QuizScreenState extends State<QuizScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(24),
+                                border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
                                     blurRadius: 20,
                                     offset: const Offset(0, 10),
                                   ),
@@ -473,10 +488,10 @@ class _QuizScreenState extends State<QuizScreen> {
                                   child: Text(
                                     currentQuestion.question,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
+                                      color: Theme.of(context).textTheme.bodyLarge?.color,
                                       height: 1.4,
                                     ),
                                   ),
@@ -494,25 +509,25 @@ class _QuizScreenState extends State<QuizScreen> {
                               itemBuilder: (context, index) {
                                 final option = currentQuestion.options[index];
 
-                                Color buttonColor = Colors.white;
-                                Color textColor = Colors.black87;
+                                Color buttonColor = Theme.of(context).cardColor;
+                                Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87;
                                 Color borderColor = Colors.transparent;
                                 IconData? feedbackIcon;
                                 Color iconColor = Colors.transparent;
 
                                 if (_hasAnsweredCurrent) {
                                   if (option == currentQuestion.correctAnswer) {
-                                    buttonColor = Colors.green.shade50;
-                                    borderColor = Colors.green.shade400;
-                                    textColor = Colors.green.shade800;
+                                    buttonColor = isDark ? Colors.green.withOpacity(0.2) : Colors.green.shade50;
+                                    borderColor = isDark ? Colors.greenAccent : Colors.green.shade400;
+                                    textColor = isDark ? Colors.greenAccent : Colors.green.shade800;
                                     feedbackIcon = Icons.check_circle_rounded;
-                                    iconColor = Colors.green.shade500;
+                                    iconColor = isDark ? Colors.greenAccent : Colors.green.shade500;
                                   } else if (option == _selectedAnswerCurrent) {
-                                    buttonColor = Colors.red.shade50;
-                                    borderColor = Colors.red.shade400;
-                                    textColor = Colors.red.shade800;
+                                    buttonColor = isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50;
+                                    borderColor = isDark ? Colors.redAccent : Colors.red.shade400;
+                                    textColor = isDark ? Colors.redAccent : Colors.red.shade800;
                                     feedbackIcon = Icons.cancel_rounded;
-                                    iconColor = Colors.red.shade500;
+                                    iconColor = isDark ? Colors.redAccent : Colors.red.shade500;
                                   }
                                 }
 
@@ -535,7 +550,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                         boxShadow: [
                                           BoxShadow(
                                             color:
-                                                Colors.black.withOpacity(0.03),
+                                                Colors.black.withOpacity(isDark ? 0.3 : 0.03),
                                             blurRadius: 10,
                                             offset: const Offset(0, 4),
                                           ),
@@ -582,13 +597,13 @@ class _QuizScreenState extends State<QuizScreen> {
                                               BorderRadius.circular(16),
                                         ),
                                         side: BorderSide(
-                                            color: Colors.grey.shade300, width: 2),
+                                            color: isDark ? Colors.white24 : Colors.grey.shade300, width: 2),
                                       ),
                                       child: Text(
                                         'Previous',
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: Colors.grey.shade700,
+                                          color: isDark ? Colors.white70 : Colors.grey.shade700,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -656,7 +671,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
                       child: Container(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -669,12 +684,12 @@ class _QuizScreenState extends State<QuizScreen> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            const Text(
+                            Text(
                               "Calculating Score...",
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.black87,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -684,7 +699,7 @@ class _QuizScreenState extends State<QuizScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.grey.shade700,
+                                color: isDark ? Colors.white70 : Colors.grey.shade700,
                                 height: 1.4,
                                 fontWeight: FontWeight.w500,
                               ),

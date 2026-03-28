@@ -70,6 +70,8 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -77,9 +79,9 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
         ),
         child: Container(
           width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
@@ -95,7 +97,7 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                       height: 5,
                       margin: const EdgeInsets.only(bottom: 24),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -104,12 +106,12 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         "Create New Deck",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: Colors.black87,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -121,12 +123,12 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                         icon: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: isDark ? Colors.white12 : Colors.grey.shade100,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.close,
-                            color: Colors.black54,
+                            color: isDark ? Colors.white54 : Colors.black54,
                             size: 20,
                           ),
                         ),
@@ -138,7 +140,7 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
                   const SizedBox(height: 8),
                   Text(
                     "Enter the details for your new flashcard deck.",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.grey[600]),
                   ),
                   const SizedBox(height: 28),
 
@@ -231,10 +233,10 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
       ],
@@ -250,6 +252,8 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
     Function(String)? onFieldSubmitted,
     required String? Function(String?) validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
@@ -258,12 +262,12 @@ class _CreateDeckDialogState extends State<CreateDeckDialog> {
       onFieldSubmitted: onFieldSubmitted,
       textCapitalization: TextCapitalization.words,
       inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
-      style: const TextStyle(fontSize: 16, color: Colors.black87),
+      style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
+        hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 15),
         filled: true,
-        fillColor: const Color(0xFFF8F9FA),
+        fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA),
         suffixIcon: controller.text.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),

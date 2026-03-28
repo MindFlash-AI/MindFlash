@@ -235,15 +235,17 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -268,7 +270,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                               height: 5,
                               margin: const EdgeInsets.only(bottom: 24),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
+                                color: isDark ? Colors.white24 : Colors.grey.shade300,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
@@ -293,13 +295,13 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    const Flexible(
+                                    Flexible(
                                       child: Text(
                                         "AI Generation",
                                         style: TextStyle(
                                           fontSize: 22,
                                           fontWeight: FontWeight.w900,
-                                          color: Colors.black87,
+                                          color: Theme.of(context).textTheme.bodyLarge?.color,
                                           letterSpacing: -0.5,
                                         ),
                                         overflow: TextOverflow.ellipsis,
@@ -318,12 +320,12 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                 icon: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
+                                    color: isDark ? Colors.white12 : Colors.grey.shade100,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.close_rounded,
-                                    color: Colors.black54,
+                                    color: isDark ? Colors.white54 : Colors.black54,
                                     size: 20,
                                   ),
                                 ),
@@ -337,7 +339,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                             "Let MindFlash build a complete flashcard deck for you in seconds. Tell us what you want to learn or attach your notes.",
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.white70 : Colors.grey[600],
                               height: 1.4,
                             ),
                           ),
@@ -414,7 +416,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                       ? const Color(0xFF8B4EFF).withOpacity(0.08)
                                       : (_selectedFileName != null
                                             ? const Color(0xFF8B4EFF).withOpacity(0.05)
-                                            : const Color(0xFFF8F9FA)),
+                                            : (isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA))),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: _isFileProcessing
@@ -470,7 +472,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                                     "Upload PDF, TXT, or Image",
                                                 style: TextStyle(
                                                   color: _selectedFileName != null
-                                                      ? Colors.black87
+                                                      ? Theme.of(context).textTheme.bodyLarge?.color
                                                       : Colors.grey.shade500,
                                                   fontSize: 15,
                                                   fontWeight:
@@ -698,7 +700,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
                       child: Container(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -711,12 +713,12 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            const Text(
+                            Text(
                               "Crafting Deck...",
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.black87,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -726,7 +728,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.grey.shade700,
+                                color: isDark ? Colors.white70 : Colors.grey.shade700,
                                 height: 1.4,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -752,10 +754,10 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Colors.black87,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -768,11 +770,13 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     String hint,
     TextEditingController controller,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
+      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 15),
       filled: true,
-      fillColor: const Color(0xFFF8F9FA),
+      fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA),
       suffixIcon: controller.text.isNotEmpty && !_isSubmitting
           ? IconButton(
               icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),

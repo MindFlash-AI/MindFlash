@@ -10,7 +10,7 @@ class SessionStatsBar extends StatelessWidget {
     required this.incorrectCount,
   });
 
-  Widget _buildStat(IconData icon, Color color, String text) {
+  Widget _buildStat(IconData icon, Color color, String text, bool isDark) {
     return Row(
       children: [
         Icon(icon, color: color, size: 18),
@@ -18,7 +18,7 @@ class SessionStatsBar extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            color: color.withOpacity(0.9),
+            color: isDark ? color.withOpacity(0.9) : color.withOpacity(0.8),
             fontWeight: FontWeight.bold,
             fontSize: 15,
           ),
@@ -29,6 +29,8 @@ class SessionStatsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Row(
@@ -36,21 +38,23 @@ class SessionStatsBar extends StatelessWidget {
         children: [
           _buildStat(
             Icons.check_circle_rounded,
-            Colors.greenAccent.shade400, // Brighter green for dark mode
+            isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
             '$correctCount Got It',
+            isDark,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Container(
               height: 12,
               width: 2,
-              color: Colors.white24, // Dark mode divider
+              color: isDark ? Colors.white24 : Colors.grey.shade300,
             ),
           ),
           _buildStat(
             Icons.cancel_rounded,
-            Colors.redAccent.shade200, // Brighter red for dark mode
+            isDark ? Colors.redAccent.shade200 : Colors.red.shade500,
             '$incorrectCount Review',
+            isDark,
           ),
         ],
       ),

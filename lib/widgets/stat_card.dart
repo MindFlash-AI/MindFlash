@@ -20,6 +20,8 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Semantics(
       button: onTap != null,
       label: '$title: $count',
@@ -31,10 +33,13 @@ class StatCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2), 
+            width: 1
+          ),
           boxShadow: [
             BoxShadow(
-              color: shadowColor.withOpacity(0.4),
+              color: isDark ? Colors.black.withOpacity(0.4) : shadowColor.withOpacity(0.4),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),

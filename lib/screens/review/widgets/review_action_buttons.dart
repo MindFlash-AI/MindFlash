@@ -14,6 +14,8 @@ class ReviewActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
       child: AnimatedSwitcher(
@@ -38,7 +40,7 @@ class ReviewActionButtons extends StatelessWidget {
                     child: _buildActionButton(
                       label: "Need Review",
                       icon: Icons.repeat_rounded,
-                      color: Colors.redAccent.shade200, // Brighter for dark mode
+                      color: isDark ? Colors.redAccent.shade200 : Colors.redAccent,
                       onPressed: onIncorrect,
                     ),
                   ),
@@ -47,7 +49,7 @@ class ReviewActionButtons extends StatelessWidget {
                     child: _buildActionButton(
                       label: "Got It",
                       icon: Icons.check_rounded,
-                      color: Colors.greenAccent.shade400, // Brighter for dark mode
+                      color: isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
                       onPressed: onCorrect,
                       isPrimary: true,
                     ),
@@ -57,12 +59,12 @@ class ReviewActionButtons extends StatelessWidget {
             : SizedBox(
                 key: const ValueKey('placeholder_box'),
                 width: double.infinity,
-                height: 56, // Matches the height of the buttons above
+                height: 56, 
                 child: Center(
                   child: Text(
                     "Flip card to reveal answer",
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.3),
+                      color: isDark ? Colors.white.withOpacity(0.3) : Colors.black54,
                       fontSize: 14,
                       fontStyle: FontStyle.italic,
                     ),

@@ -13,6 +13,7 @@ class ReviewProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = (currentIndex + 1) / totalCards;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: progress),
@@ -22,7 +23,7 @@ class ReviewProgressBar extends StatelessWidget {
         height: 4,
         margin: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1), // Dark mode track
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(2),
         ),
         alignment: Alignment.centerLeft,

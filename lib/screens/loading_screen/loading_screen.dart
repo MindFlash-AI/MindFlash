@@ -11,219 +11,139 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _entranceController;
-  late AnimationController _breathingController;
-
-  late Animation<double> _logoScale;
-  late Animation<double> _logoFade;
-
-  late Animation<Offset> _titleSlide;
-  late Animation<double> _titleFade;
-
-  late Animation<Offset> _subtitleSlide;
-  late Animation<double> _subtitleFade;
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    _entranceController = AnimationController(
+    _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1500),
     );
 
-    _breathingController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
-    _setupStaggeredAnimations();
-
-    _entranceController.forward();
-
-    _initializeAppAndNavigate();
-  }
-
-  void _setupStaggeredAnimations() {
-    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
-      ),
-    );
-    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic),
       ),
     );
 
-    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.3, 0.7, curve: Curves.easeOutCubic),
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
+    );
+
+    _controller.forward();
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const DashboardScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 500),
           ),
         );
-    _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.3, 0.7, curve: Curves.easeIn),
-      ),
-    );
-
-    _subtitleSlide =
-        Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
-          ),
-        );
-    _subtitleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
-      ),
-    );
-  }
-
-  Future<void> _initializeAppAndNavigate() async {
-    await Future.wait([
-      Future.delayed(const Duration(milliseconds: 1800)),
-      _loadAppData(),
-    ]);
-
-    if (!mounted) return;
-
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const DashboardScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 800),
-      ),
-    );
-  }
-
-  Future<void> _loadAppData() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+      }
+    });
   }
 
   @override
   void dispose() {
-    _entranceController.dispose();
-    _breathingController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: Colors.transparent,
-      ),
+      value: Theme.of(context).brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent)
+          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        body: Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: AppColors.mainBackgroundGradient,
-            ),
-          ),
-          child: SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FadeTransition(
-                    opacity: _logoFade,
-                    child: ScaleTransition(
-                      scale: _logoScale,
-                      child: AnimatedBuilder(
-                        animation: _breathingController,
-                        builder: (context, child) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.white.withOpacity(
-                                    0.15 + (_breathingController.value * 0.1),
-                                  ),
-                                  blurRadius:
-                                      40 + (_breathingController.value * 20),
-                                  spreadRadius:
-                                      5 + (_breathingController.value * 10),
-                                ),
-                              ],
-                            ),
-                            child: child,
-                          );
-                        },
-                        child: Image.asset(
-                          'assets/MindFlash_logo.png',
-                          width: 140,
-                          height: 140,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
-                                Icons.auto_awesome,
-                                size: 100,
-                                color: Colors.white,
-                              ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  FadeTransition(
-                    opacity: _titleFade,
-                    child: SlideTransition(
-                      position: _titleSlide,
-                      child: const Text(
-                        'MindFlash',
-                        style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.0,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black26,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.blueStart, AppColors.pinkStart],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  FadeTransition(
-                    opacity: _subtitleFade,
-                    child: SlideTransition(
-                      position: _subtitleSlide,
-                      child: Text(
-                        'Supercharge your learning',
-                        style: TextStyle(
-                          fontSize: 16,
-                          letterSpacing: 1.2,
-                          color: Colors.white.withOpacity(0.85),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: Colors.white,
+                          size: 50,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 24),
+                      ShaderMask(
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [AppColors.blueStart, AppColors.pinkStart],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds),
+                        child: const Text(
+                          "MindFlash",
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Master anything, anytime.",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),

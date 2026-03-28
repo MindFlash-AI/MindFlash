@@ -141,15 +141,16 @@ class _FlashcardWidgetState extends State<_FlashcardWidget>
   }
 
   Widget _buildCardFace({required bool isFront}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        // Very deep purple-grey for the cards to pop against the darker background
-        color: const Color(0xFF1A1128),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4), // Darker shadow for dark mode
+            color: Colors.black.withOpacity(isDark ? 0.4 : 0.1),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -163,8 +164,8 @@ class _FlashcardWidgetState extends State<_FlashcardWidget>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: isFront
-                  ? const Color(0xFF8B4EFF).withOpacity(0.15)
-                  : const Color(0xFFE841A1).withOpacity(0.15),
+                  ? const Color(0xFF8B4EFF).withOpacity(isDark ? 0.15 : 0.1)
+                  : const Color(0xFFE841A1).withOpacity(isDark ? 0.15 : 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -173,8 +174,9 @@ class _FlashcardWidgetState extends State<_FlashcardWidget>
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
-                // Brighter accent colors for readability on dark background
-                color: isFront ? const Color(0xFFB48AFF) : const Color(0xFFFF72C5),
+                color: isFront 
+                    ? (isDark ? const Color(0xFFB48AFF) : const Color(0xFF8B4EFF)) 
+                    : (isDark ? const Color(0xFFFF72C5) : const Color(0xFFE841A1)),
               ),
             ),
           ),
@@ -189,7 +191,7 @@ class _FlashcardWidgetState extends State<_FlashcardWidget>
                   style: TextStyle(
                     fontSize: isFront ? 24 : 20,
                     fontWeight: isFront ? FontWeight.bold : FontWeight.w600,
-                    color: Colors.white, // Crisp white text
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                     height: 1.4,
                   ),
                 ),
@@ -203,14 +205,14 @@ class _FlashcardWidgetState extends State<_FlashcardWidget>
               Icon(
                 Icons.touch_app_rounded,
                 size: 16,
-                color: Colors.white38,
+                color: isDark ? Colors.white38 : Colors.grey.shade400,
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 "Tap to flip",
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white38,
+                  color: isDark ? Colors.white38 : Colors.grey.shade400,
                   fontWeight: FontWeight.w600,
                 ),
               ),

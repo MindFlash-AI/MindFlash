@@ -67,17 +67,24 @@ class _EditCardDialogState extends State<EditCardDialog> {
 
     _questionFocus.unfocus();
     _answerFocus.unfocus();
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final shouldDiscard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           "Discard Changes?",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
-        content: const Text(
+        content: Text(
           "You have unsaved edits. Are you sure you want to discard them?",
+          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
         actions: [
           TextButton(
@@ -90,8 +97,8 @@ class _EditCardDialogState extends State<EditCardDialog> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade50,
-              foregroundColor: Colors.red,
+              backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
+              foregroundColor: isDark ? Colors.redAccent : Colors.red,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -131,6 +138,8 @@ class _EditCardDialogState extends State<EditCardDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SafeArea(
       child: PopScope(
         canPop: false,
@@ -142,7 +151,7 @@ class _EditCardDialogState extends State<EditCardDialog> {
           }
         },
         child: Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
@@ -164,12 +173,12 @@ class _EditCardDialogState extends State<EditCardDialog> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           "Edit Card",
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
-                            color: Colors.black87,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -184,12 +193,12 @@ class _EditCardDialogState extends State<EditCardDialog> {
                           icon: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: isDark ? Colors.white12 : Colors.grey.shade100,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.close,
-                              color: Colors.black54,
+                              color: isDark ? Colors.white54 : Colors.black54,
                               size: 20,
                             ),
                           ),
@@ -285,10 +294,10 @@ class _EditCardDialogState extends State<EditCardDialog> {
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
       ],
@@ -304,6 +313,8 @@ class _EditCardDialogState extends State<EditCardDialog> {
     Function(String)? onFieldSubmitted,
     required String? Function(String?) validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
@@ -311,16 +322,16 @@ class _EditCardDialogState extends State<EditCardDialog> {
       maxLines: maxLines,
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
-      style: const TextStyle(fontSize: 16, color: Colors.black87),
+      style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: Colors.grey.shade400,
+          color: isDark ? Colors.white38 : Colors.grey.shade400,
           fontSize: 15,
           fontWeight: FontWeight.w400,
         ),
         filled: true,
-        fillColor: const Color(0xFFF8F9FA),
+        fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

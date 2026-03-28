@@ -160,14 +160,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Widget build(BuildContext context) {
     if (_reviewCards.isEmpty) return const Scaffold();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // Use light overlay style so status bar icons (battery, wifi) are white
-      value: SystemUiOverlayStyle.light.copyWith(
+      value: isDark ? SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ) : SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        // Deep Space Violet Background
-        backgroundColor: const Color(0xFF0B0714),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: Stack(
             children: [
@@ -197,7 +199,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     child: Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(top: 16),
-                      // Transparent to let the beautiful deep background show
                       color: Colors.transparent,
                       child: Column(
                         children: [

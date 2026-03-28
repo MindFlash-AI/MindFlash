@@ -2,24 +2,58 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const Color blueStart = Color(0xFF5B4FE6);
-  static const Color blueEnd = Color(0xFF526BF3);
-
   static const Color pinkStart = Color(0xFFE940A3);
-  static const Color pinkEnd = Color(0xFFFF5DAD);
+  static const Color background = Color(0xFFF8F9FA);
+}
 
-  static const List<Color> mainBackgroundGradient = [
-    Color(0xFF6A5AE0),
-    Color(0xFF9E55E6),
-    Color(0xFFFF5DAD),
-  ];
+// Global Theme Notifier for Dark Mode Toggle
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
-  static const List<Color> deckCardGradient = [
-    Color(0xFF3525AF),
-    Color(0xFF7B52DD),
-  ];
+class AppTheme {
+  static ThemeData get lightTheme {
+    return ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: const Color(0xFFFDF9FF),
+      cardColor: Colors.white,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF8B4EFF),
+        brightness: Brightness.light,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFFFDF9FF),
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: Colors.black87),
+        bodyMedium: TextStyle(color: Colors.black87),
+        titleLarge: TextStyle(color: Colors.black87),
+      ),
+      useMaterial3: true,
+    );
+  }
 
-  static const List<Color> cardCardGradient = [
-    Color(0xFF7B52DD),
-    Color(0xFFE940A3),
-  ];
+  static ThemeData get darkTheme {
+    return ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: const Color(0xFF0B0714), // Deep Space Violet
+      cardColor: const Color(0xFF1A1128), // Dark card color
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF8B4EFF),
+        brightness: Brightness.dark,
+        surface: const Color(0xFF1A1128),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0B0714),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: Colors.white),
+        bodyMedium: TextStyle(color: Colors.white70),
+        titleLarge: TextStyle(color: Colors.white),
+      ),
+      useMaterial3: true,
+    );
+  }
 }
