@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EnergyService {
-  static const int maxEnergy = 15;
+  static const int maxEnergy = 3;
   static const String _energyKey = 'ai_energy_count';
   static const String _dateKey = 'ai_last_reset_date';
 

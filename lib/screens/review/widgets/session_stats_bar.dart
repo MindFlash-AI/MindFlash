@@ -10,77 +10,47 @@ class SessionStatsBar extends StatelessWidget {
     required this.incorrectCount,
   });
 
+  Widget _buildStat(IconData icon, Color color, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: color.withOpacity(0.9),
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    int totalAnswered = correctCount + incorrectCount;
-    String percentStr = totalAnswered == 0
-        ? "--%"
-        : "${((correctCount / totalAnswered) * 100).round()}%";
-
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _StatBadge(
-            icon: Icons.check_circle_rounded,
-            value: correctCount.toString(),
-            color: Colors.green,
-            bgColor: Colors.green.shade50,
+          _buildStat(
+            Icons.check_circle_rounded,
+            Colors.greenAccent.shade400, // Brighter green for dark mode
+            '$correctCount Got It',
           ),
-          const SizedBox(width: 12),
-          _StatBadge(
-            icon: Icons.flag_rounded,
-            value: incorrectCount.toString(),
-            color: Colors.redAccent,
-            bgColor: Colors.red.shade50,
-          ),
-          const SizedBox(width: 12),
-          _StatBadge(
-            icon: Icons.pie_chart_rounded,
-            value: percentStr,
-            color: const Color(0xFF5A6DFF),
-            bgColor: const Color(0xFFF4F6FF),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final Color color;
-  final Color bgColor;
-
-  const _StatBadge({
-    required this.icon,
-    required this.value,
-    required this.color,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 12,
+              width: 2,
+              color: Colors.white24, // Dark mode divider
             ),
+          ),
+          _buildStat(
+            Icons.cancel_rounded,
+            Colors.redAccent.shade200, // Brighter red for dark mode
+            '$incorrectCount Review',
           ),
         ],
       ),

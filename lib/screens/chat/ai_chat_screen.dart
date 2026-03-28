@@ -1,12 +1,34 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // Added Markdown support
+import 'package:shared_preferences/shared_preferences.dart'; // Added for saving history
+
 import '../../models/deck_model.dart';
 import '../../services/ai_service.dart';
+import '../../services/energy_service.dart';
 import '../../services/ad_helper.dart';
-import '../../services/energy_service.dart'; // Import EnergyService
+
+class ChatMessage {
+  final String text;
+  final bool isUser;
+
+  ChatMessage({required this.text, required this.isUser});
+
+  // Convert to JSON for storage
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'isUser': isUser,
+      };
+
+  // Create from JSON
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+        text: json['text'],
+        isUser: json['isUser'],
+      );
+}
 
 class AIChatScreen extends StatefulWidget {
   final Deck deck;
@@ -17,48 +39,118 @@ class AIChatScreen extends StatefulWidget {
   State<AIChatScreen> createState() => _AIChatScreenState();
 }
 
-class ChatMessage {
-  final String text;
-  final bool isUser;
-
-  ChatMessage({required this.text, required this.isUser});
-}
-
 class _AIChatScreenState extends State<AIChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final AIService _aiService = AIService();
-  final EnergyService _energyService = EnergyService(); // Initialize EnergyService
-  
   final List<ChatMessage> _messages = [];
+  
+  final AIService _aiService = AIService();
+  final EnergyService _energyService = EnergyService();
+
   bool _isLoading = false;
-
-  // Energy State
   int _currentEnergy = 0;
-  bool _isEnergyLoaded = false;
 
-  // Banner Ad State
+  // AdMob variables
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
-
-  // Rewarded Ad State
   RewardedAd? _rewardedAd;
-  bool _isRewardedAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _initEnergySystem();
+    _initServices();
     _loadBannerAd();
     _loadRewardedAd();
-    
-    // Initial greeting
-    _messages.add(
-      ChatMessage(
-        text: "Hi! I'm your AI tutor for **${widget.deck.name}**. What would you like to discuss or learn more about?",
-        isUser: false,
+    _loadChatHistory();
+  }
+
+  Future<void> _initServices() async {
+    await _energyService.init();
+    if (mounted) {
+      setState(() {
+        _currentEnergy = _energyService.currentEnergy;
+      });
+    }
+  }
+
+  // --- Chat History Logic ---
+
+  Future<void> _loadChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? historyJson = prefs.getString('chat_history_${widget.deck.id}');
+
+    if (historyJson != null) {
+      final List<dynamic> decoded = jsonDecode(historyJson);
+      if (mounted) {
+        setState(() {
+          _messages.addAll(decoded.map((e) => ChatMessage.fromJson(e)).toList());
+        });
+        _scrollToBottom();
+      }
+    } else {
+      // Initial greeting from AI if no history exists
+      if (mounted) {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              text: "Hi! I'm your AI Tutor. I'm ready to help you study **${widget.deck.name}**.\n\nWhat would you like to know or review?",
+              isUser: false,
+            ),
+          );
+        });
+        _saveChatHistory();
+      }
+    }
+  }
+
+  Future<void> _saveChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<Map<String, dynamic>> jsonList = _messages.map((m) => m.toJson()).toList();
+    await prefs.setString('chat_history_${widget.deck.id}', jsonEncode(jsonList));
+  }
+
+  Future<void> _clearChat() async {
+    HapticFeedback.lightImpact();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Clear Chat?"),
+        content: const Text("This will permanently delete your conversation history with the AI Tutor for this deck."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Clear", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
+
+    if (confirm == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('chat_history_${widget.deck.id}');
+      
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _messages.add(
+            ChatMessage(
+              text: "Hi! I'm your AI Tutor. I'm ready to help you study **${widget.deck.name}**.\n\nWhat would you like to know or review?",
+              isUser: false,
+            ),
+          );
+        });
+        _saveChatHistory();
+      }
+    }
   }
 
   @override
@@ -70,19 +162,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
     super.dispose();
   }
 
-  Future<void> _initEnergySystem() async {
-    await _energyService.init();
-    if (mounted) {
-      setState(() {
-        _currentEnergy = _energyService.currentEnergy;
-        _isEnergyLoaded = true;
-      });
-    }
-  }
+  // --- Ads Logic ---
 
   void _loadBannerAd() {
     if (kIsWeb) return;
-
     _bannerAd = BannerAd(
       adUnitId: AdHelper.bannerAdUnitId,
       request: const AdRequest(),
@@ -103,7 +186,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   void _loadRewardedAd() {
     if (kIsWeb) return;
-
     RewardedAd.load(
       adUnitId: AdHelper.rewardedAdUnitId,
       request: const AdRequest(),
@@ -112,58 +194,68 @@ class _AIChatScreenState extends State<AIChatScreen> {
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
-              _loadRewardedAd(); // Preload the next ad instantly
+              _loadRewardedAd(); // Load the next one
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
               ad.dispose();
-              _loadRewardedAd(); // Attempt reload on failure
+              _loadRewardedAd();
             },
           );
-          setState(() {
-            _rewardedAd = ad;
-            _isRewardedAdLoaded = true;
-          });
+          _rewardedAd = ad;
         },
         onAdFailedToLoad: (err) {
           debugPrint('Failed to load a rewarded ad: ${err.message}');
-          setState(() {
-            _isRewardedAdLoaded = false;
-          });
         },
       ),
     );
   }
 
-  void _showRewardedAd() {
-    HapticFeedback.mediumImpact();
-    
-    // Fallback for web testing so you don't get stuck
-    if (kIsWeb) {
-      _grantEnergyReward();
-      return;
-    }
-
-    if (_isRewardedAdLoaded && _rewardedAd != null) {
-      _rewardedAd!.show(
-        onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
-          _grantEnergyReward();
-        },
-      );
-      // Reset state so we wait for the preloaded ad
-      setState(() {
-        _rewardedAd = null;
-        _isRewardedAdLoaded = false;
-      });
-    } else {
-      // Provide a backup if ad fails to load due to connection
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Ad not ready yet. Please ensure you have internet and try again."),
-          backgroundColor: Colors.black87,
+  void _showRewardAdDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.bolt, color: Colors.amber, size: 28),
+            SizedBox(width: 8),
+            Text("Out of Energy", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
         ),
-      );
-      _loadRewardedAd(); // Retry loading
-    }
+        content: const Text(
+          "You've run out of AI energy for now. Watch a short ad to refill your energy completely?",
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Maybe Later", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (_rewardedAd != null) {
+                _rewardedAd!.show(
+                  onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+                    _grantEnergyReward();
+                  },
+                );
+              } else {
+                // If ad isn't loaded, grant it anyway as a fallback so user isn't stuck
+                _grantEnergyReward();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B4EFF),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text("Watch Ad", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _grantEnergyReward() async {
@@ -174,7 +266,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⚡ 15 Energy Restored!"),
+          content: Text("⚡ Energy Restored!"),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
         ),
@@ -182,38 +274,42 @@ class _AIChatScreenState extends State<AIChatScreen> {
     }
   }
 
+  // --- Chat Logic ---
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    // Phase 3: Energy System Check
     if (_currentEnergy <= 0) {
       HapticFeedback.heavyImpact();
+      _showRewardAdDialog();
       return;
     }
 
-    // Deduct 1 energy
-    final hasEnergy = await _energyService.deductEnergy();
-    if (!hasEnergy) return;
-
     setState(() {
-      _currentEnergy = _energyService.currentEnergy;
       _messages.add(ChatMessage(text: text, isUser: true));
       _isLoading = true;
     });
 
+    _saveChatHistory(); // Save after user message
     _messageController.clear();
     _scrollToBottom();
     HapticFeedback.lightImpact();
 
     try {
       final response = await _aiService.processInput(
-        text: "Regarding my deck '${widget.deck.name}': $text"
+        text: "Regarding my deck '${widget.deck.name}': $text",
       );
+      
+      // Deduct 1 energy only after a successful AI response
+      await _energyService.deductEnergy();
+      
       setState(() {
+        _currentEnergy = _energyService.currentEnergy;
         _messages.add(ChatMessage(text: response.message, isUser: false));
         _isLoading = false;
       });
+      _saveChatHistory(); // Save after AI response
       _scrollToBottom();
       HapticFeedback.mediumImpact();
     } catch (e) {
@@ -226,6 +322,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         );
         _isLoading = false;
       });
+      _saveChatHistory(); // Save after error message
       _scrollToBottom();
     }
   }
@@ -242,305 +339,318 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
+  // --- UI Building ---
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFFDF9FF),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        shadowColor: Colors.black12,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               "AI Tutor",
-              style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             Text(
               widget.deck.name,
               style: TextStyle(
-                color: Colors.grey.shade600,
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.normal,
               ),
             ),
           ],
         ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
-          // Phase 3: Energy Indicator
-          if (_isEnergyLoaded)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: _currentEnergy > 0 
-                  ? const Color(0xFF6B48FF).withOpacity(0.1) 
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded, color: Colors.black54),
+            onPressed: _clearChat,
+            tooltip: 'Clear Chat',
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _currentEnergy > 0 
+                  ? const Color(0xFF8B4EFF).withOpacity(0.1)
                   : Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.bolt,
+                  color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
+                  size: 18,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  "$_currentEnergy",
+                  style: TextStyle(
+                    color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Banner Ad at the top
+          if (_isBannerAdLoaded && _bannerAd != null)
+            Container(
+              width: double.infinity,
+              height: _bannerAd!.size.height.toDouble(),
+              color: Colors.transparent,
+              child: AdWidget(ad: _bannerAd!),
+            ),
+            
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                return _buildMessageBubble(_messages[index]);
+              },
+            ),
+          ),
+
+          // Loading Indicator
+          if (_isLoading)
+            Padding(
+              padding: const EdgeInsets.only(left: 24, bottom: 16),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.bolt_rounded,
-                    color: _currentEnergy > 0 ? const Color(0xFF6B48FF) : Colors.red,
-                    size: 18,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF8B4EFF),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 12),
                   Text(
-                    "$_currentEnergy",
+                    "AI Tutor is typing...",
                     style: TextStyle(
-                      color: _currentEnergy > 0 ? const Color(0xFF6B48FF) : Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],
               ),
             ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // AdMob Banner Ad placement at the top
-            if (_isBannerAdLoaded && _bannerAd != null)
-              Container(
-                alignment: Alignment.center,
-                width: _bannerAd!.size.width.toDouble(),
-                height: _bannerAd!.size.height.toDouble(),
-                color: Colors.white,
-                child: AdWidget(ad: _bannerAd!),
-              ),
-              
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16.0),
-                itemCount: _messages.length + (_isLoading ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == _messages.length && _isLoading) {
-                    return _buildLoadingIndicator();
-                  }
-                  final msg = _messages[index];
-                  return _buildMessageBubble(msg);
-                },
-              ),
+
+          // Input Area
+          Container(
+            padding: EdgeInsets.fromLTRB(
+              16, 12, 16, 
+              MediaQuery.of(context).padding.bottom > 0 
+                  ? MediaQuery.of(context).padding.bottom 
+                  : 16
             ),
-            
-            // Phase 3: Dynamic Input Area (Input vs Refill Button)
-            _isEnergyLoaded && _currentEnergy <= 0
-                ? _buildAdRefillButton()
-                : _buildMessageInput(),
-          ],
-        ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  offset: const Offset(0, -4),
+                  blurRadius: 16,
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLines: 4,
+                    minLines: 1,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: "Ask a question...",
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 2),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+                    onPressed: _isLoading ? null : _sendMessage,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ... (Keep _buildMessageBubble and _buildLoadingIndicator exactly the same as before)
   Widget _buildMessageBubble(ChatMessage message) {
-    final isUser = message.isUser;
-    
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
         mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!isUser) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: const Color(0xFF6B48FF).withOpacity(0.1),
-              child: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF6B48FF)),
+          if (!message.isUser) ...[
+            Container(
+              margin: const EdgeInsets.only(right: 8.0, bottom: 4.0),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Color(0xFF8B4EFF),
+                size: 16,
+              ),
             ),
-            const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
               decoration: BoxDecoration(
-                color: isUser ? const Color(0xFF6B48FF) : Colors.white,
+                color: message.isUser ? null : Colors.white,
+                gradient: message.isUser
+                    ? const LinearGradient(
+                        colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isUser ? 20 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 20),
+                  bottomLeft: Radius.circular(message.isUser ? 20 : 4),
+                  bottomRight: Radius.circular(message.isUser ? 4 : 20),
                 ),
-                boxShadow: isUser ? [] : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
+                boxShadow: message.isUser
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
-              child: isUser 
+              child: message.isUser
                   ? Text(
                       message.text,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
+                      ),
                     )
                   : MarkdownBody(
                       data: message.text,
+                      selectable: true, // Allows user to copy the AI's response!
                       styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.4),
+                        p: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                          height: 1.5,
+                        ),
+                        strong: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                        em: const TextStyle(
+                          fontStyle: FontStyle.italic,
+                          color: Colors.black87,
+                        ),
+                        listBullet: const TextStyle(
+                          color: Color(0xFF8B4EFF),
+                          fontSize: 16,
+                        ),
+                        h1: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        h2: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        h3: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                         code: TextStyle(
                           backgroundColor: Colors.grey.shade100,
+                          color: const Color(0xFFE841A1),
                           fontFamily: 'monospace',
+                          fontSize: 14,
                         ),
                         codeblockDecoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
+                        blockquoteDecoration: BoxDecoration(
+                          border: const Border(
+                            left: BorderSide(
+                              color: Color(0xFF8B4EFF),
+                              width: 4,
+                            ),
+                          ),
+                          color: const Color(0xFF8B4EFF).withOpacity(0.05),
+                        ),
+                        blockquotePadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                       ),
                     ),
             ),
           ),
-          if (isUser) ...[
-            const SizedBox(width: 8),
-            const CircleAvatar(
-              radius: 16,
-              backgroundColor: Color(0xFFE0E0E0),
-              child: Icon(Icons.person, size: 16, color: Colors.black54),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: const Color(0xFF6B48FF).withOpacity(0.1),
-            child: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF6B48FF)),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-                bottomLeft: Radius.circular(4),
-                bottomRight: Radius.circular(20),
-              ),
-            ),
-            child: const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color(0xFF6B48FF),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAdRefillButton() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          )
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: _showRewardedAd,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF6B48FF),
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.play_circle_outline_rounded, size: 24),
-            SizedBox(width: 8),
-            Text(
-              "Watch Ad to Restore Energy ⚡",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageInput() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              enabled: !_isLoading,
-              textCapitalization: TextCapitalization.sentences,
-              minLines: 1,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: "Ask a question about this deck...",
-                hintStyle: TextStyle(color: Colors.grey.shade400),
-                filled: true,
-                fillColor: const Color(0xFFF8F9FA),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onSubmitted: (_) => _sendMessage(),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: _isLoading ? Colors.grey.shade300 : const Color(0xFF6B48FF),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.send_rounded, color: Colors.white),
-              onPressed: _isLoading ? null : _sendMessage,
-            ),
-          ),
+          if (message.isUser) const SizedBox(width: 24), // Spacer to balance bubble
         ],
       ),
     );

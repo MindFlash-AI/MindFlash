@@ -1,39 +1,70 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; // Required for kIsWeb
 
 class AdHelper {
-  static const bool _isProduction = kReleaseMode;
+  // ----------------------------------------------------------------------
+  // 🛑 TOGGLE THIS TO 'false' ONLY WHEN READY TO PUBLISH TO PLAY STORE
+  // Keeping it 'true' forces test ads even in 'flutter build apk' release.
+  // ----------------------------------------------------------------------
+  static const bool _useTestAds = true;
 
   static String get bannerAdUnitId {
-    if (!_isProduction) {
-      // Test Banner ID
-      return Platform.isAndroid 
-          ? 'ca-app-pub-3940256099942544/6300978111' 
-          : 'ca-app-pub-3940256099942544/2934735716';
+    if (kIsWeb) return ''; // Ads are currently disabled on web for stability
+    
+    if (_useTestAds) {
+      if (Platform.isAndroid) {
+        return 'ca-app-pub-3940256099942544/6300978111'; // Google Test Banner (Android)
+      } else if (Platform.isIOS) {
+        return 'ca-app-pub-3940256099942544/2934735716'; // Google Test Banner (iOS)
+      }
+    } else {
+      // ⚠️ REPLACE WITH YOUR REAL ADMOB BANNER IDs HERE
+      if (Platform.isAndroid) {
+        return '<YOUR_ANDROID_BANNER_AD_UNIT_ID>';
+      } else if (Platform.isIOS) {
+        return '<YOUR_IOS_BANNER_AD_UNIT_ID>';
+      }
     }
-    // Replace with your actual Production Banner ID
-    return Platform.isAndroid ? 'YOUR_ANDROID_BANNER_ID' : 'YOUR_IOS_BANNER_ID';
+    throw UnsupportedError('Unsupported platform');
   }
 
   static String get interstitialAdUnitId {
-    if (!_isProduction) {
-      // Test Interstitial ID
-      return Platform.isAndroid 
-          ? 'ca-app-pub-3940256099942544/1033173712' 
-          : 'ca-app-pub-3940256099942544/4411468910';
+    if (kIsWeb) return '';
+    
+    if (_useTestAds) {
+      if (Platform.isAndroid) {
+        return 'ca-app-pub-3940256099942544/1033173712'; // Google Test Interstitial (Android)
+      } else if (Platform.isIOS) {
+        return 'ca-app-pub-3940256099942544/4411468910'; // Google Test Interstitial (iOS)
+      }
+    } else {
+      // ⚠️ REPLACE WITH YOUR REAL ADMOB INTERSTITIAL IDs HERE
+      if (Platform.isAndroid) {
+        return '<YOUR_ANDROID_INTERSTITIAL_AD_UNIT_ID>';
+      } else if (Platform.isIOS) {
+        return '<YOUR_IOS_INTERSTITIAL_AD_UNIT_ID>';
+      }
     }
-    // Replace with your actual Production Interstitial ID
-    return Platform.isAndroid ? 'YOUR_ANDROID_INTERSTITIAL_ID' : 'YOUR_IOS_INTERSTITIAL_ID';
+    throw UnsupportedError('Unsupported platform');
   }
 
   static String get rewardedAdUnitId {
-    if (!_isProduction) {
-      // Test Rewarded ID
-      return Platform.isAndroid 
-          ? 'ca-app-pub-3940256099942544/5224354917' 
-          : 'ca-app-pub-3940256099942544/1712485313';
+    if (kIsWeb) return '';
+    
+    if (_useTestAds) {
+      if (Platform.isAndroid) {
+        return 'ca-app-pub-3940256099942544/5224354917'; // Google Test Rewarded (Android)
+      } else if (Platform.isIOS) {
+        return 'ca-app-pub-3940256099942544/1712409664'; // Google Test Rewarded (iOS)
+      }
+    } else {
+      // ⚠️ REPLACE WITH YOUR REAL ADMOB REWARDED IDs HERE
+      if (Platform.isAndroid) {
+        return '<YOUR_ANDROID_REWARDED_AD_UNIT_ID>';
+      } else if (Platform.isIOS) {
+        return '<YOUR_IOS_REWARDED_AD_UNIT_ID>';
+      }
     }
-    // Replace with your actual Production Rewarded ID
-    return Platform.isAndroid ? 'YOUR_ANDROID_REWARDED_ID' : 'YOUR_IOS_REWARDED_ID';
+    throw UnsupportedError('Unsupported platform');
   }
 }

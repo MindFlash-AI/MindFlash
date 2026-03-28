@@ -161,82 +161,88 @@ class _ReviewScreenState extends State<ReviewScreen> {
     if (_reviewCards.isEmpty) return const Scaffold();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
+      // Use light overlay style so status bar icons (battery, wifi) are white
+      value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFFDF9FF),
+        // Deep Space Violet Background
+        backgroundColor: const Color(0xFF0B0714),
         body: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              ReviewHeader(
-                currentIndex: _currentIndex,
-                totalCards: _reviewCards.length,
-                onExit: () => Navigator.pop(context),
-                onShuffle: _handleShuffle,
-              ),
+              // Main Content
+              Column(
+                children: [
+                  ReviewHeader(
+                    currentIndex: _currentIndex,
+                    totalCards: _reviewCards.length,
+                    onExit: () => Navigator.pop(context),
+                    onShuffle: _handleShuffle,
+                  ),
 
-              ReviewProgressBar(
-                currentIndex: _currentIndex,
-                totalCards: _reviewCards.length,
-              ),
+                  ReviewProgressBar(
+                    currentIndex: _currentIndex,
+                    totalCards: _reviewCards.length,
+                  ),
 
-              const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-              SessionStatsBar(
-                correctCount: _correctCount,
-                incorrectCount: _incorrectCount,
-              ),
+                  SessionStatsBar(
+                    correctCount: _correctCount,
+                    incorrectCount: _incorrectCount,
+                  ),
 
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(top: 16),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 16),
+                      // Transparent to let the beautiful deep background show
+                      color: Colors.transparent,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: FlashcardStackView(
+                              cards: _reviewCards,
+                              currentIndex: _currentIndex,
+                              pageController: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _currentIndex = index;
+                                  _showAnswer = false; // Reset answer state when swiping
+                                });
+                              },
+                              onFlip: (isFront) {
+                                setState(() {
+                                  _showAnswer = !isFront;
+                                });
+                              },
+                            ),
+                          ),
+                          ReviewActionButtons(
+                            showAnswer: _showAnswer,
+                            onCorrect: () => _handleAnswer(true),
+                            onIncorrect: () => _handleAnswer(false),
+                          ),
+                          
+                          if (!kIsWeb)
+                            const SizedBox(height: 50),
+                        ],
+                      ),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: FlashcardStackView(
-                          cards: _reviewCards,
-                          currentIndex: _currentIndex,
-                          pageController: _pageController,
-                          onPageChanged: (index) {
-                            setState(() {
-                              _currentIndex = index;
-                              _showAnswer = false; // Reset answer state when swiping
-                            });
-                          },
-                          onFlip: (isFront) {
-                            setState(() {
-                              _showAnswer = !isFront;
-                            });
-                          },
-                        ),
-                      ),
-                      ReviewActionButtons(
-                        showAnswer: _showAnswer,
-                        onCorrect: () => _handleAnswer(true),
-                        onIncorrect: () => _handleAnswer(false),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
               
-              // AdMob Banner Ad placement
               if (_isBannerAdLoaded && _bannerAd != null)
-                Container(
-                  color: Colors.white, // Match background bottom color if needed
-                  alignment: Alignment.center,
-                  width: _bannerAd!.size.width.toDouble(),
-                  height: _bannerAd!.size.height.toDouble(),
-                  child: AdWidget(ad: _bannerAd!),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    color: Colors.transparent, 
+                    child: AdWidget(ad: _bannerAd!),
+                  ),
                 ),
             ],
           ),
