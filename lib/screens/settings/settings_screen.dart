@@ -62,6 +62,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = AuthService().currentUser;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -82,7 +83,80 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Theme Toggle
+          // --- Account Details Section ---
+          if (user != null) ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: const Color(0xFF5B4FE6).withOpacity(0.1),
+                    backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
+                    child: user.photoURL == null
+                        ? const Icon(Icons.person, size: 32, color: Color(0xFF8B4EFF))
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.displayName ?? 'MindFlash Student',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                            letterSpacing: -0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user.email ?? 'No email linked',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
+              child: Text(
+                "PREFERENCES",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white38 : Colors.grey.shade500,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ],
+
+          // --- Theme Toggle ---
           Container(
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
@@ -139,9 +213,21 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           
-          const SizedBox(height: 20),
+          const SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              "ACCOUNT",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white38 : Colors.grey.shade500,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
 
-          // Logout Button
+          // --- Logout Button ---
           Container(
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,

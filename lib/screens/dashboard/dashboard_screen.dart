@@ -15,6 +15,8 @@ import '../../widgets/update_deck_ai_dialog.dart';
 import '../deck_view/deck_view.dart';
 import 'widgets/dashboard_header.dart';
 
+enum SortOption { nameAsc, nameDesc, countDesc, countAsc }
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -28,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   List<Deck> _decks = [];
   bool _isLoading = true;
   late AnimationController _pulseController;
+  SortOption _currentSort = SortOption.nameAsc;
 
   @override
   void initState() {
@@ -45,11 +48,29 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
+  void _applySort() {
+    switch (_currentSort) {
+      case SortOption.nameAsc:
+        _decks.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case SortOption.nameDesc:
+        _decks.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        break;
+      case SortOption.countDesc:
+        _decks.sort((a, b) => b.cardCount.compareTo(a.cardCount));
+        break;
+      case SortOption.countAsc:
+        _decks.sort((a, b) => a.cardCount.compareTo(b.cardCount));
+        break;
+    }
+  }
+
   Future<void> _loadDecks() async {
     final decks = await _storageService.getDecks();
     setState(() {
       _decks = decks;
       _isLoading = false;
+      _applySort();
     });
   }
 
@@ -629,19 +650,74 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  PopupMenuItem<SortOption> _buildSortMenuItem(SortOption value, String text, IconData icon, bool isDark) {
+    final isSelected = _currentSort == value;
+    return PopupMenuItem<SortOption>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: isSelected 
+                ? const Color(0xFF8B4EFF) 
+                : (isDark ? Colors.white70 : Colors.grey.shade700),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: TextStyle(
+              color: isSelected 
+                  ? const Color(0xFF8B4EFF) 
+                  : (isDark ? Colors.white : Colors.black87),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDeckList(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-          child: Text(
-            "My Decks (${_decks.length})",
-            style: TextStyle(
-              color: isDark ? Theme.of(context).textTheme.bodyLarge?.color : Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "My Decks (${_decks.length})",
+                style: TextStyle(
+                  color: isDark ? Theme.of(context).textTheme.bodyLarge?.color : Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              PopupMenuButton<SortOption>(
+                icon: Icon(
+                  Icons.sort_rounded,
+                  color: isDark ? Colors.white70 : Colors.white,
+                  size: 24,
+                ),
+                color: Theme.of(context).cardColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                onSelected: (SortOption option) {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _currentSort = option;
+                    _applySort();
+                  });
+                },
+                itemBuilder: (context) => [
+                  _buildSortMenuItem(SortOption.nameAsc, "Name (A to Z)", Icons.sort_by_alpha, isDark),
+                  _buildSortMenuItem(SortOption.nameDesc, "Name (Z to A)", Icons.sort_by_alpha, isDark),
+                  _buildSortMenuItem(SortOption.countDesc, "Cards (High to Low)", Icons.format_list_numbered, isDark),
+                  _buildSortMenuItem(SortOption.countAsc, "Cards (Low to High)", Icons.format_list_numbered_rtl, isDark),
+                ],
+              ),
+            ],
           ),
         ),
         Expanded(

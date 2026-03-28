@@ -52,6 +52,196 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // We define all the pages here so they can be used to dynamically calculate height
+    final List<Widget> pages = [
+      _buildStepBlock(
+        number: "1",
+        title: "Create Your Deck",
+        color: const Color(0xFF5B4FE6),
+        bgColor: isDark ? const Color(0xFF5B4FE6).withOpacity(0.15) : const Color(0xFFEEF0FF),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStepDetail(
+              Icons.add_circle_outline_rounded,
+              "Tap \"Create New Deck\"",
+            ),
+            const SizedBox(height: 12),
+            _buildStepSubtext(
+              "Give it a name like \"Spanish Words\" or \"Biology Terms\"",
+            ),
+          ],
+        ),
+      ),
+      _buildStepBlock(
+        number: "2",
+        title: "Add Your Cards",
+        color: const Color(0xFFD041E6),
+        bgColor: isDark ? const Color(0xFFD041E6).withOpacity(0.15) : const Color(0xFFFBF0FF),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStepDetail(
+              Icons.chrome_reader_mode_outlined,
+              "Open your deck",
+            ),
+            const SizedBox(height: 12),
+            _buildStepSubtext(
+              "Tap \"Add Card\" and write a question and answer manually",
+            ),
+          ],
+        ),
+      ),
+      _buildStepBlock(
+        number: "3",
+        title: "Generate with AI",
+        color: const Color(0xFF2979FF),
+        bgColor: isDark ? const Color(0xFF2979FF).withOpacity(0.15) : const Color(0xFFEDF2FF),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(
+                  Icons.auto_awesome,
+                  color: Color(0xFF2979FF),
+                  size: 22,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "The Magic Shortcut",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2979FF),
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Don't want to type? Let our AI do the heavy lifting.",
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMiniInstruction(
+              "📝",
+              "Provide a topic or paste your notes",
+            ),
+            const SizedBox(height: 10),
+            _buildMiniInstruction(
+              "⚡",
+              "Watch as a full deck is created instantly!",
+            ),
+          ],
+        ),
+      ),
+      _buildStepBlock(
+        number: "4",
+        title: "Study Your Cards",
+        color: const Color(0xFF00C853),
+        bgColor: isDark ? const Color(0xFF00C853).withOpacity(0.15) : const Color(0xFFE8F5E9),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(
+                  Icons.play_arrow_outlined,
+                  color: Color(0xFF00C853),
+                  size: 24,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Review Mode",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF00C853),
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "See the question, think of the answer, then tap to flip and check",
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMiniInstruction(
+              "👆",
+              "Tap the card to flip it over",
+            ),
+            const SizedBox(height: 10),
+            _buildMiniInstruction(
+              "➡️",
+              "Swipe left or right to navigate",
+            ),
+          ],
+        ),
+      ),
+      _buildStepBlock(
+        number: "5",
+        title: "Test Your Knowledge",
+        color: const Color(0xFF5A6DFF),
+        bgColor: isDark ? const Color(0xFF5A6DFF).withOpacity(0.15) : const Color(0xFFF4F6FF),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(
+                  Icons.quiz_outlined,
+                  color: Color(0xFF5A6DFF),
+                  size: 22,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Quiz Mode",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF5A6DFF),
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Ready for a challenge? Take an automatically generated multiple-choice test.",
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMiniInstruction(
+              "🎯",
+              "Select the correct answer from 4 options",
+            ),
+            const SizedBox(height: 10),
+            _buildMiniInstruction(
+              "🏆",
+              "Track your final score and master the subject",
+            ),
+          ],
+        ),
+      ),
+      _buildProTipsBlock(),
+    ];
+
     return SafeArea(
       child: Dialog(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -62,365 +252,198 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: 500,
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxHeight: MediaQuery.of(context).size.height * 0.85, // Limits max dialog height
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 16, 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // SingleChildScrollView ensures the dialog is responsive on small screens
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Hugs content perfectly
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 16, 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "How to Use MindFlash",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Your simple guide to mastering anything",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.white70 : Colors.black54,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(context).pop();
+                        },
+                        icon: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white12 : Colors.grey.shade100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            color: isDark ? Colors.white54 : Colors.black54,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Dynamic Height Slider
+                Stack(
+                  alignment: Alignment.topCenter,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "How to Use MindFlash",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Your simple guide to mastering anything",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? Colors.white70 : Colors.black54,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                    // 1. INVISIBLE LAYER: Renders all pages invisibly to force the Stack to take
+                    // the exact height of the tallest page content.
+                    Opacity(
+                      opacity: 0,
+                      child: IgnorePointer(
+                        child: Stack(
+                          children: pages,
+                        ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.of(context).pop();
-                      },
-                      icon: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white12 : Colors.grey.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          color: isDark ? Colors.white54 : Colors.black54,
-                          size: 20,
-                        ),
+
+                    // 2. VISIBLE LAYER: The horizontally scrolling PageView.
+                    // Positioned.fill fits exactly to the intrinsic height calculated above.
+                    Positioned.fill(
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const BouncingScrollPhysics(), // Only horizontal scrolling
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentPage = index;
+                          });
+                        },
+                        children: pages,
                       ),
                     ),
                   ],
                 ),
-              ),
 
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 380),
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const BouncingScrollPhysics(),
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentPage = index;
-                      });
-                    },
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildStepBlock(
-                        number: "1",
-                        title: "Create Your Deck",
-                        color: const Color(0xFF5B4FE6),
-                        bgColor: isDark ? const Color(0xFF5B4FE6).withOpacity(0.15) : const Color(0xFFEEF0FF),
-                        content: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildStepDetail(
-                              Icons.add_circle_outline_rounded,
-                              "Tap \"Create New Deck\"",
-                            ),
-                            const SizedBox(height: 12),
-                            _buildStepSubtext(
-                              "Give it a name like \"Spanish Words\" or \"Biology Terms\"",
-                            ),
-                          ],
+                      TextButton(
+                        onPressed: _currentPage == 0 ? null : _prevPage,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey.shade600,
+                          disabledForegroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Text(
+                          "Prev",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
-                      _buildStepBlock(
-                        number: "2",
-                        title: "Add Your Cards",
-                        color: const Color(0xFFD041E6),
-                        bgColor: isDark ? const Color(0xFFD041E6).withOpacity(0.15) : const Color(0xFFFBF0FF),
-                        content: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildStepDetail(
-                              Icons.chrome_reader_mode_outlined,
-                              "Open your deck",
-                            ),
-                            const SizedBox(height: 12),
-                            _buildStepSubtext(
-                              "Tap \"Add Card\" and write a question and answer manually",
-                            ),
-                          ],
+
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(
+                          _totalPages,
+                          (index) => _buildDot(index),
                         ),
                       ),
-                      _buildStepBlock(
-                        number: "3",
-                        title: "Generate with AI",
-                        color: const Color(0xFF2979FF),
-                        bgColor: isDark ? const Color(0xFF2979FF).withOpacity(0.15) : const Color(0xFFEDF2FF),
-                        content: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.auto_awesome,
-                                  color: Color(0xFF2979FF),
-                                  size: 22,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "The Magic Shortcut",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2979FF),
-                                      fontSize: 16,
-                                    ),
+
+                      _currentPage == _totalPages - 1
+                          ? Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                gradient: _brandGradient,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF8B4EFF,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: _nextPage,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "Don't want to type? Let our AI do the heavy lifting.",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark ? Colors.white70 : Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildMiniInstruction(
-                              "📝",
-                              "Provide a topic or paste your notes",
-                            ),
-                            const SizedBox(height: 10),
-                            _buildMiniInstruction(
-                              "⚡",
-                              "Watch as a full deck is created instantly!",
-                            ),
-                          ],
-                        ),
-                      ),
-                      _buildStepBlock(
-                        number: "4",
-                        title: "Study Your Cards",
-                        color: const Color(0xFF00C853),
-                        bgColor: isDark ? const Color(0xFF00C853).withOpacity(0.15) : const Color(0xFFE8F5E9),
-                        content: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.play_arrow_outlined,
-                                  color: Color(0xFF00C853),
-                                  size: 24,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "Review Mode",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF00C853),
-                                      fontSize: 16,
-                                    ),
+                                child: const Text(
+                                  "Let's Go!",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "See the question, think of the answer, then tap to flip and check",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildMiniInstruction(
-                              "👆",
-                              "Tap the card to flip it over",
-                            ),
-                            const SizedBox(height: 10),
-                            _buildMiniInstruction(
-                              "➡️",
-                              "Swipe left or right to navigate",
-                            ),
-                          ],
-                        ),
-                      ),
-                      _buildStepBlock(
-                        number: "5",
-                        title: "Test Your Knowledge",
-                        color: const Color(0xFF5A6DFF),
-                        bgColor: isDark ? const Color(0xFF5A6DFF).withOpacity(0.15) : const Color(0xFFF4F6FF),
-                        content: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.quiz_outlined,
-                                  color: Color(0xFF5A6DFF),
-                                  size: 22,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "Quiz Mode",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF5A6DFF),
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "Ready for a challenge? Take an automatically generated multiple-choice test.",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark ? Colors.white70 : Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildMiniInstruction(
-                              "🎯",
-                              "Select the correct answer from 4 options",
-                            ),
-                            const SizedBox(height: 10),
-                            _buildMiniInstruction(
-                              "🏆",
-                              "Track your final score and master the subject",
-                            ),
-                          ],
-                        ),
-                      ),
-                      _buildProTipsBlock(),
-                    ],
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: _currentPage == 0 ? null : _prevPage,
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.grey.shade600,
-                        disabledForegroundColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: const Text(
-                        "Prev",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(
-                        _totalPages,
-                        (index) => _buildDot(index),
-                      ),
-                    ),
-
-                    _currentPage == _totalPages - 1
-                        ? Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              gradient: _brandGradient,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF8B4EFF,
-                                  ).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
+                            )
+                          : ElevatedButton(
                               onPressed: _nextPage,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
+                                backgroundColor: const Color(
+                                  0xFF8B4EFF,
+                                ).withOpacity(0.1),
+                                foregroundColor: const Color(0xFF8B4EFF),
+                                elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 20,
+                                  vertical: 12,
                                 ),
                               ),
                               child: const Text(
-                                "Let's Go!",
+                                "Next",
                                 style: TextStyle(
-                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
                                 ),
                               ),
                             ),
-                          )
-                        : ElevatedButton(
-                            onPressed: _nextPage,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(
-                                0xFF8B4EFF,
-                              ).withOpacity(0.1),
-                              foregroundColor: const Color(0xFF8B4EFF),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                            ),
-                            child: const Text(
-                              "Next",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -451,11 +474,12 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+    // Removed SingleChildScrollView, now the content hugs its exact constraints
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Hugs content strictly
         children: [
           Container(
             width: 72,
@@ -518,11 +542,12 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
   Widget _buildProTipsBlock() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+    // Removed SingleChildScrollView, now the content hugs its exact constraints
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Hugs content strictly
         children: [
           Container(
             width: 72,
