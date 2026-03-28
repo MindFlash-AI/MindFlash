@@ -1,18 +1,45 @@
-// 1. Import the Firebase Functions HTTP trigger
 const { onRequest } = require("firebase-functions/v2/https");
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin so we can use it to verify App Check tokens
+admin.initializeApp();
 
 const app = express();
-// 2. Firebase requires cors to explicitly allow origins
 app.use(cors({ origin: true })); 
 app.use(express.json({ limit: '50mb' }));
 
-// 3. The Generation Route
-app.post('/generate-deck', async (req, res) => {
+// 1. App Check Middleware
+const requireAppCheck = async (req, res, next) => {
+    const appCheckToken = req.header('X-Firebase-AppCheck');
+
+    if (!appCheckToken) {
+        console.error('App Check token is missing in the request header.');
+        return res.status(401).json({ 
+            error: 'Unauthorized', 
+            details: 'App Check token missing.' 
+        });
+    }
+
+    try {
+        // Verify the token using the Firebase Admin SDK
+        const appCheckClaims = await admin.appCheck().verifyToken(appCheckToken);
+        // If verifyToken succeeds, the request is from an authentic device/debug session.
+        return next();
+    } catch (err) {
+        console.error('App Check token failed verification:', err);
+        return res.status(401).json({ 
+            error: 'Unauthorized', 
+            details: 'Invalid App Check token.' 
+        });
+    }
+};
+
+// 2. Add the middleware to your route
+app.post('/generate-deck', requireAppCheck, async (req, res) => {
   try {
-    // Check if the API key is actually loaded
     if (!process.env.GEMINI_API_KEY) {
       console.error("CRITICAL: GEMINI_API_KEY is missing from the environment.");
       return res.status(500).json({ error: 'Server configuration error: Missing API Key.' });
@@ -65,7 +92,6 @@ app.post('/generate-deck', async (req, res) => {
     }
 
   } catch (error) {
-    // Expose the actual error message to the logs AND the frontend response
     console.error("Detailed Gemini Error:", error.message || error);
     res.status(500).json({ 
       error: 'Failed to generate content', 
@@ -74,5 +100,4 @@ app.post('/generate-deck', async (req, res) => {
   }
 });
 
-// INCREASE TIMEOUT TO 5 MINUTES (300 SECONDS)
 exports.api = onRequest({ timeoutSeconds: 300, memory: "512MiB" }, app);
