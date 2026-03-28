@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart'; // Added App Check
-
 import 'firebase_options.dart';
 import 'screens/loading_screen/loading_screen.dart';
 import 'constants.dart';  

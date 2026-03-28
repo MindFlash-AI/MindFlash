@@ -7,9 +7,11 @@ import 'package:flutter_markdown/flutter_markdown.dart'; // Added Markdown suppo
 import 'package:shared_preferences/shared_preferences.dart'; // Added for saving history
 
 import '../../models/deck_model.dart';
+import '../../models/card_model.dart'; // Added to supply deck context
 import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/ad_helper.dart';
+import '../../services/card_storage_service.dart'; // Added for fetching cards
 
 class ChatMessage {
   final String text;
@@ -46,6 +48,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   
   final AIService _aiService = AIService();
   final EnergyService _energyService = EnergyService();
+  final CardStorageService _cardStorage = CardStorageService(); // Added Card Storage
 
   bool _isLoading = false;
   int _currentEnergy = 0;
@@ -302,8 +305,14 @@ class _AIChatScreenState extends State<AIChatScreen> {
     HapticFeedback.lightImpact();
 
     try {
-      final response = await _aiService.processInput(
-        text: "Regarding my deck '${widget.deck.name}': $text",
+      // 1. Fetch strictly the cards for the current deck
+      final List<Flashcard> cards = await _cardStorage.getCardsForDeck(widget.deck.id);
+
+      // 2. Route the request through the strictly sandboxed Tutor method
+      final response = await _aiService.processTutorChat(
+        text: text,
+        deck: widget.deck,
+        cards: cards,
       );
       
       // Deduct 1 energy only after a successful AI response

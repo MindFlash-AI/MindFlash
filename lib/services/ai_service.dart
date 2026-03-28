@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:firebase_app_check/firebase_app_check.dart'; // Added App Check
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 import '../models/deck_model.dart';
 import '../models/card_model.dart';
@@ -32,6 +32,9 @@ class AIService {
 
   static final String _backendUrl = dotenv.env['BACKEND_URL']!;
 
+  // ---------------------------------------------------------------------------
+  // FULL AI (Used in Dashboard for generating & editing decks)
+  // ---------------------------------------------------------------------------
   Future<AIResponse> processInput({
     String? text,
     String? fileText,
@@ -47,7 +50,6 @@ class AIService {
 
     final String userDataContext = _buildUserContext(decks, allCards);
 
-    // --- GRAB THE APP CHECK TOKEN ---
     final appCheckToken = await FirebaseAppCheck.instance.getToken();
     final tokenString = appCheckToken ?? '';
 
@@ -55,7 +57,7 @@ class AIService {
       Uri.parse(_backendUrl),
       headers: {
         'Content-Type': 'application/json',
-        'X-Firebase-AppCheck': tokenString, // Pass it to the backend here!
+        'X-Firebase-AppCheck': tokenString,
       },
       body: jsonEncode({
         'prompt': text,
@@ -88,7 +90,49 @@ class AIService {
   }
 
   // ---------------------------------------------------------------------------
-  // Private helpers (Unchanged)
+  // RESTRICTED AI (Used in Chat Screen for Read-Only Tutoring)
+  // ---------------------------------------------------------------------------
+  Future<AIResponse> processTutorChat({
+    required String text,
+    required Deck deck,
+    required List<Flashcard> cards,
+  }) async {
+    // 1. Isolate Context: ONLY provide the cards for the specific deck being studied.
+    final String deckContext = "The user is studying the deck '${deck.name}' (Subject: ${deck.subject}).\n"
+        "Here are the flashcards currently in this deck:\n" +
+        cards.map((c) => "- Q: '${c.question}' -> A: '${c.answer}'").join('\n');
+
+    final appCheckToken = await FirebaseAppCheck.instance.getToken();
+    final tokenString = appCheckToken ?? '';
+
+    // 2. Strict Prompt: Force the AI into chat mode and forbid modifications.
+    final response = await _httpClient.post(
+      Uri.parse(_backendUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Firebase-AppCheck': tokenString,
+      },
+      body: jsonEncode({
+        'prompt': "CRITICAL RULE: You are ONLY a study tutor. You are STRICTLY FORBIDDEN from creating, updating, editing, or deleting any flashcards. ALWAYS respond with the action 'chat' and act as a conversational tutor helping the user master the current deck.\n\nUser Message: $text",
+        'userContext': deckContext,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(_parseErrorMessage(response));
+    }
+
+    final Map<String, dynamic> data = jsonDecode(response.body) as Map<String, dynamic>;
+    final String reply = (data['reply'] as String?) ?? 'I processed your request.';
+
+    // 3. Complete Sandbox: We explicitly DO NOT check for or process any 
+    // 'create_deck' or 'edit_deck' actions here. Even if the AI disobeys, 
+    // the local database cannot be modified.
+    return AIResponse(message: reply);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
   // ---------------------------------------------------------------------------
 
   String _buildUserContext(List<Deck> decks, List<Flashcard> allCards) {

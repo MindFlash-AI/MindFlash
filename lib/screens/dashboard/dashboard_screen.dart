@@ -388,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   children: [
                     const DashboardHeader(),
                     const SizedBox(height: 25),
-                    _buildStatsRow(),
+                    _buildStatsRow(isDark),
                   ],
                 ),
               ),
@@ -438,7 +438,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(bool isDark) {
     int totalCards = _decks.fold(0, (sum, deck) => sum + deck.cardCount);
 
     return IntrinsicHeight(
@@ -450,8 +450,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               title: "Total Decks",
               count: _decks.length.toString(),
               icon: Icons.chrome_reader_mode_outlined,
-              colors: const [Color(0xFF5B4FE6), Color(0xFF8B4EFF)],
-              shadowColor: const Color(0xFF3525AF),
+              // Adjusted to be slightly lighter in dark mode for better contrast
+              colors: isDark 
+                  ? const [Color(0xFF533E9E), Color(0xFF382773)] 
+                  : const [Color(0xFF5B4FE6), Color(0xFF8B4EFF)],
+              shadowColor: isDark ? Colors.black87 : const Color(0xFF3525AF),
             ),
           ),
           const SizedBox(width: 12),
@@ -460,8 +463,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               title: "Total Cards",
               count: totalCards.toString(),
               icon: Icons.auto_awesome_outlined,
-              colors: const [Color(0xFFE940A3), Color(0xFFD041E6)],
-              shadowColor: const Color(0xFF7B52DD),
+              // Adjusted to be slightly lighter in dark mode for better contrast
+              colors: isDark 
+                  ? const [Color(0xFF863B6B), Color(0xFF5E244B)] 
+                  : const [Color(0xFFE940A3), Color(0xFFD041E6)],
+              shadowColor: isDark ? Colors.black87 : const Color(0xFF7B52DD),
             ),
           ),
         ],
