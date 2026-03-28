@@ -1,5 +1,9 @@
+import 'dart:ui'; // Required for ImageFilter (BackdropFilter)
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Required for kIsWeb
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/deck_model.dart';
+import '../services/ad_helper.dart';
 
 class UpdateDeckAIDialog extends StatefulWidget {
   final List<Deck> decks;
@@ -21,9 +25,13 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
   final TextEditingController _topicController = TextEditingController();
   bool _isSubmitting = false;
 
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
+    _loadInterstitialAd();
     if (widget.decks.isNotEmpty) {
       _selectedDeck = widget.decks.first;
     }
@@ -32,8 +40,36 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
   @override
   void dispose() {
+    _interstitialAd?.dispose();
     _topicController.dispose();
     super.dispose();
+  }
+
+  void _loadInterstitialAd() {
+    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+
+    InterstitialAd.load(
+      adUnitId: AdHelper.interstitialAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+            },
+          );
+          _interstitialAd = ad;
+          _isAdLoaded = true;
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('Failed to load an interstitial ad: ${err.message}');
+          _isAdLoaded = false;
+        },
+      ),
+    );
   }
 
   void _submitUpdate() async {
@@ -41,6 +77,14 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
       setState(() {
         _isSubmitting = true;
       });
+
+      // Show the overlay for 1.5 seconds before popping the ad
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
+        _interstitialAd!.show();
+        _isAdLoaded = false;
+      }
 
       final topic = _topicController.text.trim();
 
@@ -115,286 +159,337 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
             ),
           ],
         ),
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 32.0,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Stack(
+            children: [
+              // Main Form Layer
+              SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 32.0,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFFE940A3,
-                                  ).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  color: Color(0xFFE940A3),
-                                  size: 24,
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE940A3).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(
+                                        Icons.auto_awesome,
+                                        color: Color(0xFFE940A3),
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Flexible(
+                                      child: Text(
+                                        "Update with AI",
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              const Flexible(
-                                child: Text(
-                                  "Update with AI",
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                              IconButton(
+                                onPressed: () {
+                                  if (!_isSubmitting) Navigator.of(context).pop();
+                                },
+                                icon: const Icon(Icons.close, color: Colors.grey),
+                                tooltip: 'Close',
                               ),
                             ],
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            if (!_isSubmitting) Navigator.of(context).pop();
-                          },
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          tooltip: 'Close',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Select an existing deck and tell MindFlash what new flashcards you want to add to it.",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    const Text(
-                      "SELECT DECK",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF6B7280),
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<Deck>(
-                      value: _selectedDeck,
-                      isExpanded: true,
-                      items: widget.decks.map((deck) {
-                        return DropdownMenuItem<Deck>(
-                          value: deck,
-                          child: Text(
-                            deck.name,
-                            overflow: TextOverflow.ellipsis,
+                          const SizedBox(height: 12),
+                          Text(
+                            "Select an existing deck and tell MindFlash what new flashcards you want to add to it.",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              height: 1.4,
+                            ),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: _isSubmitting
-                          ? null
-                          : (Deck? newValue) {
-                              setState(() {
-                                _selectedDeck = newValue;
-                              });
+                          const SizedBox(height: 24),
+
+                          const Text(
+                            "SELECT DECK",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF6B7280),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<Deck>(
+                            value: _selectedDeck,
+                            isExpanded: true,
+                            items: widget.decks.map((deck) {
+                              return DropdownMenuItem<Deck>(
+                                value: deck,
+                                child: Text(
+                                  deck.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: _isSubmitting
+                                ? null
+                                : (Deck? newValue) {
+                                    setState(() {
+                                      _selectedDeck = newValue;
+                                    });
+                                  },
+                            validator: (value) =>
+                                value == null ? 'Please select a deck' : null,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFFF5F5F5),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE940A3),
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.grey,
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          const Text(
+                            "WHAT SHOULD WE ADD?",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF6B7280),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _topicController,
+                            autofocus: true,
+                            textInputAction: TextInputAction.send,
+                            enabled: !_isSubmitting,
+                            onFieldSubmitted: (_) => _submitUpdate(),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter a topic to add';
+                              }
+                              return null;
                             },
-                      validator: (value) =>
-                          value == null ? 'Please select a deck' : null,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE940A3),
-                            width: 2,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.grey,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    const Text(
-                      "WHAT SHOULD WE ADD?",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF6B7280),
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _topicController,
-                      autofocus: true,
-                      textInputAction: TextInputAction.send,
-                      enabled: !_isSubmitting,
-                      onFieldSubmitted: (_) => _submitUpdate(),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a topic to add';
-                        }
-                        return null;
-                      },
-                      decoration: InputDecoration(
-                        hintText: "e.g., More about widgets...",
-                        hintStyle: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 14,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE940A3),
-                            width: 2,
-                          ),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 1,
-                          ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        suffixIcon:
-                            _topicController.text.isNotEmpty && !_isSubmitting
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.cancel,
-                                  color: Colors.grey,
-                                  size: 20,
+                            decoration: InputDecoration(
+                              hintText: "e.g., More about widgets...",
+                              hintStyle: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFFF5F5F5),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE940A3),
+                                  width: 2,
                                 ),
-                                onPressed: () => _topicController.clear(),
-                              )
-                            : null,
-                      ),
-                      maxLines: 2,
-                      minLines: 1,
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    Container(
-                      width: double.infinity,
-                      height: 55,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: _isSubmitting
-                              ? [Colors.grey.shade400, Colors.grey.shade400]
-                              : [
-                                  const Color(0xFFE940A3),
-                                  const Color(0xFFFF5DAD),
-                                ],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: _isSubmitting
-                            ? null
-                            : [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFE940A3,
-                                  ).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
                                 ),
-                              ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _isSubmitting ? null : _submitUpdate,
-                          borderRadius: BorderRadius.circular(16),
-                          child: Center(
-                            child: _isSubmitting
-                                ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
-                                      SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2.5,
-                                        ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              suffixIcon:
+                                  _topicController.text.isNotEmpty && !_isSubmitting
+                                  ? IconButton(
+                                      icon: const Icon(
+                                        Icons.cancel,
+                                        color: Colors.grey,
+                                        size: 20,
                                       ),
-                                      SizedBox(width: 12),
-                                      Flexible(
-                                        child: Text(
-                                          "Crafting cards...",
+                                      onPressed: () => _topicController.clear(),
+                                    )
+                                  : null,
+                            ),
+                            maxLines: 2,
+                            minLines: 1,
+                          ),
+
+                          const SizedBox(height: 30),
+
+                          Container(
+                            width: double.infinity,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: _isSubmitting
+                                    ? [Colors.grey.shade400, Colors.grey.shade400]
+                                    : [
+                                        const Color(0xFFE940A3),
+                                        const Color(0xFFFF5DAD),
+                                      ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: _isSubmitting
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: const Color(0xFFE940A3).withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _isSubmitting ? null : _submitUpdate,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Center(
+                                  child: _isSubmitting
+                                      ? Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: const [
+                                            SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2.5,
+                                              ),
+                                            ),
+                                            SizedBox(width: 12),
+                                            Flexible(
+                                              child: Text(
+                                                "Crafting cards...",
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : const Text(
+                                          "Generate New Cards",
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.white,
                                           ),
-                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                    ],
-                                  )
-                                : const Text(
-                                    "Generate New Cards",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                ),
+                              ),
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Full Page Loading Overlay Layer
+              if (_isSubmitting)
+                Positioned.fill(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Colors.white.withOpacity(0.85),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: CircularProgressIndicator(
+                                color: Color(0xFFE940A3),
+                                strokeWidth: 4,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              "Updating Deck...",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black87,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "Adding new flashcards with AI.\nShowing an ad in the meantime ☕",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey.shade700,
+                                height: 1.4,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+            ],
           ),
         ),
       ),

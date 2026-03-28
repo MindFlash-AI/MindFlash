@@ -1,7 +1,12 @@
+import 'dart:async';
+import 'dart:ui'; // Required for ImageFilter (BackdropFilter)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // Required for AdMob
 import '../../models/quiz_question_model.dart';
+import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 
 class QuizScreen extends StatefulWidget {
   final List<QuizQuestion> quiz;
@@ -17,6 +22,19 @@ class _QuizScreenState extends State<QuizScreen> {
   int _currentIndex = 0;
   late List<String?> _answers;
 
+  // FIX: Debounce timer — instead of writing to SharedPreferences on every
+  // answer and every navigation tap (up to 40 writes for a 20-question quiz),
+  // we schedule a write 800 ms after the last state change. If the user taps
+  // quickly through questions, intermediate states are skipped entirely.
+  Timer? _saveDebounce;
+
+  // AdMob Interstitial variables
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
+
+  bool _canPop = false;
+  bool _isFinishing = false; // Controls the loading overlay
+
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
     begin: Alignment.centerLeft,
@@ -28,6 +46,54 @@ class _QuizScreenState extends State<QuizScreen> {
     super.initState();
     _answers = List.filled(widget.quiz.length, null);
     _loadProgress();
+    _loadInterstitialAd();
+  }
+
+  @override
+  void dispose() {
+    // FIX: Flush any pending debounced save immediately on dispose so progress
+    // is never lost when the user backgrounds the app mid-quiz.
+    _saveDebounce?.cancel();
+    if (!_canPop) {
+      _flushSave();
+    }
+    _interstitialAd?.dispose(); // Clean up AdMob resources
+    super.dispose();
+  }
+
+  void _loadInterstitialAd() {
+    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+
+    InterstitialAd.load(
+      adUnitId: AdHelper.interstitialAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              if (mounted) {
+                setState(() => _isFinishing = false);
+                _showResultsDialog(); // Show results after ad is dismissed
+              }
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+              if (mounted) {
+                setState(() => _isFinishing = false);
+                _showResultsDialog(); // Show results even if ad fails to display
+              }
+            },
+          );
+          _interstitialAd = ad;
+          _isAdLoaded = true;
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('Failed to load an interstitial ad: ${err.message}');
+          _isAdLoaded = false;
+        },
+      ),
+    );
   }
 
   bool get _hasAnsweredCurrent => _answers[_currentIndex] != null;
@@ -54,7 +120,14 @@ class _QuizScreenState extends State<QuizScreen> {
   int get _remainingCount =>
       widget.quiz.length - _answers.where((a) => a != null).length;
 
-  Future<void> _saveProgress() async {
+  // FIX: Schedules a debounced save. Only the final state within the 800 ms
+  // window is persisted, collapsing many rapid taps into a single write.
+  void _scheduleSave() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 800), _flushSave);
+  }
+
+  Future<void> _flushSave() async {
     final prefs = await SharedPreferences.getInstance();
     final savedAnswers = _answers.map((e) => e ?? '').toList();
     await prefs.setStringList('quiz_answers_${widget.deckTitle}', savedAnswers);
@@ -63,9 +136,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedAnswers = prefs.getStringList(
-      'quiz_answers_${widget.deckTitle}',
-    );
+    final savedAnswers =
+        prefs.getStringList('quiz_answers_${widget.deckTitle}');
     final savedIndex = prefs.getInt('quiz_index_${widget.deckTitle}');
 
     if (savedAnswers != null && savedAnswers.length == widget.quiz.length) {
@@ -77,6 +149,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _clearProgress() async {
+    _saveDebounce?.cancel(); // discard any pending debounced save
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('quiz_answers_${widget.deckTitle}');
     await prefs.remove('quiz_index_${widget.deckTitle}');
@@ -84,22 +157,17 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _checkAnswer(String answer) {
     if (_hasAnsweredCurrent) return;
-
     HapticFeedback.lightImpact();
-
     setState(() {
       _answers[_currentIndex] = answer;
     });
-
-    _saveProgress();
+    _scheduleSave(); // debounced, not immediate
   }
 
   void _nextQuestion() {
     if (_currentIndex < widget.quiz.length - 1) {
-      setState(() {
-        _currentIndex++;
-      });
-      _saveProgress();
+      setState(() => _currentIndex++);
+      _scheduleSave(); // debounced
     } else {
       _showResults();
     }
@@ -107,29 +175,33 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _previousQuestion() {
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-      });
-      _saveProgress();
+      setState(() => _currentIndex--);
+      _scheduleSave(); // debounced
     }
   }
 
   Future<bool> _onWillPop() async {
+    // Flush immediately so progress is saved before the screen is popped.
+    _saveDebounce?.cancel();
+    if (!_canPop) {
+      await _flushSave();
+    }
+
     final shouldPop = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          "Pause Quiz?",
+          'Pause Quiz?',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          "Your progress has been automatically saved. You can resume later.",
+          'Your progress has been automatically saved. You can resume later.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -142,7 +214,7 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
             ),
             child: const Text(
-              "Exit",
+              'Exit',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -153,8 +225,29 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _showResults() async {
+    setState(() {
+      _canPop = true;
+    });
     await _clearProgress();
+    if (!mounted) return;
 
+    if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
+      setState(() {
+        _isFinishing = true; // Show the blurred overlay
+      });
+      
+      // Delay for 1.5 seconds to let the user read the overlay text
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (!mounted) return;
+      _interstitialAd!.show();
+      _isAdLoaded = false;
+    } else {
+      _showResultsDialog();
+    }
+  }
+
+  void _showResultsDialog() {
     if (!mounted) return;
     showDialog(
       context: context,
@@ -162,7 +255,7 @@ class _QuizScreenState extends State<QuizScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text(
-          "Quiz Complete!",
+          'Quiz Complete!',
           textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
@@ -183,8 +276,9 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "You scored $_correctCount out of ${widget.quiz.length}.",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              'You scored $_correctCount out of ${widget.quiz.length}.',
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -204,11 +298,9 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
               ),
               child: const Text(
-                "Return to Deck",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Return to Deck',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -241,12 +333,17 @@ class _QuizScreenState extends State<QuizScreen> {
         (_currentIndex + (_hasAnsweredCurrent ? 1 : 0)) / widget.quiz.length;
 
     return PopScope(
-      canPop: false,
+      canPop: _canPop,
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
         if (shouldPop && context.mounted) {
-          Navigator.of(context).pop();
+          setState(() {
+            _canPop = true;
+          });
+          Future.microtask(() {
+            if (context.mounted) Navigator.of(context).pop();
+          });
         }
       },
       child: Scaffold(
@@ -254,7 +351,8 @@ class _QuizScreenState extends State<QuizScreen> {
         appBar: AppBar(
           title: Text(
             widget.deckTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            style:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           backgroundColor: const Color(0xFFFDF9FF),
           elevation: 0,
@@ -262,288 +360,341 @@ class _QuizScreenState extends State<QuizScreen> {
           leading: IconButton(
             icon: const Icon(Icons.close, color: Colors.black87),
             onPressed: () async {
+              if (_canPop) {
+                Navigator.of(context).pop();
+                return;
+              }
               final shouldPop = await _onWillPop();
-              if (shouldPop && context.mounted) Navigator.of(context).pop();
+              if (shouldPop && context.mounted) {
+                setState(() {
+                  _canPop = true;
+                });
+                Future.microtask(() {
+                  if (context.mounted) Navigator.of(context).pop();
+                });
+              }
             },
           ),
         ),
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Stack(
             children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: progress),
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, _) => Container(
-                  height: 6,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  child: FractionallySizedBox(
-                    widthFactor: value,
-                    child: Container(
+              // Main content
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: progress),
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, _) => Container(
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
                       decoration: BoxDecoration(
-                        gradient: _brandGradient,
+                        color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(3),
                       ),
-                    ),
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 12,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildStatBadge(
-                      Icons.check_circle_rounded,
-                      Colors.green.shade600,
-                      '$_correctCount',
-                    ),
-                    _buildStatBadge(
-                      Icons.cancel_rounded,
-                      Colors.red.shade500,
-                      '$_incorrectCount',
-                    ),
-                    _buildStatBadge(
-                      Icons.help_outline_rounded,
-                      Colors.grey.shade500,
-                      '$_remainingCount',
-                    ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 8.0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Text(
-                          "Question ${_currentIndex + 1} of ${widget.quiz.length}",
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                            fontSize: 13,
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: value,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: _brandGradient,
+                            borderRadius: BorderRadius.circular(3),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                  ),
 
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatBadge(
+                          Icons.check_circle_rounded,
+                          Colors.green.shade600,
+                          '$_correctCount',
+                        ),
+                        _buildStatBadge(
+                          Icons.cancel_rounded,
+                          Colors.red.shade500,
+                          '$_incorrectCount',
+                        ),
+                        _buildStatBadge(
+                          Icons.help_outline_rounded,
+                          Colors.grey.shade500,
+                          '$_remainingCount',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Text(
+                              'Question ${_currentIndex + 1} of ${widget.quiz.length}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                                fontSize: 13,
                               ),
-                            ],
+                            ),
                           ),
-                          child: Center(
-                            child: SingleChildScrollView(
-                              child: Text(
-                                currentQuestion.question,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                  height: 1.4,
+                          const SizedBox(height: 16),
+
+                          Expanded(
+                            flex: 3,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    currentQuestion.question,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                      height: 1.4,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                      Expanded(
-                        flex: 5,
-                        child: ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: currentQuestion.options.length,
-                          itemBuilder: (context, index) {
-                            final option = currentQuestion.options[index];
+                          Expanded(
+                            flex: 5,
+                            child: ListView.builder(
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: currentQuestion.options.length,
+                              itemBuilder: (context, index) {
+                                final option = currentQuestion.options[index];
 
-                            Color buttonColor = Colors.white;
-                            Color textColor = Colors.black87;
-                            Color borderColor = Colors.transparent;
-                            IconData? feedbackIcon;
-                            Color iconColor = Colors.transparent;
+                                Color buttonColor = Colors.white;
+                                Color textColor = Colors.black87;
+                                Color borderColor = Colors.transparent;
+                                IconData? feedbackIcon;
+                                Color iconColor = Colors.transparent;
 
-                            if (_hasAnsweredCurrent) {
-                              if (option == currentQuestion.correctAnswer) {
-                                buttonColor = Colors.green.shade50;
-                                borderColor = Colors.green.shade400;
-                                textColor = Colors.green.shade800;
-                                feedbackIcon = Icons.check_circle_rounded;
-                                iconColor = Colors.green.shade500;
-                              } else if (option == _selectedAnswerCurrent) {
-                                buttonColor = Colors.red.shade50;
-                                borderColor = Colors.red.shade400;
-                                textColor = Colors.red.shade800;
-                                feedbackIcon = Icons.cancel_rounded;
-                                iconColor = Colors.red.shade500;
-                              }
-                            }
+                                if (_hasAnsweredCurrent) {
+                                  if (option == currentQuestion.correctAnswer) {
+                                    buttonColor = Colors.green.shade50;
+                                    borderColor = Colors.green.shade400;
+                                    textColor = Colors.green.shade800;
+                                    feedbackIcon = Icons.check_circle_rounded;
+                                    iconColor = Colors.green.shade500;
+                                  } else if (option == _selectedAnswerCurrent) {
+                                    buttonColor = Colors.red.shade50;
+                                    borderColor = Colors.red.shade400;
+                                    textColor = Colors.red.shade800;
+                                    feedbackIcon = Icons.cancel_rounded;
+                                    iconColor = Colors.red.shade500;
+                                  }
+                                }
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
-                              child: InkWell(
-                                onTap: () => _checkAnswer(option),
-                                borderRadius: BorderRadius.circular(16),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeInOut,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: buttonColor,
-                                    border: Border.all(
-                                      color: borderColor,
-                                      width: 2,
-                                    ),
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: InkWell(
+                                    onTap: () => _checkAnswer(option),
                                     borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.03),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
+                                    child: AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      curve: Curves.easeInOut,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 16),
+                                      decoration: BoxDecoration(
+                                        color: buttonColor,
+                                        border:
+                                            Border.all(color: borderColor, width: 2),
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.03),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              option,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: textColor,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                          if (feedbackIcon != null)
+                                            Icon(feedbackIcon,
+                                                color: iconColor, size: 24),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
+                                );
+                              },
+                            ),
+                          ),
+
+                          SizedBox(
+                            height: 56,
+                            child: Row(
+                              children: [
+                                if (_currentIndex > 0)
+                                  Expanded(
+                                    flex: 1,
+                                    child: OutlinedButton(
+                                      onPressed: _previousQuestion,
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        side: BorderSide(
+                                            color: Colors.grey.shade300, width: 2),
+                                      ),
+                                      child: Text(
+                                        'Previous',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                if (_currentIndex > 0 && _hasAnsweredCurrent)
+                                  const SizedBox(width: 12),
+
+                                if (_hasAnsweredCurrent)
+                                  Expanded(
+                                    flex: 2,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: _brandGradient,
+                                        borderRadius:
+                                            BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF8B4EFF)
+                                                .withOpacity(0.3),
+                                            blurRadius: 15,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: _nextQuestion,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                        ),
                                         child: Text(
-                                          option,
-                                          style: TextStyle(
+                                          _currentIndex < widget.quiz.length - 1
+                                              ? 'Next Question'
+                                              : 'Finish Quiz',
+                                          style: const TextStyle(
                                             fontSize: 16,
-                                            color: textColor,
-                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.5,
                                           ),
                                         ),
                                       ),
-                                      if (feedbackIcon != null)
-                                        Icon(
-                                          feedbackIcon,
-                                          color: iconColor,
-                                          size: 24,
-                                        ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                  ),
+                ],
+              ),
 
-                      SizedBox(
-                        height: 56,
-                        child: Row(
+              // Full Page Loading Overlay Layer
+              if (_isFinishing)
+                Positioned.fill(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Colors.white.withOpacity(0.85),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (_currentIndex > 0)
-                              Expanded(
-                                flex: 1,
-                                child: OutlinedButton(
-                                  onPressed: _previousQuestion,
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    side: BorderSide(
-                                      color: Colors.grey.shade300,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "Previous",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                            const SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF8B4EFF),
+                                strokeWidth: 4,
                               ),
-
-                            if (_currentIndex > 0 && _hasAnsweredCurrent)
-                              const SizedBox(width: 12),
-
-                            if (_hasAnsweredCurrent)
-                              Expanded(
-                                flex: 2,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: _brandGradient,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFF8B4EFF,
-                                        ).withOpacity(0.3),
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: _nextQuestion,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _currentIndex < widget.quiz.length - 1
-                                          ? "Next Question"
-                                          : "Finish Quiz",
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              "Calculating Score...",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black87,
+                                letterSpacing: -0.5,
                               ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "Wrapping up your quiz results.\nShowing an ad in the meantime ☕",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey.shade700,
+                                height: 1.4,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

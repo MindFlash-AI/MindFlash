@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart'; // Required for kIsWeb
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // Required for AdMob
 
 import '../../models/deck_model.dart';
 import '../../models/card_model.dart';
 import '../../services/card_storage_service.dart';
+import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 import 'review_completion.dart';
 
 import 'widgets/review_header.dart';
@@ -38,6 +41,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
   int _correctCount = 0;
   int _incorrectCount = 0;
 
+  // AdMob Banner variables
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -51,12 +58,38 @@ class _ReviewScreenState extends State<ReviewScreen> {
     if (widget.isShuffleOn) {
       _reviewCards.shuffle();
     }
+
+    // Initialize Banner Ad
+    _loadBannerAd();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _bannerAd?.dispose(); // Clean up AdMob resources
     super.dispose();
+  }
+
+  // Load Banner Ad
+  void _loadBannerAd() {
+    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+
+    _bannerAd = BannerAd(
+      adUnitId: AdHelper.bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('Failed to load a banner ad: ${err.message}');
+          ad.dispose();
+        },
+      ),
+    )..load();
   }
 
   void _nextCard() {
@@ -128,73 +161,89 @@ class _ReviewScreenState extends State<ReviewScreen> {
     if (_reviewCards.isEmpty) return const Scaffold();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
+      // Use light overlay style so status bar icons (battery, wifi) are white
+      value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFFDF9FF),
+        // Deep Space Violet Background
+        backgroundColor: const Color(0xFF0B0714),
         body: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              ReviewHeader(
-                currentIndex: _currentIndex,
-                totalCards: _reviewCards.length,
-                onExit: () => Navigator.pop(context),
-                onShuffle: _handleShuffle,
-              ),
+              // Main Content
+              Column(
+                children: [
+                  ReviewHeader(
+                    currentIndex: _currentIndex,
+                    totalCards: _reviewCards.length,
+                    onExit: () => Navigator.pop(context),
+                    onShuffle: _handleShuffle,
+                  ),
 
-              ReviewProgressBar(
-                currentIndex: _currentIndex,
-                totalCards: _reviewCards.length,
-              ),
+                  ReviewProgressBar(
+                    currentIndex: _currentIndex,
+                    totalCards: _reviewCards.length,
+                  ),
 
-              const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-              SessionStatsBar(
-                correctCount: _correctCount,
-                incorrectCount: _incorrectCount,
-              ),
+                  SessionStatsBar(
+                    correctCount: _correctCount,
+                    incorrectCount: _incorrectCount,
+                  ),
 
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(top: 16),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 16),
+                      // Transparent to let the beautiful deep background show
+                      color: Colors.transparent,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: FlashcardStackView(
+                              cards: _reviewCards,
+                              currentIndex: _currentIndex,
+                              pageController: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _currentIndex = index;
+                                  _showAnswer = false; // Reset answer state when swiping
+                                });
+                              },
+                              onFlip: (isFront) {
+                                setState(() {
+                                  _showAnswer = !isFront;
+                                });
+                              },
+                            ),
+                          ),
+                          ReviewActionButtons(
+                            showAnswer: _showAnswer,
+                            onCorrect: () => _handleAnswer(true),
+                            onIncorrect: () => _handleAnswer(false),
+                          ),
+                          
+                          if (!kIsWeb)
+                            const SizedBox(height: 50),
+                        ],
+                      ),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: FlashcardStackView(
-                          cards: _reviewCards,
-                          currentIndex: _currentIndex,
-                          pageController: _pageController,
-                          onPageChanged: (index) {
-                            setState(() {
-                              _currentIndex = index;
-                              _showAnswer = false; // Reset answer state when swiping
-                            });
-                          },
-                          onFlip: (isFront) {
-                            setState(() {
-                              _showAnswer = !isFront;
-                            });
-                          },
-                        ),
-                      ),
-                      ReviewActionButtons(
-                        showAnswer: _showAnswer,
-                        onCorrect: () => _handleAnswer(true),
-                        onIncorrect: () => _handleAnswer(false),
-                      ),
-                    ],
+                ],
+              ),
+              
+              if (_isBannerAdLoaded && _bannerAd != null)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    color: Colors.transparent, 
+                    child: AdWidget(ad: _bannerAd!),
                   ),
                 ),
-              ),
             ],
           ),
         ),

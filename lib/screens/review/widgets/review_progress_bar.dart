@@ -12,24 +12,38 @@ class ReviewProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double progress = totalCards == 0 ? 0 : (currentIndex + 1) / totalCards;
+    final progress = (currentIndex + 1) / totalCards;
 
-    return Container(
-      height: 6,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(3),
-      ),
-      alignment: Alignment.centerLeft,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-        width: MediaQuery.of(context).size.width * progress,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: progress),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, _) => Container(
+        height: 4,
+        margin: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(3),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF5A6DFF), Color(0xFFE335A0)],
+          color: Colors.white.withOpacity(0.1), // Dark mode track
+          borderRadius: BorderRadius.circular(2),
+        ),
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: value,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B4EFF).withOpacity(0.5),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           ),
         ),
       ),
