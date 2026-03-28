@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Required for saving theme
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-
+import 'package:firebase_core/firebase_core.dart'; // Add Firebase Core
+import 'firebase_options.dart';
 import 'screens/loading_screen/loading_screen.dart';
 import 'constants.dart';  
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase FIRST
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   await dotenv.load(fileName: ".env");
   
@@ -19,12 +25,12 @@ void main() async {
 
   // --- Load Saved Theme Preference ---
   final prefs = await SharedPreferences.getInstance();
-  final isDarkMode = prefs.getBool('isDarkMode') ?? false; // Default to light mode
+  final isDarkMode = prefs.getBool('isDarkMode') ?? false; 
   
   // Set the initial theme based on saved preference
   themeNotifier.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
-  // Add a listener to save the theme whenever it gets changed in Settings
+  // Auto-Saving Listener
   themeNotifier.addListener(() {
     prefs.setBool('isDarkMode', themeNotifier.value == ThemeMode.dark);
   });

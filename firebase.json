@@ -1,16 +1,1 @@
-{
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "disallowLegacyRuntimeConfig": true,
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
-    }
-  ]
-}
+{"functions":[{"source":"functions","codebase":"default","disallowLegacyRuntimeConfig":true,"ignore":["node_modules",".git","firebase-debug.log","firebase-debug.*.log","*.local"]}],"flutter":{"platforms":{"android":{"default":{"projectId":"mindflash-de0ba","appId":"1:120975306201:android:64eb4083936c42b32a3dc8","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"mindflash-de0ba","configurations":{"android":"1:120975306201:android:64eb4083936c42b32a3dc8","ios":"1:120975306201:ios:c73418d844b0bf2a2a3dc8","macos":"1:120975306201:ios:c73418d844b0bf2a2a3dc8","web":"1:120975306201:web:65df8390b7d645ad2a3dc8","windows":"1:120975306201:web:717a746189e82ec02a3dc8"}}}}}}

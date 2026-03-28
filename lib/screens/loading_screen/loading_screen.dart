@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Added Auth
 import '../dashboard/dashboard_screen.dart';
+import '../login/login_screen.dart'; // Added Login Screen
 import '../../constants.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -41,13 +43,18 @@ class _LoadingScreenState extends State<LoadingScreen>
 
     _controller.forward();
 
+    // Check Auth State and route accordingly
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        final Widget nextScreen = currentUser != null 
+            ? const DashboardScreen() 
+            : const LoginScreen();
+
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const DashboardScreen(),
+            pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
             transitionsBuilder: (
               context,
               animation,
