@@ -217,7 +217,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
     );
   }
 
-  void _showRewardAdDialog() {
+  void _showEnergyDialog() {
+    final bool isOutOfEnergy = _currentEnergy <= 0;
+    final bool isFullEnergy = _currentEnergy >= EnergyService.maxEnergy;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -225,42 +228,75 @@ class _AIChatScreenState extends State<AIChatScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.bolt, color: Colors.amber, size: 28),
+            Icon(
+              isOutOfEnergy 
+                  ? Icons.bolt 
+                  : (isFullEnergy ? Icons.battery_charging_full_rounded : Icons.battery_4_bar_rounded),
+              color: isOutOfEnergy ? Colors.amber : (isFullEnergy ? const Color(0xFF00C853) : const Color(0xFF8B4EFF)),
+              size: 28,
+            ),
             const SizedBox(width: 8),
-            Text("Out of Energy", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+            Expanded(
+              child: Text(
+                isOutOfEnergy 
+                    ? "Need a boost?" 
+                    : (isFullEnergy ? "Fully Charged!" : "Looking Good! ⚡"), 
+                style: TextStyle(
+                  fontWeight: FontWeight.bold, 
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  fontSize: 18,
+                ),
+              ),
+            ),
           ],
         ),
         content: Text(
-          "You've run out of AI energy for now. Watch a short ad to refill your energy completely?",
+          isOutOfEnergy
+              ? "Your AI Tutor needs a quick breather! Your energy automatically resets every day at midnight.\n\nWant to skip the wait? Watch a short ad to fully recharge right now and keep studying!"
+              : "You currently have $_currentEnergy energy left! You're all set to keep chatting with your AI Tutor.\n\nRemember, your energy automatically refills to full every day at midnight." + (!isFullEnergy ? "\n\nWant to top up to full right now?" : ""),
           style: TextStyle(height: 1.4, color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Maybe Later", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              if (_rewardedAd != null) {
-                _rewardedAd!.show(
-                  onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
-                    _grantEnergyReward();
-                  },
-                );
-              } else {
-                // If ad isn't loaded, grant it anyway as a fallback so user isn't stuck
-                _grantEnergyReward();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B4EFF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          if (!isFullEnergy)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                isOutOfEnergy ? "Maybe Later" : "Back to Chat", 
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
-            child: const Text("Watch Ad", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
+          if (isFullEnergy)
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B4EFF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text("Awesome!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
+          else
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (_rewardedAd != null) {
+                  _rewardedAd!.show(
+                    onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+                      _grantEnergyReward();
+                    },
+                  );
+                } else {
+                  // If ad isn't loaded, grant it anyway as a fallback so user isn't stuck
+                  _grantEnergyReward();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B4EFF),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text("Watch Ad", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
         ],
       ),
     );
@@ -290,7 +326,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
     if (_currentEnergy <= 0) {
       HapticFeedback.heavyImpact();
-      _showRewardAdDialog();
+      _showEnergyDialog();
       return;
     }
 
@@ -393,29 +429,38 @@ class _AIChatScreenState extends State<AIChatScreen> {
           ),
           Container(
             margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
+            child: Material(
               color: _currentEnergy > 0 
                   ? const Color(0xFF8B4EFF).withOpacity(0.1)
                   : Colors.red.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.bolt,
-                  color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                  size: 18,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  "$_currentEnergy",
-                  style: TextStyle(
-                    color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                    fontWeight: FontWeight.bold,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _showEnergyDialog();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.bolt,
+                        color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        "$_currentEnergy",
+                        style: TextStyle(
+                          color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],

@@ -1,64 +1,77 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EnergyService {
+  // Implement Singleton pattern so the entire app shares the same energy state
+  static final EnergyService _instance = EnergyService._internal();
+  factory EnergyService() => _instance;
+  EnergyService._internal();
+
+  int currentEnergy = 3;
+  String _lastRefillDate = '';
   static const int maxEnergy = 3;
-  static const String _energyKey = 'ai_energy_count';
-  static const String _dateKey = 'ai_last_reset_date';
+  bool _isInitialized = false;
 
-  int _currentEnergy = maxEnergy;
-
-  // FIX 1: Track whether init() has completed. If any method is called before
-  // init() returns, we await the same Future instead of running a second
-  // getInstance() call or silently returning stale data.
-  Future<void>? _initFuture;
-  SharedPreferences? _prefs;
-
-  int get currentEnergy => _currentEnergy;
-
-  // FIX 1: init() is now idempotent — calling it multiple times (e.g. from
-  // multiple widgets) only runs the setup logic once.
-  Future<void> init() {
-    _initFuture ??= _initialize();
-    return _initFuture!;
+  Future<void> init() async {
+    if (_isInitialized) return;
+    final prefs = await SharedPreferences.getInstance();
+    currentEnergy = prefs.getInt('energy_count') ?? maxEnergy;
+    _lastRefillDate = prefs.getString('last_refill_date') ?? '';
+    await _checkDailyRefill();
+    _isInitialized = true;
   }
 
-  Future<void> _initialize() async {
-    _prefs = await SharedPreferences.getInstance();
-    _checkDailyReset();
+  // --- VULNERABILITY 1 FIX: Server-Side Time Verification ---
+  // Fetch the current time from an external reliable server to prevent 
+  // users from changing their device time to get free energy.
+  Future<DateTime?> _getNetworkTime() async {
+    try {
+      final response = await http
+          .get(Uri.parse('http://worldtimeapi.org/api/timezone/Etc/UTC'))
+          .timeout(const Duration(seconds: 5));
+          
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return DateTime.parse(data['datetime']);
+      }
+    } catch (e) {
+      // If offline or API fails, return null. 
+      // We will fallback to device time safely below.
+    }
+    return null;
   }
 
-  // FIX 2: Extracted guard so every public method can safely await init
-  // before touching _prefs. This prevents a null crash if someone calls
-  // deductEnergy() before the first init() completes.
-  Future<SharedPreferences> _ensureReady() async {
-    await init();
-    return _prefs!;
-  }
+  Future<void> _checkDailyRefill() async {
+    DateTime? networkTime = await _getNetworkTime();
+    
+    // If they are offline, they can't use AI anyway, so falling back to local 
+    // time is safe. The moment they connect to the internet to generate, 
+    // they will trigger this again with real network time if the app restarts.
+    DateTime now = networkTime ?? DateTime.now(); 
+    String today = "${now.year}-${now.month}-${now.day}";
 
-  void _checkDailyReset() {
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    final String? lastReset = _prefs!.getString(_dateKey);
-
-    if (lastReset != today) {
-      _currentEnergy = maxEnergy;
-      _prefs!.setInt(_energyKey, _currentEnergy);
-      _prefs!.setString(_dateKey, today);
-    } else {
-      _currentEnergy = _prefs!.getInt(_energyKey) ?? maxEnergy;
+    if (_lastRefillDate != today) {
+      currentEnergy = maxEnergy;
+      _lastRefillDate = today;
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('energy_count', currentEnergy);
+      await prefs.setString('last_refill_date', _lastRefillDate);
     }
   }
 
-  Future<bool> deductEnergy() async {
-    final prefs = await _ensureReady();
-    if (_currentEnergy <= 0) return false;
-    _currentEnergy--;
-    await prefs.setInt(_energyKey, _currentEnergy);
-    return true;
+  Future<void> deductEnergy() async {
+    if (currentEnergy > 0) {
+      currentEnergy--;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('energy_count', currentEnergy);
+    }
   }
 
   Future<void> refillEnergy() async {
-    final prefs = await _ensureReady();
-    _currentEnergy = maxEnergy;
-    await prefs.setInt(_energyKey, _currentEnergy);
+    currentEnergy = maxEnergy;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('energy_count', currentEnergy);
   }
 }
