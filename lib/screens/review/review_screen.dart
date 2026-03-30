@@ -14,6 +14,7 @@ import 'widgets/review_progress_bar.dart';
 import 'widgets/session_stats_bar.dart';
 import 'widgets/flashcard_stack_view.dart';
 import 'widgets/review_action_buttons.dart';
+import '../../widgets/floating_tutor_button.dart'; // Mascot Button Import
 
 class ReviewScreen extends StatefulWidget {
   final Deck deck;
@@ -171,79 +172,83 @@ class _ReviewScreenState extends State<ReviewScreen> {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              // Main Content
-              Column(
-                children: [
-                  ReviewHeader(
+              ReviewHeader(
+                currentIndex: _currentIndex,
+                totalCards: _reviewCards.length,
+                onExit: () => Navigator.pop(context),
+                onShuffle: _handleShuffle,
+              ),
+
+              ReviewProgressBar(
+                currentIndex: _currentIndex,
+                totalCards: _reviewCards.length,
+              ),
+
+              const SizedBox(height: 12),
+
+              SessionStatsBar(
+                correctCount: _correctCount,
+                incorrectCount: _incorrectCount,
+              ),
+
+              // 1. The Flashcard gets all the remaining vertical space
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(top: 16),
+                  child: FlashcardStackView(
+                    cards: _reviewCards,
                     currentIndex: _currentIndex,
-                    totalCards: _reviewCards.length,
-                    onExit: () => Navigator.pop(context),
-                    onShuffle: _handleShuffle,
+                    pageController: _pageController,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentIndex = index;
+                        _showAnswer = false; 
+                      });
+                    },
+                    onFlip: (isFront) {
+                      setState(() {
+                        _showAnswer = !isFront;
+                      });
+                    },
                   ),
+                ),
+              ),
 
-                  ReviewProgressBar(
-                    currentIndex: _currentIndex,
-                    totalCards: _reviewCards.length,
-                  ),
+              // 2. The Mascot sits neatly BELOW the flashcard and above the buttons
+              // We use an Align with heightFactor to gracefully collapse the invisible negative space 
+              // left behind when we translated the mascot upward in its own file!
+              Align(
+                alignment: Alignment.centerLeft,
+                heightFactor: 0.5, 
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: FloatingTutorButton(deck: widget.deck),
+                ),
+              ),
 
-                  const SizedBox(height: 12),
-
-                  SessionStatsBar(
-                    correctCount: _correctCount,
-                    incorrectCount: _incorrectCount,
-                  ),
-
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(top: 16),
-                      color: Colors.transparent,
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: FlashcardStackView(
-                              cards: _reviewCards,
-                              currentIndex: _currentIndex,
-                              pageController: _pageController,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _currentIndex = index;
-                                  _showAnswer = false; // Reset answer state when swiping
-                                });
-                              },
-                              onFlip: (isFront) {
-                                setState(() {
-                                  _showAnswer = !isFront;
-                                });
-                              },
-                            ),
-                          ),
-                          ReviewActionButtons(
-                            showAnswer: _showAnswer,
-                            onCorrect: () => _handleAnswer(true),
-                            onIncorrect: () => _handleAnswer(false),
-                          ),
-                          
-                          if (!kIsWeb)
-                            const SizedBox(height: 50),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              // 3. Action Buttons have their own dedicated space
+              // Removed the extra top padding to pull it perfectly flush with the mascot
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: ReviewActionButtons(
+                  showAnswer: _showAnswer,
+                  onCorrect: () => _handleAnswer(true),
+                  onIncorrect: () => _handleAnswer(false),
+                ),
               ),
               
-              if (_isBannerAdLoaded && _bannerAd != null)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    width: _bannerAd!.size.width.toDouble(),
-                    height: _bannerAd!.size.height.toDouble(),
-                    color: Colors.transparent, 
-                    child: AdWidget(ad: _bannerAd!),
-                  ),
+              // 4. Ad Banner natively sits at the absolute bottom
+              // Fixed 50px space reservation to prevent layout jump!
+              if (!kIsWeb)
+                SizedBox(
+                  height: 50,
+                  width: double.infinity,
+                  child: (_isBannerAdLoaded && _bannerAd != null)
+                      ? AdWidget(ad: _bannerAd!)
+                      : const SizedBox.shrink(),
                 ),
             ],
           ),
