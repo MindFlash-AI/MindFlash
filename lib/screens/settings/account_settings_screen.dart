@@ -13,6 +13,196 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isLoading = false;
+  final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _showEditProfileDialog() async {
+    final user = AuthService().currentUser;
+    if (user == null) return;
+
+    _nameController.text = user.displayName ?? '';
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            "Edit Profile",
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: TextField(
+            controller: _nameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: "Display Name",
+              labelStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF8B4EFF), width: 2),
+              ),
+            ),
+            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, _nameController.text.trim()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B4EFF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newName != null && newName.isNotEmpty && newName != user.displayName) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        await user.updateDisplayName(newName);
+        await user.reload(); // Refresh the user data
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Profile updated successfully!"),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Failed to update profile. Please try again."),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  void _showLegalDocument(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Dialog(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 10, 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                      },
+                      icon: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white12 : Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    content,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                      foregroundColor: const Color(0xFF8B4EFF),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Got it",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void _handleDeleteAccount() async {
     HapticFeedback.heavyImpact();
@@ -111,6 +301,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Get the latest user data to display
     final user = AuthService().currentUser;
 
     return Scaffold(
@@ -169,6 +360,65 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 ),
 
               const SizedBox(height: 40),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  "PROFILE",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white38 : Colors.grey.shade500,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+
+              // --- Edit Profile Button ---
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ListTile(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _showEditProfileDialog();
+                  },
+                  title: Text(
+                    "Edit Display Name",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "Change how your name appears",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white54 : Colors.grey.shade600,
+                    ),
+                  ),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2979FF).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.edit_rounded, color: Color(0xFF2979FF)),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                ),
+              ),
+
+              const SizedBox(height: 30),
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 8),
                 child: Text(
@@ -231,6 +481,109 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 8),
                 child: Text(
+                  "LEGAL",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white38 : Colors.grey.shade500,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+
+              // --- Legal Links ---
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _showLegalDocument(
+                          "Privacy Policy",
+                          "Welcome to MindFlash. We respect your privacy and are committed to protecting your personal data.\n\n"
+                          "1. Information We Collect\n"
+                          "We collect information you provide directly to us when you create an account, such as your display name and email address (via Google Sign-In).\n\n"
+                          "2. How We Use Your Information\n"
+                          "We use the information we collect to provide, maintain, and improve our app, such as syncing your flashcards and managing your AI energy limits.\n\n"
+                          "3. Data Storage\n"
+                          "Your flashcard data is stored securely. We do not sell your personal data to third parties.\n\n"
+                          "4. Changes to This Policy\n"
+                          "We may update this Privacy Policy from time to time. We will notify you of any changes by updating the content in this section.\n\n"
+                          "(This is a placeholder policy. Replace with your actual Privacy Policy text.)",
+                        );
+                      },
+                      title: Text(
+                        "Privacy Policy",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00C853).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.privacy_tip_rounded, color: Color(0xFF00C853)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                    ),
+                    Divider(height: 1, indent: 60, color: isDark ? Colors.white12 : Colors.grey.shade200),
+                    ListTile(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _showLegalDocument(
+                          "Terms of Service",
+                          "Please read these terms carefully before using MindFlash.\n\n"
+                          "1. Acceptance of Terms\n"
+                          "By using the MindFlash app, you agree to these Terms of Service. If you disagree with any part of the terms, you may not use the service.\n\n"
+                          "2. AI Content Generation\n"
+                          "MindFlash utilizes artificial intelligence to generate study materials. We do not guarantee the 100% accuracy of generated flashcards. Please verify important information.\n\n"
+                          "3. User Responsibilities\n"
+                          "You are responsible for the content you upload to be processed by our AI. Do not upload sensitive, illegal, or copyrighted material you do not have rights to use.\n\n"
+                          "4. Account Deletion\n"
+                          "You can delete your account at any time from the settings. This action is irreversible and deletes all associated data.\n\n"
+                          "(This is a placeholder Terms of Service. Replace with your actual Terms of Service text.)",
+                        );
+                      },
+                      title: Text(
+                        "Terms of Service",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF9100).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.description_rounded, color: Color(0xFFFF9100)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 40),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
                   "DANGER ZONE",
                   style: TextStyle(
                     fontSize: 12,
@@ -285,13 +638,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ],
           ),
           
-          // Full-screen loading overlay while deleting
+          // Full-screen loading overlay while deleting/updating
           if (_isLoading)
             Container(
               color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
               child: const Center(
                 child: CircularProgressIndicator(
-                  color: Colors.redAccent,
+                  color: Color(0xFF8B4EFF), // Default loading color instead of red
                 ),
               ),
             ),
