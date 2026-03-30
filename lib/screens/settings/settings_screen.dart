@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../login/login_screen.dart';
+import 'account_settings_screen.dart'; // Import the new screen
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -83,10 +84,9 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // --- Account Details Section ---
+          // --- Account Details Section (Now Clickable) ---
           if (user != null) ...[
             Container(
-              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
@@ -99,46 +99,69 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: const Color(0xFF5B4FE6).withOpacity(0.1),
-                    backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
-                    child: user.photoURL == null
-                        ? const Icon(Icons.person, size: 32, color: Color(0xFF8B4EFF))
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AccountSettingsScreen(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
                       children: [
-                        Text(
-                          user.displayName ?? 'MindFlash Student',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                            letterSpacing: -0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: const Color(0xFF5B4FE6).withOpacity(0.1),
+                          backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
+                          child: user.photoURL == null
+                              ? const Icon(Icons.person, size: 32, color: Color(0xFF8B4EFF))
+                              : null,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user.email ?? 'No email linked',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.displayName ?? 'MindFlash Student',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                                  letterSpacing: -0.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                user.email ?? 'No email linked',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white54 : Colors.grey.shade600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: isDark ? Colors.white54 : Colors.grey.shade400,
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 30),
