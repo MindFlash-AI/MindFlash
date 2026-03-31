@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/deck_model.dart';
 import '../../models/card_model.dart';
@@ -74,25 +75,52 @@ class _AIChatScreenState extends State<AIChatScreen> {
     }
   }
 
+  // --- NEW: Syncs Chat History from Firestore ---
   Future<void> _loadChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? historyJson = prefs.getString('chat_history_${widget.deck.id}');
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-    if (historyJson != null) {
-      final List<dynamic> decoded = jsonDecode(historyJson);
-      if (mounted) {
-        setState(() {
-          _messages.addAll(decoded.map((e) => ChatMessage.fromJson(e)).toList());
-        });
-        _scrollToBottom();
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chat')
+          .doc(widget.deck.id)
+          .get();
+
+      if (doc.exists && doc.data() != null && doc.data()!['messages'] != null) {
+        final List<dynamic> decoded = doc.data()!['messages'];
+        if (mounted) {
+          setState(() {
+            _messages.clear();
+            _messages.addAll(
+              decoded.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>)).toList()
+            );
+          });
+          _scrollToBottom();
+        }
       }
+    } catch (e) {
+      print("Error loading chat history from Firestore: $e");
     }
   }
 
+  // --- NEW: Saves Chat History to Firestore ---
   Future<void> _saveChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<Map<String, dynamic>> jsonList = _messages.map((m) => m.toJson()).toList();
-    await prefs.setString('chat_history_${widget.deck.id}', jsonEncode(jsonList));
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final List<Map<String, dynamic>> jsonList = _messages.map((m) => m.toJson()).toList();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chat')
+          .doc(widget.deck.id)
+          .set({'messages': jsonList});
+    } catch (e) {
+      print("Error saving chat history to Firestore: $e");
+    }
   }
 
   Future<void> _clearChat() async {
@@ -125,8 +153,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
     );
 
     if (confirm == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('chat_history_${widget.deck.id}');
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('chat')
+            .doc(widget.deck.id)
+            .delete();
+      }
       
       if (mounted) {
         setState(() {
@@ -437,7 +472,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
       ),
       body: Column(
         children: [
-          // Fixed 50px space reservation to prevent chat layout jump!
           if (!kIsWeb)
             SizedBox(
               height: 50,

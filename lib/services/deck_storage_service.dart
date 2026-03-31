@@ -1,53 +1,56 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/deck_model.dart';
 
 class DeckStorageService {
-  static const String _decksKey = 'decks';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // FIX: Cache the SharedPreferences instance instead of calling getInstance()
-  // on every method. getInstance() is async and goes through a method channel
-  // call each time, even though Flutter's implementation is already a singleton.
-  // One-time init via _prefs eliminates that overhead for every read/write.
-  SharedPreferences? _prefs;
+  // Ensures we only fetch/save data for the currently logged-in user
+  String? get _uid => _auth.currentUser?.uid;
 
-  Future<SharedPreferences> _getPrefs() async {
-    _prefs ??= await SharedPreferences.getInstance();
-    return _prefs!;
+  CollectionReference get _decksRef {
+    if (_uid == null) throw Exception("User not authenticated.");
+    return _firestore.collection('users').doc(_uid).collection('decks');
   }
 
   Future<List<Deck>> getDecks() async {
-    final prefs = await _getPrefs();
-    final List<String>? deckStrings = prefs.getStringList(_decksKey);
-    if (deckStrings == null) return [];
-    return deckStrings.map((str) => Deck.fromJson(str)).toList();
-  }
-
-  Future<void> _saveDecks(List<Deck> decks) async {
-    final prefs = await _getPrefs();
-    await prefs.setStringList(
-      _decksKey,
-      decks.map((deck) => deck.toJson()).toList(),
-    );
+    try {
+      if (_uid == null) return [];
+      final snapshot = await _decksRef.orderBy('createdAt', descending: true).get();
+      return snapshot.docs
+          .map((doc) => Deck.fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print("Error fetching decks from Firestore: $e");
+      return [];
+    }
   }
 
   Future<void> addDeck(Deck deck) async {
-    final decks = await getDecks();
-    decks.add(deck);
-    await _saveDecks(decks);
-  }
-
-  Future<void> deleteDeck(String id) async {
-    final decks = await getDecks();
-    decks.removeWhere((deck) => deck.id == id);
-    await _saveDecks(decks);
+    try {
+      if (_uid == null) return;
+      await _decksRef.doc(deck.id).set(deck.toMap());
+    } catch (e) {
+      print("Error adding deck to Firestore: $e");
+    }
   }
 
   Future<void> updateDeck(Deck updatedDeck) async {
-    final decks = await getDecks();
-    final index = decks.indexWhere((deck) => deck.id == updatedDeck.id);
-    if (index != -1) {
-      decks[index] = updatedDeck;
-      await _saveDecks(decks);
+    try {
+      if (_uid == null) return;
+      await _decksRef.doc(updatedDeck.id).update(updatedDeck.toMap());
+    } catch (e) {
+      print("Error updating deck in Firestore: $e");
+    }
+  }
+
+  Future<void> deleteDeck(String deckId) async {
+    try {
+      if (_uid == null) return;
+      await _decksRef.doc(deckId).delete();
+    } catch (e) {
+      print("Error deleting deck from Firestore: $e");
     }
   }
 }

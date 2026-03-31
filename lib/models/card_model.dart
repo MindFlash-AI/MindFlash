@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Flashcard {
   final String id;
@@ -9,13 +10,10 @@ class Flashcard {
   bool isMastered;
   bool isFlagged;
 
-  // SRS Fields
   int repetitions;
   double easeFactor;
-  int interval; // In days
+  int interval; 
   DateTime nextReviewDate;
-  
-  // NEW: Tracks the exact button the user pressed last time (0, 3, 4, 5)
   int? lastScore; 
 
   Flashcard({
@@ -43,12 +41,22 @@ class Flashcard {
       'repetitions': repetitions,
       'easeFactor': easeFactor,
       'interval': interval,
-      'nextReviewDate': nextReviewDate.toIso8601String(), 
-      'lastScore': lastScore, // Save the new field
+      // Use Firestore Timestamp for accurate Cloud queries
+      'nextReviewDate': Timestamp.fromDate(nextReviewDate), 
+      'lastScore': lastScore, 
     };
   }
 
   factory Flashcard.fromMap(Map<String, dynamic> map) {
+    DateTime parsedDate = DateTime.now();
+    if (map['nextReviewDate'] != null) {
+      if (map['nextReviewDate'] is Timestamp) {
+        parsedDate = (map['nextReviewDate'] as Timestamp).toDate();
+      } else if (map['nextReviewDate'] is String) {
+        parsedDate = DateTime.parse(map['nextReviewDate']);
+      }
+    }
+
     return Flashcard(
       id: map['id'] ?? '',
       deckId: map['deckId'] ?? '',
@@ -59,14 +67,24 @@ class Flashcard {
       repetitions: map['repetitions']?.toInt() ?? 0,
       easeFactor: (map['easeFactor'] ?? 2.5).toDouble(),
       interval: map['interval']?.toInt() ?? 0,
-      nextReviewDate: map['nextReviewDate'] != null 
-          ? DateTime.parse(map['nextReviewDate']) 
-          : DateTime.now(),
-      lastScore: map['lastScore']?.toInt(), // Load the new field
+      nextReviewDate: parsedDate,
+      lastScore: map['lastScore']?.toInt(),
     );
   }
 
-  String toJson() => json.encode(toMap());
+  String toJson() => json.encode({
+        'id': id,
+        'deckId': deckId,
+        'question': question,
+        'answer': answer,
+        'isMastered': isMastered,
+        'isFlagged': isFlagged,
+        'repetitions': repetitions,
+        'easeFactor': easeFactor,
+        'interval': interval,
+        'nextReviewDate': nextReviewDate.toIso8601String(), 
+        'lastScore': lastScore,
+      });
 
   factory Flashcard.fromJson(String source) => Flashcard.fromMap(json.decode(source));
 
