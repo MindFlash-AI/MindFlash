@@ -1,77 +1,112 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EnergyService {
-  // Implement Singleton pattern so the entire app shares the same energy state
-  static final EnergyService _instance = EnergyService._internal();
-  factory EnergyService() => _instance;
-  EnergyService._internal();
+  static const int maxEnergy = 10; // Maximum daily energy allowance
+  
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  int currentEnergy = 3;
-  String _lastRefillDate = '';
-  static const int maxEnergy = 3;
-  bool _isInitialized = false;
+  int _currentEnergy = maxEnergy;
 
+  // Getter for UI
+  int get currentEnergy => _currentEnergy;
+
+  // Safely get the current user's ID
+  String? get _uid => _auth.currentUser?.uid;
+
+  // Points to users/{uid}/stats/energy in Firestore
+  DocumentReference get _energyRef {
+    if (_uid == null) throw Exception("User not authenticated.");
+    return _firestore.collection('users').doc(_uid).collection('stats').doc('energy');
+  }
+
+  /// Initializes the service, fetches true server time, and checks for daily resets.
   Future<void> init() async {
-    if (_isInitialized) return;
-    final prefs = await SharedPreferences.getInstance();
-    currentEnergy = prefs.getInt('energy_count') ?? maxEnergy;
-    _lastRefillDate = prefs.getString('last_refill_date') ?? '';
-    await _checkDailyRefill();
-    _isInitialized = true;
-  }
+    if (_uid == null) return;
 
-  // --- VULNERABILITY 1 FIX: Server-Side Time Verification ---
-  // Fetch the current time from an external reliable server to prevent 
-  // users from changing their device time to get free energy.
-  Future<DateTime?> _getNetworkTime() async {
     try {
-      final response = await http
-          .get(Uri.parse('http://worldtimeapi.org/api/timezone/Etc/UTC'))
-          .timeout(const Duration(seconds: 5));
-          
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return DateTime.parse(data['datetime']);
+      // 1. Fetch the document FIRST to check if it's a brand new user
+      var doc = await _energyRef.get();
+
+      // If it's a brand new user, create the document perfectly formatted to pass security rules
+      if (!doc.exists) {
+         _currentEnergy = maxEnergy;
+         await _energyRef.set({
+            'energy': maxEnergy,
+            'lastResetDate': FieldValue.serverTimestamp(),
+            'serverPing': FieldValue.serverTimestamp(),
+         });
+         return; // Initialization complete!
       }
-    } catch (e) {
-      // If offline or API fails, return null. 
-      // We will fallback to device time safely below.
-    }
-    return null;
-  }
 
-  Future<void> _checkDailyRefill() async {
-    DateTime? networkTime = await _getNetworkTime();
-    
-    // If they are offline, they can't use AI anyway, so falling back to local 
-    // time is safe. The moment they connect to the internet to generate, 
-    // they will trigger this again with real network time if the app restarts.
-    DateTime now = networkTime ?? DateTime.now(); 
-    String today = "${now.year}-${now.month}-${now.day}";
+      // 2. THE PING: For existing users, force Firestore to record the absolute true time
+      await _energyRef.set({
+        'serverPing': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
-    if (_lastRefillDate != today) {
-      currentEnergy = maxEnergy;
-      _lastRefillDate = today;
+      // 3. Fetch the document back to read that exact unhackable server time
+      doc = await _energyRef.get();
+      final data = doc.data() as Map<String, dynamic>?;
+
+      if (data == null) return;
+
+      final Timestamp? pingStamp = data['serverPing'] as Timestamp?;
+      if (pingStamp == null) return;
+
+      final DateTime trueServerTime = pingStamp.toDate();
+      final Timestamp? lastResetStamp = data['lastResetDate'] as Timestamp?;
       
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('energy_count', currentEnergy);
-      await prefs.setString('last_refill_date', _lastRefillDate);
+      bool isNewDay = true;
+
+      // Compare the dates using the TRUE server time, not the device time!
+      if (lastResetStamp != null) {
+        final DateTime lastReset = lastResetStamp.toDate();
+        
+        // Check if the Year, Month, and Day exactly match
+        if (lastReset.year == trueServerTime.year &&
+            lastReset.month == trueServerTime.month &&
+            lastReset.day == trueServerTime.day) {
+          isNewDay = false; // It is still the same calendar day
+        }
+      }
+
+      if (isNewDay) {
+        // It's a brand new day according to Google's servers! Reset the energy.
+        _currentEnergy = maxEnergy;
+        await _energyRef.update({
+          'energy': maxEnergy,
+          'lastResetDate': pingStamp, 
+        });
+      } else {
+        // Still the same day, fetch their saved cloud energy
+        _currentEnergy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
+      }
+      
+    } catch (e) {
+      print("Error initializing Cloud Energy Service: $e");
+      _currentEnergy = maxEnergy; 
     }
   }
 
+  /// Deducts 1 energy locally for UI speed. 
+  /// The actual database deduction is securely handled by the Node.js backend now!
   Future<void> deductEnergy() async {
-    if (currentEnergy > 0) {
-      currentEnergy--;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('energy_count', currentEnergy);
+    if (_currentEnergy > 0) {
+      _currentEnergy--;
+      // REMOVED `_energyRef.set(...)` 
+      // We don't write to Firebase here because the Node server already did it.
+      // Doing it here caused a "Double Charge" that the Security Rules blocked!
     }
   }
 
+  /// Refills energy to max (Used when watching an Ad)
   Future<void> refillEnergy() async {
-    currentEnergy = maxEnergy;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('energy_count', currentEnergy);
+    _currentEnergy = maxEnergy;
+    if (_uid != null) {
+      await _energyRef.set({
+        'energy': _currentEnergy,
+      }, SetOptions(merge: true));
+    }
   }
 }

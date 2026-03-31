@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // REQUIRED FOR SECURE AUTH
 
 import '../models/deck_model.dart';
 import '../models/card_model.dart';
@@ -32,9 +33,19 @@ class AIService {
 
   static final String _backendUrl = dotenv.env['BACKEND_URL']!;
 
-  // ---------------------------------------------------------------------------
-  // FULL AI (Used in Dashboard for generating & editing decks)
-  // ---------------------------------------------------------------------------
+  // Helper method to retrieve secure tokens
+  Future<Map<String, String>> _getSecureHeaders() async {
+    final appCheckToken = await FirebaseAppCheck.instance.getToken();
+    final user = FirebaseAuth.instance.currentUser;
+    final idToken = await user?.getIdToken();
+
+    return {
+      'Content-Type': 'application/json',
+      'X-Firebase-AppCheck': appCheckToken ?? '',
+      'Authorization': 'Bearer ${idToken ?? ''}', // Passes Identity to Node.js
+    };
+  }
+
   Future<AIResponse> processInput({
     String? text,
     String? fileText,
@@ -49,16 +60,11 @@ class AIService {
     final List<Flashcard> allCards = results[1] as List<Flashcard>;
 
     final String userDataContext = _buildUserContext(decks, allCards);
-
-    final appCheckToken = await FirebaseAppCheck.instance.getToken();
-    final tokenString = appCheckToken ?? '';
+    final headers = await _getSecureHeaders();
 
     final response = await _httpClient.post(
       Uri.parse(_backendUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Firebase-AppCheck': tokenString,
-      },
+      headers: headers,
       body: jsonEncode({
         'prompt': text,
         'fileText': fileText,
@@ -71,9 +77,7 @@ class AIService {
       throw Exception(_parseErrorMessage(response));
     }
 
-    final Map<String, dynamic> data =
-        jsonDecode(response.body) as Map<String, dynamic>;
-
+    final Map<String, dynamic> data = jsonDecode(response.body) as Map<String, dynamic>;
     final String action = (data['action'] as String?) ?? 'chat';
     final String reply = (data['reply'] as String?) ?? 'I processed your request.';
 
@@ -89,29 +93,20 @@ class AIService {
     return AIResponse(message: reply, generatedDeck: newDeck, editedDeck: editedDeck);
   }
 
-  // ---------------------------------------------------------------------------
-  // RESTRICTED AI (Used in Chat Screen for Read-Only Tutoring)
-  // ---------------------------------------------------------------------------
   Future<AIResponse> processTutorChat({
     required String text,
     required Deck deck,
     required List<Flashcard> cards,
   }) async {
-    // 1. Isolate Context: ONLY provide the cards for the specific deck being studied.
     final String deckContext = "The user is studying the deck '${deck.name}' (Subject: ${deck.subject}).\n"
         "Here are the flashcards currently in this deck:\n" +
         cards.map((c) => "- Q: '${c.question}' -> A: '${c.answer}'").join('\n');
 
-    final appCheckToken = await FirebaseAppCheck.instance.getToken();
-    final tokenString = appCheckToken ?? '';
+    final headers = await _getSecureHeaders();
 
-    // 2. Strict Prompt: Force the AI into chat mode and forbid modifications.
     final response = await _httpClient.post(
       Uri.parse(_backendUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Firebase-AppCheck': tokenString,
-      },
+      headers: headers,
       body: jsonEncode({
         'prompt': "CRITICAL RULE: You are ONLY a study tutor. You are STRICTLY FORBIDDEN from creating, updating, editing, or deleting any flashcards. ALWAYS respond with the action 'chat' and act as a conversational tutor helping the user master the current deck.\n\nUser Message: $text",
         'userContext': deckContext,
@@ -125,15 +120,10 @@ class AIService {
     final Map<String, dynamic> data = jsonDecode(response.body) as Map<String, dynamic>;
     final String reply = (data['reply'] as String?) ?? 'I processed your request.';
 
-    // 3. Complete Sandbox: We explicitly DO NOT check for or process any 
-    // 'create_deck' or 'edit_deck' actions here. Even if the AI disobeys, 
-    // the local database cannot be modified.
     return AIResponse(message: reply);
   }
 
-  // ---------------------------------------------------------------------------
-  // Private helpers
-  // ---------------------------------------------------------------------------
+  // --- Private Helpers ---
 
   String _buildUserContext(List<Deck> decks, List<Flashcard> allCards) {
     if (decks.isEmpty) return 'The user currently has no saved decks.';
@@ -143,39 +133,25 @@ class AIService {
       cardsByDeck.putIfAbsent(card.deckId, () => []).add(card);
     }
 
-    final buffer = StringBuffer(
-      'The user currently has the following study decks saved in their library:\n',
-    );
-
+    final buffer = StringBuffer('The user currently has the following study decks saved in their library:\n');
     for (final deck in decks) {
       final deckCards = cardsByDeck[deck.id] ?? [];
-      buffer.write(
-        '- Deck Name: \'${deck.name}\' '
-        '(Subject: ${deck.subject}, ID: ${deck.id}). '
-        'It contains ${deckCards.length} cards.\n',
-      );
+      buffer.write('- Deck Name: \'${deck.name}\' (Subject: ${deck.subject}, ID: ${deck.id}). It contains ${deckCards.length} cards.\n');
       if (deckCards.isNotEmpty) {
         final first = deckCards.first;
-        buffer.write(
-          '  Examples: Q: \'${first.question}\' -> A: \'${first.answer}\'\n',
-        );
+        buffer.write('  Examples: Q: \'${first.question}\' -> A: \'${first.answer}\'\n');
       }
     }
-
     return buffer.toString();
   }
 
-  Future<Deck?> _handleCreateDeck(
-    Map<String, dynamic> data,
-    String? fileName,
-  ) async {
+  Future<Deck?> _handleCreateDeck(Map<String, dynamic> data, String? fileName) async {
     final List<dynamic>? cardsData = data['cards'] as List<dynamic>?;
     if (cardsData == null || cardsData.isEmpty) return null;
 
     final newDeck = Deck(
       id: _uuid.v4(),
-      name: (data['deckName'] as String?) ??
-          (fileName != null ? 'Notes from $fileName' : 'AI Generated Deck'),
+      name: (data['deckName'] as String?) ?? (fileName != null ? 'Notes from $fileName' : 'AI Generated Deck'),
       subject: (data['subject'] as String?) ?? 'Generated Study Material',
       cardCount: cardsData.length,
     );
@@ -197,10 +173,7 @@ class AIService {
     return newDeck;
   }
 
-  Future<Deck?> _handleEditDeck(
-    Map<String, dynamic> data,
-    List<Deck> decks,
-  ) async {
+  Future<Deck?> _handleEditDeck(Map<String, dynamic> data, List<Deck> decks) async {
     final String? targetId = data['targetDeckId'] as String?;
     final List<dynamic>? cardsData = data['cards'] as List<dynamic>?;
 
@@ -210,7 +183,6 @@ class AIService {
     if (index == -1) return null;
 
     final Deck editedDeck = decks[index];
-
     final newCards = cardsData.map((cardData) {
       return Flashcard(
         id: _uuid.v4(),
@@ -231,19 +203,18 @@ class AIService {
   }
 
   String _parseErrorMessage(http.Response response) {
+    if (response.statusCode == 403) return 'Out of energy! Please watch an ad to recharge.';
+    
     try {
       final errorData = jsonDecode(response.body) as Map<String, dynamic>;
       final details = errorData['details']?.toString() ?? '';
       if (details.contains('503') || details.contains('high demand')) {
-        return 'The AI service is currently experiencing high demand. '
-            'Please try again in a few moments.';
+        return 'The AI service is currently experiencing high demand. Please try again in a few moments.';
       }
       final error = errorData['error']?.toString();
       if (error != null) return 'Server error ${response.statusCode}\nError: $error';
       if (details.isNotEmpty) return 'Server error ${response.statusCode}\nDetails: $details';
-    } catch (_) {
-      // fall through to generic message
-    }
+    } catch (_) {}
     return 'Server error ${response.statusCode}\nBody: ${response.body}';
   }
 }

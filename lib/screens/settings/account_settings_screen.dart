@@ -191,7 +191,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       ),
                     ),
                     child: const Text(
-                      "Got it",
+                      "Close",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
@@ -512,16 +512,33 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         HapticFeedback.lightImpact();
                         _showLegalDocument(
                           "Privacy Policy",
-                          "Welcome to MindFlash. We respect your privacy and are committed to protecting your personal data.\n\n"
-                          "1. Information We Collect\n"
-                          "We collect information you provide directly to us when you create an account, such as your display name and email address (via Google Sign-In).\n\n"
-                          "2. How We Use Your Information\n"
-                          "We use the information we collect to provide, maintain, and improve our app, such as syncing your flashcards and managing your AI energy limits.\n\n"
-                          "3. Data Storage\n"
-                          "Your flashcard data is stored securely. We do not sell your personal data to third parties.\n\n"
-                          "4. Changes to This Policy\n"
-                          "We may update this Privacy Policy from time to time. We will notify you of any changes by updating the content in this section.\n\n"
-                          "(This is a placeholder policy. Replace with your actual Privacy Policy text.)",
+                          '''Last Updated: March 2026
+
+Welcome to MindFlash. Your privacy is critically important to us.
+
+1. Information We Collect
+• Account Data: When you sign in using Google, we collect your email address, display name, and profile picture.
+• App Usage Data: We store the flashcards, decks, and chat history you create to sync them across your devices.
+• Uploaded Documents: Documents you upload are temporarily processed by our servers to generate flashcards but are not permanently stored or used to train global AI models.
+• Device Data: We may collect anonymized device information and crash reports to improve app stability.
+
+2. Third-Party Services We Use
+We use trusted third-party services that may collect data in accordance with their own privacy policies:
+• Google Cloud & Firebase (for database storage and secure authentication)
+• Google AdMob (to display advertisements to free users)
+• Google Gemini API (to generate AI flashcards and power the AI Tutor)
+• RevenueCat (to process and manage MindFlash Pro subscriptions)
+
+3. How We Use Your Data
+We use your data solely to provide, maintain, and improve the MindFlash service. We do NOT sell your personal information to third parties.
+
+4. Your Rights & Data Deletion
+You own your study materials. You can permanently delete your account, flashcards, and all associated data at any time using the "Delete Account" button in this app's settings.
+
+5. Children's Privacy
+MindFlash is intended for students and learners. We do not knowingly collect personal information from children under the age of 13 without parental consent.
+
+If you have any questions about this Privacy Policy, please contact us via the Help & Support menu.''',
                         );
                       },
                       title: Text(
@@ -547,16 +564,36 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         HapticFeedback.lightImpact();
                         _showLegalDocument(
                           "Terms of Service",
-                          "Please read these terms carefully before using MindFlash.\n\n"
-                          "1. Acceptance of Terms\n"
-                          "By using the MindFlash app, you agree to these Terms of Service. If you disagree with any part of the terms, you may not use the service.\n\n"
-                          "2. AI Content Generation\n"
-                          "MindFlash utilizes artificial intelligence to generate study materials. We do not guarantee the 100% accuracy of generated flashcards. Please verify important information.\n\n"
-                          "3. User Responsibilities\n"
-                          "You are responsible for the content you upload to be processed by our AI. Do not upload sensitive, illegal, or copyrighted material you do not have rights to use.\n\n"
-                          "4. Account Deletion\n"
-                          "You can delete your account at any time from the settings. This action is irreversible and deletes all associated data.\n\n"
-                          "(This is a placeholder Terms of Service. Replace with your actual Terms of Service text.)",
+                          '''Last Updated: March 2026
+
+Please read these Terms of Service carefully before using MindFlash.
+
+1. Acceptance of Terms
+By accessing or using MindFlash, you agree to be bound by these Terms. If you disagree with any part of the terms, you do not have permission to access the service.
+
+2. AI Generation Disclaimer (Crucial)
+MindFlash uses artificial intelligence (Google Gemini) to generate study materials, answer questions, and summarize documents. 
+• AI can make mistakes (hallucinations). 
+• MindFlash does NOT guarantee the 100% accuracy, completeness, or reliability of generated content. 
+• You are solely responsible for verifying the facts before relying on them for exams, medical, legal, or professional purposes. MindFlash is not liable for academic outcomes.
+
+3. User Content & Conduct
+You are responsible for the documents and text you upload. You agree NOT to upload:
+• Copyrighted material you do not have the right to use.
+• Highly sensitive personal data (e.g., social security numbers, medical records).
+• Illegal, explicit, or harmful content.
+
+4. Subscriptions (MindFlash Pro)
+MindFlash offers auto-renewing subscriptions ("MindFlash Pro") that unlock premium features and remove ads. 
+• Payment will be charged to your Apple or Google account at confirmation of purchase.
+• Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.
+• You can manage or cancel your subscription directly in your device's App Store / Play Store settings.
+
+5. Termination
+We reserve the right to terminate or suspend your account immediately, without prior notice, if you breach these Terms (e.g., attempting to hack the AI energy system or API).
+
+6. Changes to Terms
+We reserve the right to modify these terms at any time. We will notify users of significant changes.''',
                         );
                       },
                       title: Text(

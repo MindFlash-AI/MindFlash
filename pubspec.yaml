@@ -48,6 +48,10 @@ dependencies:
   firebase_auth: ^6.3.0
   google_sign_in: ^7.2.0
   firebase_app_check: ^0.4.2
+  url_launcher: ^6.3.2
+  in_app_review: ^2.0.11
+  share_plus: ^12.0.1
+  cloud_firestore: ^6.2.0
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +81,7 @@ flutter:
   assets:
     - .env
     - assets/MindFlash_logo.png
+    - assets/mascot/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

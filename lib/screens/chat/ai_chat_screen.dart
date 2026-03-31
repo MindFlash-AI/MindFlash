@@ -1,17 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart'; // Required for kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:flutter_markdown/flutter_markdown.dart'; // Added Markdown support
-import 'package:shared_preferences/shared_preferences.dart'; // Added for saving history
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/deck_model.dart';
-import '../../models/card_model.dart'; // Added to supply deck context
+import '../../models/card_model.dart';
 import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/ad_helper.dart';
-import '../../services/card_storage_service.dart'; // Added for fetching cards
+import '../../services/card_storage_service.dart';
+import '../../widgets/animated_mascot.dart'; 
 
 class ChatMessage {
   final String text;
@@ -19,13 +21,11 @@ class ChatMessage {
 
   ChatMessage({required this.text, required this.isUser});
 
-  // Convert to JSON for storage
   Map<String, dynamic> toJson() => {
         'text': text,
         'isUser': isUser,
       };
 
-  // Create from JSON
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
         text: json['text'],
         isUser: json['isUser'],
@@ -48,12 +48,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
   
   final AIService _aiService = AIService();
   final EnergyService _energyService = EnergyService();
-  final CardStorageService _cardStorage = CardStorageService(); // Added Card Storage
+  final CardStorageService _cardStorage = CardStorageService();
 
   bool _isLoading = false;
   int _currentEnergy = 0;
 
-  // AdMob variables
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
   RewardedAd? _rewardedAd;
@@ -76,40 +75,52 @@ class _AIChatScreenState extends State<AIChatScreen> {
     }
   }
 
-  // --- Chat History Logic ---
-
+  // --- NEW: Syncs Chat History from Firestore ---
   Future<void> _loadChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? historyJson = prefs.getString('chat_history_${widget.deck.id}');
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-    if (historyJson != null) {
-      final List<dynamic> decoded = jsonDecode(historyJson);
-      if (mounted) {
-        setState(() {
-          _messages.addAll(decoded.map((e) => ChatMessage.fromJson(e)).toList());
-        });
-        _scrollToBottom();
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chat')
+          .doc(widget.deck.id)
+          .get();
+
+      if (doc.exists && doc.data() != null && doc.data()!['messages'] != null) {
+        final List<dynamic> decoded = doc.data()!['messages'];
+        if (mounted) {
+          setState(() {
+            _messages.clear();
+            _messages.addAll(
+              decoded.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>)).toList()
+            );
+          });
+          _scrollToBottom();
+        }
       }
-    } else {
-      // Initial greeting from AI if no history exists
-      if (mounted) {
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              text: "Hi! I'm your AI Tutor. I'm ready to help you study **${widget.deck.name}**.\n\nWhat would you like to know or review?",
-              isUser: false,
-            ),
-          );
-        });
-        _saveChatHistory();
-      }
+    } catch (e) {
+      print("Error loading chat history from Firestore: $e");
     }
   }
 
+  // --- NEW: Saves Chat History to Firestore ---
   Future<void> _saveChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<Map<String, dynamic>> jsonList = _messages.map((m) => m.toJson()).toList();
-    await prefs.setString('chat_history_${widget.deck.id}', jsonEncode(jsonList));
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final List<Map<String, dynamic>> jsonList = _messages.map((m) => m.toJson()).toList();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chat')
+          .doc(widget.deck.id)
+          .set({'messages': jsonList});
+    } catch (e) {
+      print("Error saving chat history to Firestore: $e");
+    }
   }
 
   Future<void> _clearChat() async {
@@ -142,20 +153,20 @@ class _AIChatScreenState extends State<AIChatScreen> {
     );
 
     if (confirm == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('chat_history_${widget.deck.id}');
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('chat')
+            .doc(widget.deck.id)
+            .delete();
+      }
       
       if (mounted) {
         setState(() {
           _messages.clear();
-          _messages.add(
-            ChatMessage(
-              text: "Hi! I'm your AI Tutor. I'm ready to help you study **${widget.deck.name}**.\n\nWhat would you like to know or review?",
-              isUser: false,
-            ),
-          );
         });
-        _saveChatHistory();
       }
     }
   }
@@ -168,8 +179,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
     _rewardedAd?.dispose();
     super.dispose();
   }
-
-  // --- Ads Logic ---
 
   void _loadBannerAd() {
     if (kIsWeb) return;
@@ -184,7 +193,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
           });
         },
         onAdFailedToLoad: (ad, err) {
-          debugPrint('Failed to load a banner ad: ${err.message}');
           ad.dispose();
         },
       ),
@@ -201,7 +209,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
-              _loadRewardedAd(); // Load the next one
+              _loadRewardedAd();
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
               ad.dispose();
@@ -210,9 +218,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
           );
           _rewardedAd = ad;
         },
-        onAdFailedToLoad: (err) {
-          debugPrint('Failed to load a rewarded ad: ${err.message}');
-        },
+        onAdFailedToLoad: (err) {},
       ),
     );
   }
@@ -226,27 +232,35 @@ class _AIChatScreenState extends State<AIChatScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+        title: Column(
           children: [
-            Icon(
-              isOutOfEnergy 
-                  ? Icons.bolt 
-                  : (isFullEnergy ? Icons.battery_charging_full_rounded : Icons.battery_4_bar_rounded),
-              color: isOutOfEnergy ? Colors.amber : (isFullEnergy ? const Color(0xFF00C853) : const Color(0xFF8B4EFF)),
-              size: 28,
+            AnimatedMascot(
+              state: isOutOfEnergy ? MascotState.sad : MascotState.happy,
+              size: 100,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                isOutOfEnergy 
-                    ? "Need a boost?" 
-                    : (isFullEnergy ? "Fully Charged!" : "Looking Good! ⚡"), 
-                style: TextStyle(
-                  fontWeight: FontWeight.bold, 
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                  fontSize: 18,
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isOutOfEnergy 
+                      ? Icons.bolt 
+                      : (isFullEnergy ? Icons.battery_charging_full_rounded : Icons.battery_4_bar_rounded),
+                  color: isOutOfEnergy ? Colors.amber : (isFullEnergy ? const Color(0xFF00C853) : const Color(0xFF8B4EFF)),
+                  size: 24,
                 ),
-              ),
+                const SizedBox(width: 8),
+                Text(
+                  isOutOfEnergy 
+                      ? "Out of Energy" 
+                      : (isFullEnergy ? "Fully Charged!" : "Looking Good! ⚡"), 
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -254,8 +268,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
           isOutOfEnergy
               ? "Your AI Tutor needs a quick breather! Your energy automatically resets every day at midnight.\n\nWant to skip the wait? Watch a short ad to fully recharge right now and keep studying!"
               : "You currently have $_currentEnergy energy left! You're all set to keep chatting with your AI Tutor.\n\nRemember, your energy automatically refills to full every day at midnight." + (!isFullEnergy ? "\n\nWant to top up to full right now?" : ""),
+          textAlign: TextAlign.center,
           style: TextStyle(height: 1.4, color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
+        actionsAlignment: MainAxisAlignment.center,
         actions: [
           if (!isFullEnergy)
             TextButton(
@@ -271,6 +287,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B4EFF),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               child: const Text("Awesome!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
@@ -285,15 +302,13 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     },
                   );
                 } else {
-                  // If ad isn't loaded, grant it anyway as a fallback so user isn't stuck
                   _grantEnergyReward();
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B4EFF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               child: const Text("Watch Ad", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
@@ -318,8 +333,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
     }
   }
 
-  // --- Chat Logic ---
-
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
@@ -335,23 +348,20 @@ class _AIChatScreenState extends State<AIChatScreen> {
       _isLoading = true;
     });
 
-    _saveChatHistory(); // Save after user message
+    _saveChatHistory();
     _messageController.clear();
     _scrollToBottom();
     HapticFeedback.lightImpact();
 
     try {
-      // 1. Fetch strictly the cards for the current deck
       final List<Flashcard> cards = await _cardStorage.getCardsForDeck(widget.deck.id);
 
-      // 2. Route the request through the strictly sandboxed Tutor method
       final response = await _aiService.processTutorChat(
         text: text,
         deck: widget.deck,
         cards: cards,
       );
       
-      // Deduct 1 energy only after a successful AI response
       await _energyService.deductEnergy();
       
       setState(() {
@@ -359,7 +369,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         _messages.add(ChatMessage(text: response.message, isUser: false));
         _isLoading = false;
       });
-      _saveChatHistory(); // Save after AI response
+      _saveChatHistory();
       _scrollToBottom();
       HapticFeedback.mediumImpact();
     } catch (e) {
@@ -372,7 +382,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         );
         _isLoading = false;
       });
-      _saveChatHistory(); // Save after error message
+      _saveChatHistory();
       _scrollToBottom();
     }
   }
@@ -389,8 +399,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
-  // --- UI Building ---
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -400,10 +408,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
       appBar: AppBar(
         title: Column(
           children: [
-            const Text(
-              "AI Tutor",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
+            const Text("AI Tutor", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             Text(
               widget.deck.name,
               style: TextStyle(
@@ -467,54 +472,89 @@ class _AIChatScreenState extends State<AIChatScreen> {
       ),
       body: Column(
         children: [
-          // Banner Ad at the top
-          if (_isBannerAdLoaded && _bannerAd != null)
-            Container(
+          if (!kIsWeb)
+            SizedBox(
+              height: 50,
               width: double.infinity,
-              height: _bannerAd!.size.height.toDouble(),
-              color: Colors.transparent,
-              child: AdWidget(ad: _bannerAd!),
+              child: (_isBannerAdLoaded && _bannerAd != null)
+                  ? AdWidget(ad: _bannerAd!)
+                  : const SizedBox.shrink(),
             ),
             
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                return _buildMessageBubble(_messages[index]);
-              },
-            ),
+            child: _messages.isEmpty 
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const AnimatedMascot(state: MascotState.happy, size: 150),
+                      const SizedBox(height: 24),
+                      Text(
+                        "Ready to study?",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Ask me anything about ${widget.deck.name}!",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    return _buildMessageBubble(_messages[index]);
+                  },
+                ),
           ),
 
-          // Loading Indicator
           if (_isLoading)
             Padding(
-              padding: const EdgeInsets.only(left: 24, bottom: 16),
+              padding: const EdgeInsets.only(left: 16, bottom: 16),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  const AnimatedMascot(state: MascotState.thinking, size: 46),
+                  const SizedBox(width: 12),
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B4EFF).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFF8B4EFF),
+                      color: Theme.of(context).cardColor,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(4), 
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "AI Tutor is typing...",
-                    style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.grey.shade500,
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B4EFF)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Thinking...",
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.grey.shade600,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -555,9 +595,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
                       hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400),
                       filled: true,
                       fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -595,23 +633,13 @@ class _AIChatScreenState extends State<AIChatScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
-        mainAxisAlignment:
-            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!message.isUser) ...[
-            Container(
-              margin: const EdgeInsets.only(right: 8.0, bottom: 4.0),
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B4EFF).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: Color(0xFF8B4EFF),
-                size: 16,
-              ),
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0), 
+              child: AnimatedMascot(state: MascotState.happy, size: 38),
             ),
           ],
           Flexible(
@@ -629,7 +657,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(message.isUser ? 20 : 4),
+                  bottomLeft: Radius.circular(message.isUser ? 20 : 4), 
                   bottomRight: Radius.circular(message.isUser ? 4 : 20),
                 ),
                 boxShadow: message.isUser
@@ -654,40 +682,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     )
                   : MarkdownBody(
                       data: message.text,
-                      selectable: true, // Allows user to copy the AI's response!
+                      selectable: true,
                       styleSheet: MarkdownStyleSheet(
-                        p: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 16,
-                          height: 1.5,
-                        ),
-                        strong: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
-                        em: TextStyle(
-                          fontStyle: FontStyle.italic,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                        ),
-                        listBullet: const TextStyle(
-                          color: Color(0xFF8B4EFF),
-                          fontSize: 16,
-                        ),
-                        h1: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        h2: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        h3: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
+                        p: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 16, height: 1.5),
+                        strong: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black),
+                        em: TextStyle(fontStyle: FontStyle.italic, color: isDark ? Colors.white70 : Colors.black87),
+                        listBullet: const TextStyle(color: Color(0xFF8B4EFF), fontSize: 16),
+                        h1: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                        h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                        h3: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                         code: TextStyle(
                           backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                           color: const Color(0xFFE841A1),
@@ -700,21 +703,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
                           border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
                         ),
                         blockquoteDecoration: BoxDecoration(
-                          border: const Border(
-                            left: BorderSide(
-                              color: Color(0xFF8B4EFF),
-                              width: 4,
-                            ),
-                          ),
+                          border: const Border(left: BorderSide(color: Color(0xFF8B4EFF), width: 4)),
                           color: const Color(0xFF8B4EFF).withOpacity(0.05),
                         ),
-                        blockquotePadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                        blockquotePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       ),
                     ),
             ),
           ),
-          if (message.isUser) const SizedBox(width: 24), // Spacer to balance bubble
+          if (message.isUser) const SizedBox(width: 24),
         ],
       ),
     );
