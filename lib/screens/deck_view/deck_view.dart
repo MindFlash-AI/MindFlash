@@ -13,6 +13,7 @@ import '../review/review_screen.dart';
 import '../quiz/quiz_screen.dart';
 import '../chat/ai_chat_screen.dart';
 import '../../services/quiz_creator.dart';
+import 'deck_settings_screen.dart'; // NEW: Deck Settings Import
 
 class DeckView extends StatefulWidget {
   final Deck deck;
@@ -31,6 +32,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   late AnimationController _actionsExpandController;
   late Animation<double> _expandAnimation;
 
+  late Deck _currentDeck; // NEW: Tracks local deck state changes
   List<Flashcard> _cards = [];
   bool _isLoading = true;
 
@@ -43,6 +45,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _currentDeck = widget.deck; // Initialize with passed deck
 
     _actionsExpandController = AnimationController(
       vsync: this,
@@ -70,19 +73,44 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   }
 
   Future<void> _loadCards() async {
-    final cards = await _cardStorageService.getCardsForDeck(widget.deck.id);
+    final cards = await _cardStorageService.getCardsForDeck(_currentDeck.id);
     setState(() {
       _cards = cards;
       _isLoading = false;
     });
   }
+  
+  // NEW: Method to reload deck data after returning from Settings
+  Future<void> _reloadDeckInfo() async {
+    final decks = await _deckStorageService.getDecks();
+    final updatedDeck = decks.firstWhere((d) => d.id == _currentDeck.id, orElse: () => _currentDeck);
+    setState(() {
+      _currentDeck = updatedDeck;
+    });
+    _loadCards();
+  }
+
+  void _openDeckSettings() async {
+    HapticFeedback.selectionClick();
+    final didChange = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DeckSettingsScreen(deck: _currentDeck),
+      ),
+    );
+
+    // If the user made changes in the settings (title, subject, resets, deletion), reload!
+    if (didChange == true) {
+      _reloadDeckInfo();
+    }
+  }
 
   void _onCardCreated(Flashcard card) async {
     await _cardStorageService.addCard(card);
     setState(() {
-      widget.deck.cardCount += 1;
+      _currentDeck.cardCount += 1;
     });
-    await _deckStorageService.updateDeck(widget.deck);
+    await _deckStorageService.updateDeck(_currentDeck);
     _loadCards();
   }
 
@@ -133,9 +161,9 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     if (confirm == true) {
       await _cardStorageService.deleteCard(cardId);
       setState(() {
-        if (widget.deck.cardCount > 0) widget.deck.cardCount -= 1;
+        if (_currentDeck.cardCount > 0) _currentDeck.cardCount -= 1;
       });
-      await _deckStorageService.updateDeck(widget.deck);
+      await _deckStorageService.updateDeck(_currentDeck);
       _loadCards();
     }
   }
@@ -146,7 +174,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            ReviewScreen(deck: widget.deck, cards: _cards, isShuffleOn: false),
+            ReviewScreen(deck: _currentDeck, cards: _cards, isShuffleOn: false),
       ),
     );
     _loadCards();
@@ -159,7 +187,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (context) => ReviewScreen(
-          deck: widget.deck,
+          deck: _currentDeck,
           cards: flaggedCards,
           isShuffleOn: false,
         ),
@@ -176,7 +204,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            QuizScreen(quiz: quizQuestions, deckTitle: widget.deck.name),
+            QuizScreen(quiz: quizQuestions, deckTitle: _currentDeck.name),
       ),
     );
   }
@@ -186,7 +214,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AIChatScreen(deck: widget.deck),
+        builder: (context) => AIChatScreen(deck: _currentDeck),
       ),
     );
   }
@@ -366,8 +394,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    String firstLetter = widget.deck.name.isNotEmpty
-        ? widget.deck.name[0].toUpperCase()
+    String firstLetter = _currentDeck.name.isNotEmpty
+        ? _currentDeck.name[0].toUpperCase()
         : "?";
 
     final bool canReview = _cards.isNotEmpty;
@@ -449,7 +477,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.deck.name,
+                          _currentDeck.name,
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
@@ -461,7 +489,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          widget.deck.subject,
+                          _currentDeck.subject,
                           style: TextStyle(
                             color: isDark ? Colors.white70 : Colors.grey.shade600,
                             fontSize: 14,
@@ -481,7 +509,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            "${widget.deck.cardCount} card${widget.deck.cardCount == 1 ? '' : 's'}",
+                            "${_currentDeck.cardCount} card${_currentDeck.cardCount == 1 ? '' : 's'}",
                             style: TextStyle(
                               color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF),
                               fontSize: 11,
@@ -491,6 +519,16 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
+                  ),
+                  // --- NEW: Settings Button directly inside the deck details row ---
+                  IconButton(
+                    onPressed: _openDeckSettings,
+                    icon: Icon(
+                      Icons.settings_rounded, 
+                      color: isDark ? Colors.white38 : Colors.grey.shade400,
+                      size: 26,
+                    ),
+                    tooltip: 'Deck Settings',
                   ),
                 ],
               ),
@@ -565,7 +603,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (context) => CreateCardDialog(
-                deckId: widget.deck.id,
+                deckId: _currentDeck.id,
                 onCardCreated: _onCardCreated,
               ),
             );

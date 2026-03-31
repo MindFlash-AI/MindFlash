@@ -10,54 +10,50 @@ class SessionStatsBar extends StatelessWidget {
     required this.incorrectCount,
   });
 
-  Widget _buildStat(IconData icon, Color color, String text, bool isDark) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: TextStyle(
-            color: isDark ? color.withOpacity(0.9) : color.withOpacity(0.8),
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
-        ),
-      ],
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStatItem(context, "Reviewing", incorrectCount, const Color(0xFFFF5252)),
+          _buildStatItem(context, "Mastered", correctCount, const Color(0xFF69F0AE)),
+        ],
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildStatItem(BuildContext context, String label, int count, Color color) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildStat(
-            Icons.check_circle_rounded,
-            isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
-            '$correctCount Got It',
-            isDark,
+    return Row(
+      children: [
+        Container(
+          width: 10, 
+          height: 10,
+          decoration: BoxDecoration(
+            color: color, 
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.4),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ]
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Container(
-              height: 12,
-              width: 2,
-              color: isDark ? Colors.white24 : Colors.grey.shade300,
-            ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          "$count $label",
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : Colors.black87,
           ),
-          _buildStat(
-            Icons.cancel_rounded,
-            isDark ? Colors.redAccent.shade200 : Colors.red.shade500,
-            '$incorrectCount Review',
-            isDark,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

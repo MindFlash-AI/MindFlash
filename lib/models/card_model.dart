@@ -5,17 +5,32 @@ class Flashcard {
   final String deckId;
   final String question;
   final String answer;
-  bool isFlagged;
+  
   bool isMastered;
+  bool isFlagged;
+
+  // SRS Fields
+  int repetitions;
+  double easeFactor;
+  int interval; // In days
+  DateTime nextReviewDate;
+  
+  // NEW: Tracks the exact button the user pressed last time (0, 3, 4, 5)
+  int? lastScore; 
 
   Flashcard({
     required this.id,
     required this.deckId,
     required this.question,
     required this.answer,
-    this.isFlagged = false,
     this.isMastered = false,
-  });
+    this.isFlagged = false,
+    this.repetitions = 0,
+    this.easeFactor = 2.5,
+    this.interval = 0,
+    DateTime? nextReviewDate,
+    this.lastScore,
+  }) : nextReviewDate = nextReviewDate ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
     return {
@@ -23,8 +38,13 @@ class Flashcard {
       'deckId': deckId,
       'question': question,
       'answer': answer,
-      'isFlagged': isFlagged,
       'isMastered': isMastered,
+      'isFlagged': isFlagged,
+      'repetitions': repetitions,
+      'easeFactor': easeFactor,
+      'interval': interval,
+      'nextReviewDate': nextReviewDate.toIso8601String(), 
+      'lastScore': lastScore, // Save the new field
     };
   }
 
@@ -34,13 +54,45 @@ class Flashcard {
       deckId: map['deckId'] ?? '',
       question: map['question'] ?? '',
       answer: map['answer'] ?? '',
-      isFlagged: map['isFlagged'] ?? false,
       isMastered: map['isMastered'] ?? false,
+      isFlagged: map['isFlagged'] ?? false,
+      repetitions: map['repetitions']?.toInt() ?? 0,
+      easeFactor: (map['easeFactor'] ?? 2.5).toDouble(),
+      interval: map['interval']?.toInt() ?? 0,
+      nextReviewDate: map['nextReviewDate'] != null 
+          ? DateTime.parse(map['nextReviewDate']) 
+          : DateTime.now(),
+      lastScore: map['lastScore']?.toInt(), // Load the new field
     );
   }
 
   String toJson() => json.encode(toMap());
 
-  factory Flashcard.fromJson(String source) =>
-      Flashcard.fromMap(json.decode(source));
+  factory Flashcard.fromJson(String source) => Flashcard.fromMap(json.decode(source));
+
+  Flashcard copyWith({
+    String? question,
+    String? answer,
+    bool? isMastered,
+    bool? isFlagged,
+    int? repetitions,
+    double? easeFactor,
+    int? interval,
+    DateTime? nextReviewDate,
+    int? lastScore,
+  }) {
+    return Flashcard(
+      id: id,
+      deckId: deckId,
+      question: question ?? this.question,
+      answer: answer ?? this.answer,
+      isMastered: isMastered ?? this.isMastered,
+      isFlagged: isFlagged ?? this.isFlagged,
+      repetitions: repetitions ?? this.repetitions,
+      easeFactor: easeFactor ?? this.easeFactor,
+      interval: interval ?? this.interval,
+      nextReviewDate: nextReviewDate ?? this.nextReviewDate,
+      lastScore: lastScore ?? this.lastScore,
+    );
+  }
 }
