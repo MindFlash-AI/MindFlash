@@ -5,6 +5,9 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/deck_model.dart';
 import '../services/ad_helper.dart';
 import '../services/energy_service.dart';
+import '../services/pro_service.dart'; // Added to check Pro status
+import '../screens/settings/manage_subscription_screen.dart'; // For the Pro Upgrade routing
+import 'pro_paywall_sheet.dart'; // The Universal Paywall Widget
 
 class UpdateDeckAIDialog extends StatefulWidget {
   final List<Deck> decks;
@@ -160,7 +163,19 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
         final successMessage = await widget.onGenerate(_selectedDeck!, topic);
         if (mounted) {
           _closeLoadingOverlay(); 
-          Navigator.of(context).pop(successMessage); 
+          
+          // 🌟 POST-SUCCESS PAYWALL TRIGGER
+          if (!ProService().isPro) {
+            await ProPaywallSheet.show(
+              context,
+              title: "Deck Updated! 🎉",
+              subtitle: "Want to do this twice as much? Upgrade to Pro for double the daily AI limits and zero ads.",
+            );
+          }
+
+          if (mounted) {
+            Navigator.of(context).pop(successMessage); 
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -170,7 +185,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
           });
 
           final errorStr = e.toString();
-          if (errorStr.toLowerCase().contains('energy')) {
+          if (errorStr.toLowerCase().contains('energy') || errorStr.contains('INSUFFICIENT_ENERGY')) {
             _showEnergyAdDialog();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -185,42 +200,86 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
     }
   }
 
+  // 🛡️ BUG FIX: Changed AlertDialog to a Dialog to fix full-width buttons layout
   void _showEnergyAdDialog() {
     showDialog(
       context: context,
       barrierDismissible: false, 
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => Dialog(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.bolt_rounded, color: Colors.orange, size: 28),
-            const SizedBox(width: 8),
-            Text("Out of Energy", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-          ],
-        ),
-        content: Text(
-          "Updating a deck costs 3 energy. Watch a quick ad to refill your energy and try again!",
-          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.bolt_rounded, color: Colors.orange, size: 32),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Out of Energy", 
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Updating a deck costs 3 energy. Watch a quick ad to refill your energy, or upgrade to MindFlash Pro for double the daily limit and no ads!",
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showRewardedAd();
+                },
+                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                label: const Text("Watch Ad to Refill", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE940A3),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ManageSubscriptionScreen()),
+                  );
+                },
+                icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF8B4EFF)),
+                label: const Text("Upgrade to Pro", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold, fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontSize: 15)),
+              ),
+            ],
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showRewardedAd();
-            },
-            icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-            label: const Text("Watch Ad", style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE940A3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -13,6 +13,7 @@ import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/ad_helper.dart';
 import '../../services/card_storage_service.dart';
+import '../../services/pro_service.dart'; // Added Pro Check
 import '../../widgets/animated_mascot.dart'; 
 
 class ChatMessage {
@@ -51,7 +52,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   final CardStorageService _cardStorage = CardStorageService();
 
   bool _isLoading = false;
-  bool _isFetchingHistory = true; // Added loading state for initial fetch
+  bool _isFetchingHistory = true;
   int _currentEnergy = 0;
 
   BannerAd? _bannerAd;
@@ -108,7 +109,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     } finally {
       if (mounted) {
         setState(() {
-          _isFetchingHistory = false; // Stop loading spinner regardless of success/fail
+          _isFetchingHistory = false;
         });
       }
     }
@@ -189,7 +190,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   void _loadBannerAd() {
-    if (kIsWeb) return;
+    // 🛡️ MINDFLASH PRO: Hide Banner Ads completely!
+    if (kIsWeb || ProService().isPro) return;
+    
     _bannerAd = BannerAd(
       adUnitId: AdHelper.bannerAdUnitId,
       request: const AdRequest(),
@@ -226,7 +229,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   void _showEnergyDialog() {
     final bool isOutOfEnergy = _currentEnergy <= 0;
-    final bool isFullEnergy = _currentEnergy >= EnergyService.maxEnergy;
+    final bool isFullEnergy = _currentEnergy >= _energyService.maxEnergy;
 
     showDialog(
       context: context,
@@ -533,7 +536,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
       ),
       body: Column(
         children: [
-          if (!kIsWeb)
+          // 🛡️ MINDFLASH PRO: Only display if not pro!
+          if (!kIsWeb && !ProService().isPro)
             SizedBox(
               height: 50,
               width: double.infinity,
@@ -543,7 +547,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
             ),
             
           Expanded(
-            // Show loading indicator if fetching, otherwise normal logic
             child: _isFetchingHistory
                 ? const Center(
                     child: CircularProgressIndicator(

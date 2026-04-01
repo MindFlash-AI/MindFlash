@@ -14,6 +14,7 @@ import '../../widgets/update_deck_ai_dialog.dart';
 
 import '../deck_view/deck_view.dart';
 import 'widgets/dashboard_header.dart';
+import '../../widgets/web_pro_gate.dart';
 
 enum SortOption { nameAsc, nameDesc, countDesc, countAsc }
 
@@ -392,68 +393,70 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent)
-          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Column(
-          children: [
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const DashboardHeader(),
-                    const SizedBox(height: 25),
-                    _buildStatsRow(isDark),
-                  ],
+    return WebProGate(
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: isDark 
+            ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent)
+            : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+        child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: Column(
+            children: [
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const DashboardHeader(),
+                      const SizedBox(height: 25),
+                      _buildStatsRow(isDark),
+                    ],
+                  ),
                 ),
               ),
-            ),
-
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: isDark ? Theme.of(context).scaffoldBackgroundColor : null,
-                  gradient: isDark 
-                      ? null 
-                      : const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF2C1A8A), Color(0xFF1E114D)],
-                        ),
-                ),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: _isLoading
-                          ? Center(
-                              child: CircularProgressIndicator(
-                                color: isDark ? const Color(0xFF8B4EFF) : Colors.white,
-                              ),
-                            )
-                          : _decks.isEmpty
-                          ? _buildEmptyState(isDark)
-                          : _buildDeckList(isDark),
-                    ),
-                    SafeArea(
-                      top: false,
-                      bottom: true,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-                        child: _buildActionButtons(context, isDark),
+      
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? Theme.of(context).scaffoldBackgroundColor : null,
+                    gradient: isDark 
+                        ? null 
+                        : const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF2C1A8A), Color(0xFF1E114D)],
+                          ),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: _isLoading
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  color: isDark ? const Color(0xFF8B4EFF) : Colors.white,
+                                ),
+                              )
+                            : _decks.isEmpty
+                            ? _buildEmptyState(isDark)
+                            : _buildDeckList(isDark),
                       ),
-                    ),
-                  ],
+                      SafeArea(
+                        top: false,
+                        bottom: true,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                          child: _buildActionButtons(context, isDark),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

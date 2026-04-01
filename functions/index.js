@@ -4,7 +4,6 @@ const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 
@@ -12,7 +11,6 @@ const app = express();
 app.use(cors({ origin: true })); 
 app.use(express.json({ limit: '2mb' })); 
 
-// 1. App Check Middleware
 const requireAppCheck = async (req, res, next) => {
     const appCheckToken = req.header('X-Firebase-AppCheck');
     if (!appCheckToken) return res.status(401).json({ error: 'Unauthorized', details: 'App Check token missing.' });
@@ -24,7 +22,6 @@ const requireAppCheck = async (req, res, next) => {
     }
 };
 
-// 2. Auth Middleware
 const requireAuth = async (req, res, next) => {
     const authHeader = req.header('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -39,21 +36,31 @@ const requireAuth = async (req, res, next) => {
     }
 };
 
-// --- ROUTE: SECURE ENERGY REFILL ---
+// --- SECURE ENERGY REFILL ---
 app.post('/refill-energy', requireAppCheck, requireAuth, async (req, res) => {
     try {
         const uid = req.user.uid;
         const energyRef = db.collection('users').doc(uid).collection('stats').doc('energy');
+        const userRef = db.collection('users').doc(uid); // The main user doc where RevenueCat writes
 
         await db.runTransaction(async (transaction) => {
+            // 🛡️ Pro Validation: Check RevenueCat's 'entitlements' field
+            const userDoc = await transaction.get(userRef);
+            const userData = userDoc.exists ? userDoc.data() : {};
+            const entitlements = userData.entitlements || {};
+            
+            // Check if our specific entitlement ID exists in the map
+            const isPro = !!entitlements['MindFlash: AI Flashcards Pro'];
+            const MAX_ENERGY = isPro ? 30 : 15;
+
             const doc = await transaction.get(energyRef);
             if (doc.exists) {
                 const currentEnergy = doc.data().energy || 0;
-                if (currentEnergy >= 15) {
+                if (currentEnergy >= MAX_ENERGY) {
                     throw new Error("ALREADY_HAS_MAX_ENERGY");
                 }
             }
-            transaction.set(energyRef, { energy: 15 }, { merge: true });
+            transaction.set(energyRef, { energy: MAX_ENERGY }, { merge: true });
         });
 
         res.status(200).json({ success: true, message: 'Energy refilled to maximum.' });
@@ -66,23 +73,34 @@ app.post('/refill-energy', requireAppCheck, requireAuth, async (req, res) => {
     }
 });
 
-// --- ROUTE: GENERATE DECK & AI CHAT ---
+// --- GENERATE DECK & CHAT ---
 app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
   let energyDeducted = false;
+  let isPro = false; 
+  
   const uid = req.user.uid;
   const energyRef = db.collection('users').doc(uid).collection('stats').doc('energy');
+  const userRef = db.collection('users').doc(uid); // The main user doc where RevenueCat writes
 
   const isChat = req.body.isChat === true;
   const energyCost = isChat ? 1 : 3;
 
   try {
-    // 1. Charge the User securely
     await db.runTransaction(async (transaction) => {
+        // 🛡️ Pro Validation: Check RevenueCat's 'entitlements' field
+        const userDoc = await transaction.get(userRef);
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const entitlements = userData.entitlements || {};
+        
+        // Check if our specific entitlement ID exists in the map
+        isPro = !!entitlements['MindFlash: AI Flashcards Pro'];
+        const MAX_ENERGY = isPro ? 30 : 15;
+
         const energyDoc = await transaction.get(energyRef);
         
         if (!energyDoc.exists) {
             transaction.set(energyRef, {
-                energy: 15 - energyCost, 
+                energy: MAX_ENERGY - energyCost,
                 lastResetDate: admin.firestore.FieldValue.serverTimestamp(),
                 serverPing: admin.firestore.FieldValue.serverTimestamp()
             });
@@ -91,7 +109,7 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
             let currentEnergy = energyDoc.data().energy || 0;
             const lastResetStamp = energyDoc.data().lastResetDate;
 
-            // --- SERVER-SIDE DAILY RESET ---
+            // Server-Side Reset
             if (lastResetStamp) {
                 const lastReset = lastResetStamp.toDate();
                 const now = new Date();
@@ -100,8 +118,7 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
                     lastReset.getUTCMonth() !== now.getUTCMonth() ||
                     lastReset.getUTCDate() !== now.getUTCDate()) {
                     
-                    // It's a new day! Reset energy to 15 before deducting
-                    currentEnergy = 15;
+                    currentEnergy = MAX_ENERGY;
                     transaction.update(energyRef, {
                         lastResetDate: admin.firestore.FieldValue.serverTimestamp()
                     });
@@ -117,9 +134,7 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
 
     if (!process.env.GEMINI_API_KEY) throw new Error("MISSING_API_KEY");
 
-    // 2. Call Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
     const MAX_PROMPT_CHARS = 5000;
     const MAX_FILE_CHARS = 100000; 
 
@@ -159,18 +174,18 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
   } catch (error) {
     if (energyDeducted && error.message !== "INSUFFICIENT_ENERGY") {
         try {
-            await energyRef.update({ 
-                energy: admin.firestore.FieldValue.increment(energyCost) 
-            });
-            console.log(`Refunded ${energyCost} energy to user ${uid} due to API failure.`);
+            await energyRef.update({ energy: admin.firestore.FieldValue.increment(energyCost) });
+            console.log(`Refunded ${energyCost} energy.`);
         } catch (refundError) {
             console.error("CRITICAL: Failed to refund energy to user!", refundError);
         }
     }
 
     if (error.message === "INSUFFICIENT_ENERGY") {
-        // 🛡️ BUG FIX: Dynamically inject the cost so the user isn't confused why Chatting failed with a "Deck costs 3 energy" message.
-        return res.status(403).json({ error: `Out of energy. This action costs ${energyCost} energy. Please watch an ad to recharge.` });
+        const errorMessage = isPro 
+            ? `Out of energy. This action costs ${energyCost} energy. Your daily Pro energy limit has been reached and will reset soon!` 
+            : `Out of energy. This action costs ${energyCost} energy. Please watch an ad to recharge or upgrade to Pro!`;
+        return res.status(403).json({ error: errorMessage });
     }
     if (error.type === 'entity.too.large') {
         return res.status(413).json({ error: "Payload too large. Please upload a smaller document." });

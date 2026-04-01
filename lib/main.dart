@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 import 'screens/loading_screen/loading_screen.dart';
 import 'constants.dart';
 import 'services/notification_service.dart';
+import 'services/pro_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,14 +18,21 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await ProService().init();
 
   // Initialize App Check
-  await FirebaseAppCheck.instance.activate(
-    // Use DebugProvider in debug mode, else use Play Integrity
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-    // Use DebugProvider in debug mode, else use DeviceCheck
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
-  );
+  if (!kIsWeb) {
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+    );
+  } else {
+    // NOTE: To enforce App Check on the Web, you will need to set up ReCAPTCHA v3
+    // in your Firebase Console and add it here later like this:
+    // await FirebaseAppCheck.instance.activate(
+    //   webProvider: ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
+    // );
+  }
 
   await dotenv.load(fileName: ".env");
   

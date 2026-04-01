@@ -6,10 +6,12 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
-import '../../services/notification_service.dart'; // Import added
+import '../../services/notification_service.dart';
+import '../../services/pro_service.dart';
 import '../login/login_screen.dart';
 import 'account_settings_screen.dart';
 import '../../widgets/how_it_works_dialog.dart';
+import '../../widgets/pro_paywall_sheet.dart'; // Added the import for your fixed paywall
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -57,7 +59,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_hapticsEnabled) HapticFeedback.selectionClick();
   }
 
-  // Logic to toggle notifications based on the switch
   Future<void> _toggleReminders(bool value) async {
     setState(() {
       _remindersEnabled = value;
@@ -129,7 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _buildFAQItem(
                         context,
                         "How does the AI Energy work?",
-                        "You get a maximum of 15 energy credits. Generating a deck costs 3 energy, while chatting costs 1. Energy resets daily!",
+                        "You get a maximum of 15 energy credits (30 for Pro users). Generating a deck costs 3 energy, while chatting costs 1. Energy resets daily!",
                       ),
                       const SizedBox(height: 20),
                       _buildFAQItem(
@@ -272,21 +273,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: Theme.of(context).textTheme.bodyLarge?.color,
-        ),
-        title: Text(
-          "Settings",
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        iconTheme: IconThemeData(color: Theme.of(context).textTheme.bodyLarge?.color),
+        title: Text("Settings", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         physics: const BouncingScrollPhysics(),
         children: [
+          
+          // 🛡️ REVENUECAT PRO BANNER
+          AnimatedBuilder(
+            animation: ProService(),
+            builder: (context, _) {
+              final isPro = ProService().isPro;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 30),
+                decoration: BoxDecoration(
+                  gradient: isPro 
+                    ? const LinearGradient(colors: [Color(0xFFE841A1), Color(0xFF8B4EFF)])
+                    : null,
+                  color: isPro ? null : Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: !isPro && isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    // Call your fixed sheet instead of duplicating code!
+                    onTap: isPro ? null : () => ProPaywallSheet.show(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isPro ? Colors.white.withOpacity(0.2) : const Color(0xFFE841A1).withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.workspace_premium_rounded, size: 28, color: isPro ? Colors.white : const Color(0xFFE841A1)),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isPro ? "MindFlash Pro Active" : "Upgrade to Pro",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isPro ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  isPro ? "Thanks for your support! 💖" : "Double energy & no ads",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isPro ? Colors.white70 : (isDark ? Colors.white54 : Colors.grey.shade600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isPro) Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white54 : Colors.grey.shade400),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+          ),
+
           if (user != null) ...[
             Container(
               decoration: BoxDecoration(
@@ -523,7 +586,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   value: _remindersEnabled,
                   activeColor: const Color(0xFF8B4EFF),
-                  onChanged: (value) => _toggleReminders(value), // Updated logic
+                  onChanged: (value) => _toggleReminders(value),
                 ),
                 Divider(height: 1, indent: 60, color: isDark ? Colors.white12 : Colors.grey.shade200),
                 ListTile(

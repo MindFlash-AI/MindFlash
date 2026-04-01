@@ -1,4 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class Constants {
+  // Reads the keys securely from the .env file.
+  // We use a fallback of an empty string to prevent app crashes if the file is missing.
+  static String get revenueCatAppleApiKey => dotenv.env['REVENUECAT_APPLE_KEY'] ?? '';
+  static String get revenueCatGoogleApiKey => dotenv.env['REVENUECAT_GOOGLE_KEY'] ?? '';
+  
+  // Your RevenueCat Entitlement ID
+  static const String entitlementId = 'MindFlash: AI Flashcards Pro';
+}
 
 class AppColors {
   static const Color blueStart = Color(0xFF5B4FE6);

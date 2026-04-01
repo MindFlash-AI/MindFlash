@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
+import 'pro_service.dart'; // Added import for Pro status checking
 
 class AdHelper {
   // ----------------------------------------------------------------------
@@ -9,6 +10,9 @@ class AdHelper {
   static const bool _useTestAds = true;
 
   static String get bannerAdUnitId {
+    // Guarded: Pro users do not see banner ads
+    if (ProService().isPro) return '';
+    
     if (kIsWeb) return ''; // Ads are currently disabled on web for stability
     
     if (_useTestAds) {
@@ -29,6 +33,9 @@ class AdHelper {
   }
 
   static String get interstitialAdUnitId {
+    // Guarded: Pro users do not see interstitial ads
+    if (ProService().isPro) return '';
+    
     if (kIsWeb) return '';
     
     if (_useTestAds) {
@@ -49,6 +56,7 @@ class AdHelper {
   }
 
   static String get rewardedAdUnitId {
+    // NOT GUARDED: Pro users still need rewarded ads to replenish their 30 energy
     if (kIsWeb) return '';
     
     if (_useTestAds) {

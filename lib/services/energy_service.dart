@@ -3,11 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'pro_service.dart'; // Added to check Pro status
 
 class EnergyService {
-  static const int maxEnergy = 15;
-  
-  // 🛡️ BUG FIX 1: Make the service a Singleton so energy is perfectly synced across all screens
   static final EnergyService _instance = EnergyService._internal();
   factory EnergyService() => _instance;
   EnergyService._internal();
@@ -15,8 +13,10 @@ class EnergyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  int _currentEnergy = maxEnergy;
+  // 🛡️ DYNAMIC ENERGY LIMIT based on Subscription Status
+  int get maxEnergy => ProService().isPro ? 30 : 15;
 
+  int _currentEnergy = 15;
   int get currentEnergy => _currentEnergy;
 
   String? get _uid => _auth.currentUser?.uid;
@@ -48,6 +48,8 @@ class EnergyService {
       _currentEnergy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
 
       final Timestamp? lastResetStamp = data['lastResetDate'] as Timestamp?;
+      bool needsReset = false; // Flag to track if a daily reset occurred
+
       if (lastResetStamp != null) {
         final DateTime lastReset = lastResetStamp.toDate().toUtc();
         final DateTime now = DateTime.now().toUtc();
@@ -56,12 +58,22 @@ class EnergyService {
             lastReset.month != now.month ||
             lastReset.day != now.day) {
           _currentEnergy = maxEnergy; 
+          needsReset = true; // Mark that we need to update Firestore
         }
       }
 
-      _energyRef.set({
+      // Prepare the data to update in Firestore
+      Map<String, dynamic> updateData = {
         'serverPing': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true)).catchError((e) {
+      };
+
+      // FIX: If a new day started, save the refilled energy and the new date to the database
+      if (needsReset) {
+        updateData['energy'] = maxEnergy;
+        updateData['lastResetDate'] = FieldValue.serverTimestamp();
+      }
+
+      _energyRef.set(updateData, SetOptions(merge: true)).catchError((e) {
         print("Server ping failed: $e");
       });
       

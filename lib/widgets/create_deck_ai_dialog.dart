@@ -10,6 +10,9 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/ad_helper.dart';
 import '../services/energy_service.dart';
+import '../services/pro_service.dart'; // Added to check Pro status
+import '../screens/settings/manage_subscription_screen.dart'; 
+import 'pro_paywall_sheet.dart'; // Added the new Universal Paywall Widget
 
 Future<String> _extractFileContentInBackground(
   Map<String, dynamic> data,
@@ -119,7 +122,6 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     );
   }
 
-  // 🛡️ BUG FIX: Robust routing to prevent infinite loading screens
   void _showLoadingOverlay({bool isRefilling = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
@@ -180,7 +182,6 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     );
   }
 
-  // 🛡️ BUG FIX: Safely hunts down and destroys ONLY the loading overlay
   void _closeLoadingOverlay() {
     bool foundOverlay = false;
     Navigator.of(context).popUntil((route) {
@@ -188,8 +189,8 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         foundOverlay = true;
         return true;
       }
-      if (route.isFirst) return true; // Safety net
-      return false; // Pops any random error dialogs stacked on top
+      if (route.isFirst) return true; 
+      return false; 
     });
     
     if (foundOverlay) {
@@ -285,7 +286,20 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
 
         if (mounted) {
           _closeLoadingOverlay();
-          Navigator.of(context).pop(successMessage);
+
+          // 🌟 POST-SUCCESS PAYWALL TRIGGER
+          // Check if the user is on the free tier. If so, show the targeted upsell!
+          if (!ProService().isPro) {
+            await ProPaywallSheet.show(
+              context,
+              title: "Deck Created! 🎉",
+              subtitle: "Want to do this twice as much? Upgrade to Pro for double the daily AI limits and zero ads.",
+            );
+          }
+
+          if (mounted) {
+            Navigator.of(context).pop(successMessage);
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -295,7 +309,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
           });
 
           final errorStr = e.toString();
-          if (errorStr.toLowerCase().contains('energy')) {
+          if (errorStr.toLowerCase().contains('energy') || errorStr.contains('INSUFFICIENT_ENERGY')) {
             _showEnergyAdDialog();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -316,38 +330,81 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     showDialog(
       context: context,
       barrierDismissible: false, 
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => Dialog(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.bolt_rounded, color: Colors.orange, size: 28),
-            const SizedBox(width: 8),
-            Text("Out of Energy", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-          ],
-        ),
-        content: Text(
-          "Generating a deck costs 3 energy. Watch a quick ad to refill your energy and try again!",
-          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.bolt_rounded, color: Colors.orange, size: 32),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Out of Energy", 
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Generating a deck costs 3 energy. Watch a quick ad to refill your energy, or upgrade to MindFlash Pro for double the daily limit and no ads!",
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showRewardedAd();
+                },
+                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                label: const Text("Watch Ad to Refill", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE940A3),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ManageSubscriptionScreen()),
+                  );
+                },
+                icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF8B4EFF)),
+                label: const Text("Upgrade to Pro", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold, fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontSize: 15)),
+              ),
+            ],
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showRewardedAd();
-            },
-            icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-            label: const Text("Watch Ad", style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE940A3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
