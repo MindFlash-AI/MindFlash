@@ -6,6 +6,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart'; // Import added
 import '../login/login_screen.dart';
 import 'account_settings_screen.dart';
 import '../../widgets/how_it_works_dialog.dart';
@@ -54,6 +55,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, value);
     if (_hapticsEnabled) HapticFeedback.selectionClick();
+  }
+
+  // Logic to toggle notifications based on the switch
+  Future<void> _toggleReminders(bool value) async {
+    setState(() {
+      _remindersEnabled = value;
+    });
+    await _saveBoolPreference('reminders_enabled', value);
+    
+    final notificationService = NotificationService();
+    if (value) {
+      await notificationService.scheduleDailyReminder();
+    } else {
+      await notificationService.cancelAllReminders();
+    }
   }
 
   void _showFAQDialog() {
@@ -113,25 +129,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _buildFAQItem(
                         context,
                         "How does the AI Energy work?",
-                        "You get a maximum of 3 energy credits. Each AI generation costs 1 energy. Your energy automatically resets to full at midnight every day. You can also watch a short ad to refill it instantly!",
+                        "You get a maximum of 15 energy credits. Generating a deck costs 3 energy, while chatting costs 1. Energy resets daily!",
                       ),
                       const SizedBox(height: 20),
                       _buildFAQItem(
                         context,
                         "Do I need an internet connection?",
-                        "You can study your existing flashcards and manually create new ones completely offline! However, you need an internet connection to use the AI generation features and to sync your data to the cloud.",
+                        "You can study existing cards offline, but AI features and syncing require an active internet connection.",
                       ),
                       const SizedBox(height: 20),
                       _buildFAQItem(
                         context,
                         "How do I edit or delete a card?",
-                        "Open the deck from your dashboard, find the card you want to change, and tap the edit icon or use the swipe actions (depending on the view) to make changes or delete it.",
+                        "Navigate to the deck view, locate the card, and tap the edit icon to modify or delete its content.",
                       ),
                       const SizedBox(height: 20),
                       _buildFAQItem(
                         context,
                         "Is my data safe?",
-                        "Yes! Your data is securely tied to your Google account. As long as you log in with the same account, your decks will be available on any device.",
+                        "Yes, your progress is encrypted and tied directly to your Google account for secure cross-device syncing.",
                       ),
                     ],
                   ),
@@ -271,7 +287,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(20),
         physics: const BouncingScrollPhysics(),
         children: [
-          // --- Account Details Section ---
           if (user != null) ...[
             Container(
               decoration: BoxDecoration(
@@ -354,7 +369,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 30),
           ],
 
-          // --- App Preferences Section ---
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
@@ -457,7 +471,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           
           const SizedBox(height: 30),
 
-          // --- Study Preferences Section ---
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
@@ -510,13 +523,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   value: _remindersEnabled,
                   activeColor: const Color(0xFF8B4EFF),
-                  onChanged: (value) {
-                    setState(() {
-                      _remindersEnabled = value;
-                    });
-                    _saveBoolPreference('reminders_enabled', value);
-                    // TODO: Implement flutter_local_notifications scheduling here
-                  },
+                  onChanged: (value) => _toggleReminders(value), // Updated logic
                 ),
                 Divider(height: 1, indent: 60, color: isDark ? Colors.white12 : Colors.grey.shade200),
                 ListTile(
@@ -544,10 +551,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: _defaultSort,
                       icon: Icon(Icons.expand_more, color: isDark ? Colors.white54 : Colors.grey.shade600),
                       dropdownColor: Theme.of(context).cardColor,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF8B4EFF),
+                        color: Color(0xFF8B4EFF),
                       ),
                       onChanged: (String? newValue) {
                         if (newValue != null) {
@@ -572,7 +579,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 30),
 
-          // --- Help & Support Section ---
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
@@ -704,7 +710,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 30),
 
-          // --- Community & About Section ---
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
@@ -815,7 +820,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 30),
 
-          // --- Account Section ---
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
@@ -871,7 +875,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           
           const SizedBox(height: 40),
           
-          // --- App Version ---
           Center(
             child: Text(
               "MindFlash v1.0.0",

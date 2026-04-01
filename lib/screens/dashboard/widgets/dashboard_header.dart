@@ -83,66 +83,77 @@ class _DashboardHeaderState extends State<DashboardHeader> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Material(
-              color: const Color(0xFF5B4FE6).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(24),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  if (!_isExpanded) {
-                    setState(() {
-                      _isExpanded = true;
-                    });
-                    // Auto hide after 4 seconds to save space again
-                    Future.delayed(const Duration(seconds: 4), () {
-                      if (mounted) {
-                        setState(() {
-                          _isExpanded = false;
-                        });
-                      }
-                    });
-                  } else {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const HowItWorksDialog(),
-                    );
-                  }
-                },
-                child: AnimatedPadding(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: _isExpanded ? 16 : 10, 
-                    vertical: 10
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.lightbulb_outline_rounded,
-                        size: 18,
-                        color: Color(0xFF5B4FE6),
-                      ),
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        alignment: Alignment.centerLeft,
-                        child: _isExpanded
-                            ? const Padding(
-                                padding: EdgeInsets.only(left: 6),
-                                child: Text(
-                                  "How It Works",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF5B4FE6),
+            // 🛡️ BUG FIX: Wrapped the Material button in a TapRegion
+            // This detects taps anywhere else on the screen and instantly minimizes the button.
+            TapRegion(
+              onTapOutside: (PointerDownEvent event) {
+                if (_isExpanded) {
+                  setState(() {
+                    _isExpanded = false;
+                  });
+                }
+              },
+              child: Material(
+                color: const Color(0xFF5B4FE6).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(24),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    if (!_isExpanded) {
+                      setState(() {
+                        _isExpanded = true;
+                      });
+                      // Auto hide after 4 seconds to save space again
+                      Future.delayed(const Duration(seconds: 4), () {
+                        if (mounted && _isExpanded) {
+                          setState(() {
+                            _isExpanded = false;
+                          });
+                        }
+                      });
+                    } else {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const HowItWorksDialog(),
+                      );
+                    }
+                  },
+                  child: AnimatedPadding(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _isExpanded ? 16 : 10, 
+                      vertical: 10
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          size: 18,
+                          color: Color(0xFF5B4FE6),
+                        ),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          alignment: Alignment.centerLeft,
+                          child: _isExpanded
+                              ? const Padding(
+                                  padding: EdgeInsets.only(left: 6),
+                                  child: Text(
+                                    "How It Works",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF5B4FE6),
+                                    ),
+                                    maxLines: 1,
                                   ),
-                                  maxLines: 1,
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

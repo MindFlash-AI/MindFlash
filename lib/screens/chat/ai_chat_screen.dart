@@ -51,6 +51,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   final CardStorageService _cardStorage = CardStorageService();
 
   bool _isLoading = false;
+  bool _isFetchingHistory = true; // Added loading state for initial fetch
   int _currentEnergy = 0;
 
   BannerAd? _bannerAd;
@@ -75,10 +76,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
     }
   }
 
-  // --- NEW: Syncs Chat History from Firestore ---
   Future<void> _loadChatHistory() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      if (mounted) setState(() => _isFetchingHistory = false);
+      return;
+    }
 
     try {
       final doc = await FirebaseFirestore.instance
@@ -101,11 +104,16 @@ class _AIChatScreenState extends State<AIChatScreen> {
         }
       }
     } catch (e) {
-      print("Error loading chat history from Firestore: $e");
+      debugPrint("Error loading chat history from Firestore: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingHistory = false; // Stop loading spinner regardless of success/fail
+        });
+      }
     }
   }
 
-  // --- NEW: Saves Chat History to Firestore ---
   Future<void> _saveChatHistory() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -119,7 +127,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
           .doc(widget.deck.id)
           .set({'messages': jsonList});
     } catch (e) {
-      print("Error saving chat history to Firestore: $e");
+      debugPrint("Error saving chat history to Firestore: $e");
     }
   }
 
@@ -206,19 +214,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              _loadRewardedAd();
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              ad.dispose();
-              _loadRewardedAd();
-            },
-          );
           _rewardedAd = ad;
         },
-        onAdFailedToLoad: (err) {},
+        onAdFailedToLoad: (err) {
+          debugPrint('Failed to load a rewarded ad: ${err.message}');
+          _rewardedAd = null;
+        },
       ),
     );
   }
@@ -295,15 +296,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                if (_rewardedAd != null) {
-                  _rewardedAd!.show(
-                    onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
-                      _grantEnergyReward();
-                    },
-                  );
-                } else {
-                  _grantEnergyReward();
-                }
+                _showRewardedAd();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B4EFF),
@@ -317,19 +310,78 @@ class _AIChatScreenState extends State<AIChatScreen> {
     );
   }
 
+  void _showRewardedAd() {
+    if (kIsWeb) {
+      _grantEnergyReward();
+      return;
+    }
+
+    if (_rewardedAd != null) {
+      try {
+        _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            setState(() => _rewardedAd = null);
+            _loadRewardedAd(); 
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            ad.dispose();
+            setState(() => _rewardedAd = null);
+            _loadRewardedAd();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Failed to show ad. Please try again.")),
+              );
+            }
+          },
+        );
+
+        _rewardedAd!.show(
+          onUserEarnedReward: (AdWithoutView ad, RewardItem reward) async {
+            await _grantEnergyReward();
+          },
+        );
+      } catch (e) {
+        setState(() => _rewardedAd = null);
+        _loadRewardedAd();
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Ad is still loading, please try again in a moment.")),
+        );
+      }
+      _loadRewardedAd();
+    }
+  }
+
   Future<void> _grantEnergyReward() async {
-    await _energyService.refillEnergy();
-    if (mounted) {
-      setState(() {
-        _currentEnergy = _energyService.currentEnergy;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("⚡ Energy Restored!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+    if (mounted) setState(() => _isLoading = true); 
+    try {
+      await _energyService.refillEnergy();
+      if (mounted) {
+        setState(() {
+          _currentEnergy = _energyService.currentEnergy;
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("⚡ Energy Restored!"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to restore energy."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -373,17 +425,26 @@ class _AIChatScreenState extends State<AIChatScreen> {
       _scrollToBottom();
       HapticFeedback.mediumImpact();
     } catch (e) {
-      setState(() {
-        _messages.add(
-          ChatMessage(
-            text: "Sorry, I encountered an error: ${e.toString()}",
-            isUser: false,
-          ),
-        );
-        _isLoading = false;
-      });
-      _saveChatHistory();
-      _scrollToBottom();
+      if (e.toString().toLowerCase().contains('energy')) {
+        setState(() {
+          _currentEnergy = 0;
+          _isLoading = false;
+          if (_messages.isNotEmpty && _messages.last.isUser) _messages.removeLast();
+        });
+        _showEnergyDialog();
+      } else {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              text: "Sorry, I encountered an error: ${e.toString().replaceAll('Exception: ', '')}",
+              isUser: false,
+            ),
+          );
+          _isLoading = false;
+        });
+        _saveChatHistory();
+        _scrollToBottom();
+      }
     }
   }
 
@@ -482,40 +543,47 @@ class _AIChatScreenState extends State<AIChatScreen> {
             ),
             
           Expanded(
-            child: _messages.isEmpty 
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const AnimatedMascot(state: MascotState.happy, size: 150),
-                      const SizedBox(height: 24),
-                      Text(
-                        "Ready to study?",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
+            // Show loading indicator if fetching, otherwise normal logic
+            child: _isFetchingHistory
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF8B4EFF),
+                    ),
+                  )
+                : _messages.isEmpty 
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const AnimatedMascot(state: MascotState.happy, size: 150),
+                            const SizedBox(height: 24),
+                            Text(
+                              "Ready to study?",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Ask me anything about ${widget.deck.name}!",
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: isDark ? Colors.white54 : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
                         ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          return _buildMessageBubble(_messages[index]);
+                        },
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Ask me anything about ${widget.deck.name}!",
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: isDark ? Colors.white54 : Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    return _buildMessageBubble(_messages[index]);
-                  },
-                ),
           ),
 
           if (_isLoading)

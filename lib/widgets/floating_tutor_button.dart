@@ -85,7 +85,10 @@ class _FloatingTutorButtonState extends State<FloatingTutorButton> {
             MaterialPageRoute(
               builder: (context) => AIChatScreen(deck: widget.deck),
             ),
-          );
+          ).then((_) {
+            // 🛡️ BUG FIX: Forces the UI to refresh and fetch the synced energy state when returning!
+            if (mounted) setState(() {});
+          });
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,

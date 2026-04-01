@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,8 +5,13 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class EnergyService {
-  static const int maxEnergy = 10;
+  static const int maxEnergy = 15;
   
+  // 🛡️ BUG FIX 1: Make the service a Singleton so energy is perfectly synced across all screens
+  static final EnergyService _instance = EnergyService._internal();
+  factory EnergyService() => _instance;
+  EnergyService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -38,58 +42,45 @@ class EnergyService {
          return; 
       }
 
-      await _energyRef.set({
-        'serverPing': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      doc = await _energyRef.get();
       final data = doc.data() as Map<String, dynamic>?;
-
       if (data == null) return;
 
-      final Timestamp? pingStamp = data['serverPing'] as Timestamp?;
-      if (pingStamp == null) return;
+      _currentEnergy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
 
-      final DateTime trueServerTime = pingStamp.toDate();
       final Timestamp? lastResetStamp = data['lastResetDate'] as Timestamp?;
-      
-      bool isNewDay = true;
-
       if (lastResetStamp != null) {
-        final DateTime lastReset = lastResetStamp.toDate();
-        if (lastReset.year == trueServerTime.year &&
-            lastReset.month == trueServerTime.month &&
-            lastReset.day == trueServerTime.day) {
-          isNewDay = false;
+        final DateTime lastReset = lastResetStamp.toDate().toUtc();
+        final DateTime now = DateTime.now().toUtc();
+        
+        if (lastReset.year != now.year ||
+            lastReset.month != now.month ||
+            lastReset.day != now.day) {
+          _currentEnergy = maxEnergy; 
         }
       }
 
-      if (isNewDay) {
-        _currentEnergy = maxEnergy;
-        await _energyRef.update({
-          'energy': maxEnergy,
-          'lastResetDate': pingStamp, 
-        });
-      } else {
-        _currentEnergy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
-      }
+      _energyRef.set({
+        'serverPing': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)).catchError((e) {
+        print("Server ping failed: $e");
+      });
       
     } catch (e) {
       print("Error initializing Cloud Energy Service: $e");
-      _currentEnergy = maxEnergy; 
     }
   }
 
-  Future<void> deductEnergy() async {
-    if (_currentEnergy > 0) {
-      _currentEnergy--;
-      // Backend handles database deduction securely.
+  Future<void> deductEnergy({int amount = 1}) async {
+    if (_currentEnergy >= amount) {
+      _currentEnergy -= amount;
+    } else {
+      _currentEnergy = 0;
     }
   }
 
-  /// Refills energy to max securely via the Node.js backend
   Future<void> refillEnergy() async {
-    _currentEnergy = maxEnergy; // Update UI optimistically instantly
+    int previousEnergy = _currentEnergy;
+    _currentEnergy = maxEnergy; 
 
     if (_uid != null) {
       try {
@@ -109,10 +100,14 @@ class EnergyService {
         );
 
         if (response.statusCode != 200) {
-          print("Failed to refill via backend: ${response.body}");
+          _currentEnergy = previousEnergy;
+          await init(); 
+          throw Exception("Backend validation failed: ${response.body}");
         }
       } catch (e) {
-        print("Error calling refill endpoint: $e");
+        _currentEnergy = previousEnergy;
+        await init();
+        throw Exception("Network error during refill: $e");
       }
     }
   }

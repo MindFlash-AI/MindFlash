@@ -45,23 +45,21 @@ app.post('/refill-energy', requireAppCheck, requireAuth, async (req, res) => {
         const uid = req.user.uid;
         const energyRef = db.collection('users').doc(uid).collection('stats').doc('energy');
 
-        // 🛡️ SECURITY FIX 1: Validate the user actually NEEDS energy before blindly refilling
         await db.runTransaction(async (transaction) => {
             const doc = await transaction.get(energyRef);
             if (doc.exists) {
                 const currentEnergy = doc.data().energy || 0;
-                if (currentEnergy > 0) {
-                    throw new Error("ALREADY_HAS_ENERGY");
+                if (currentEnergy >= 15) {
+                    throw new Error("ALREADY_HAS_MAX_ENERGY");
                 }
             }
-            // Proceed to refill
-            transaction.set(energyRef, { energy: 10 }, { merge: true });
+            transaction.set(energyRef, { energy: 15 }, { merge: true });
         });
 
         res.status(200).json({ success: true, message: 'Energy refilled to maximum.' });
     } catch (error) {
-        if (error.message === "ALREADY_HAS_ENERGY") {
-            return res.status(400).json({ error: 'Refill denied. You still have energy remaining.' });
+        if (error.message === "ALREADY_HAS_MAX_ENERGY") {
+            return res.status(400).json({ error: 'Refill denied. Your energy is already full!' });
         }
         console.error("Refill Error:", error);
         res.status(500).json({ error: 'Failed to refill energy' });
@@ -70,9 +68,12 @@ app.post('/refill-energy', requireAppCheck, requireAuth, async (req, res) => {
 
 // --- ROUTE: GENERATE DECK & AI CHAT ---
 app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
-  let energyDeducted = false; // Tracks if we took their money
+  let energyDeducted = false;
   const uid = req.user.uid;
   const energyRef = db.collection('users').doc(uid).collection('stats').doc('energy');
+
+  const isChat = req.body.isChat === true;
+  const energyCost = isChat ? 1 : 3;
 
   try {
     // 1. Charge the User securely
@@ -81,16 +82,35 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
         
         if (!energyDoc.exists) {
             transaction.set(energyRef, {
-                energy: 9, 
+                energy: 15 - energyCost, 
                 lastResetDate: admin.firestore.FieldValue.serverTimestamp(),
                 serverPing: admin.firestore.FieldValue.serverTimestamp()
             });
             energyDeducted = true;
         } else {
-            const currentEnergy = energyDoc.data().energy || 0;
-            if (currentEnergy <= 0) throw new Error("INSUFFICIENT_ENERGY");
+            let currentEnergy = energyDoc.data().energy || 0;
+            const lastResetStamp = energyDoc.data().lastResetDate;
+
+            // --- SERVER-SIDE DAILY RESET ---
+            if (lastResetStamp) {
+                const lastReset = lastResetStamp.toDate();
+                const now = new Date();
+                
+                if (lastReset.getUTCFullYear() !== now.getUTCFullYear() ||
+                    lastReset.getUTCMonth() !== now.getUTCMonth() ||
+                    lastReset.getUTCDate() !== now.getUTCDate()) {
+                    
+                    // It's a new day! Reset energy to 15 before deducting
+                    currentEnergy = 15;
+                    transaction.update(energyRef, {
+                        lastResetDate: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            }
+
+            if (currentEnergy < energyCost) throw new Error("INSUFFICIENT_ENERGY");
             
-            transaction.update(energyRef, { energy: currentEnergy - 1 });
+            transaction.update(energyRef, { energy: currentEnergy - energyCost });
             energyDeducted = true;
         }
     });
@@ -137,21 +157,20 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
     }
 
   } catch (error) {
-    // 🛡️ SECURITY FIX 2: THE REFUND MECHANISM
-    // If we took their energy, but Gemini crashed or errored out, give the energy back!
     if (energyDeducted && error.message !== "INSUFFICIENT_ENERGY") {
         try {
             await energyRef.update({ 
-                energy: admin.firestore.FieldValue.increment(1) 
+                energy: admin.firestore.FieldValue.increment(energyCost) 
             });
-            console.log(`Refunded 1 energy to user ${uid} due to API failure.`);
+            console.log(`Refunded ${energyCost} energy to user ${uid} due to API failure.`);
         } catch (refundError) {
             console.error("CRITICAL: Failed to refund energy to user!", refundError);
         }
     }
 
     if (error.message === "INSUFFICIENT_ENERGY") {
-        return res.status(403).json({ error: "Out of energy. Please watch an ad to recharge." });
+        // 🛡️ BUG FIX: Dynamically inject the cost so the user isn't confused why Chatting failed with a "Deck costs 3 energy" message.
+        return res.status(403).json({ error: `Out of energy. This action costs ${energyCost} energy. Please watch an ad to recharge.` });
     }
     if (error.type === 'entity.too.large') {
         return res.status(413).json({ error: "Payload too large. Please upload a smaller document." });

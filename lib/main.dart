@@ -7,7 +7,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart'; // Added App Check
 import 'firebase_options.dart';
 import 'screens/loading_screen/loading_screen.dart';
-import 'constants.dart';  
+import 'constants.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,9 @@ void main() async {
   themeNotifier.addListener(() {
     prefs.setBool('isDarkMode', themeNotifier.value == ThemeMode.dark);
   });
+
+  final notificationService = NotificationService();
+  await notificationService.init();
 
   runApp(const MindFlashApp());
 }

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // REQUIRED FOR SECURE AUTH
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/deck_model.dart';
 import '../models/card_model.dart';
@@ -33,7 +33,6 @@ class AIService {
 
   static final String _backendUrl = dotenv.env['BACKEND_URL']!;
 
-  // Helper method to retrieve secure tokens
   Future<Map<String, String>> _getSecureHeaders() async {
     final appCheckToken = await FirebaseAppCheck.instance.getToken();
     final user = FirebaseAuth.instance.currentUser;
@@ -42,7 +41,7 @@ class AIService {
     return {
       'Content-Type': 'application/json',
       'X-Firebase-AppCheck': appCheckToken ?? '',
-      'Authorization': 'Bearer ${idToken ?? ''}', // Passes Identity to Node.js
+      'Authorization': 'Bearer ${idToken ?? ''}', 
     };
   }
 
@@ -70,6 +69,7 @@ class AIService {
         'fileText': fileText,
         'fileName': fileName,
         'userContext': userDataContext,
+        'isChat': false, // APPROACH C: Indicates this is a generation (Costs 3)
       }),
     );
 
@@ -110,6 +110,7 @@ class AIService {
       body: jsonEncode({
         'prompt': "CRITICAL RULE: You are ONLY a study tutor. You are STRICTLY FORBIDDEN from creating, updating, editing, or deleting any flashcards. ALWAYS respond with the action 'chat' and act as a conversational tutor helping the user master the current deck.\n\nUser Message: $text",
         'userContext': deckContext,
+        'isChat': true, // APPROACH C: Indicates this is a chat (Costs 1)
       }),
     );
 
@@ -203,7 +204,15 @@ class AIService {
   }
 
   String _parseErrorMessage(http.Response response) {
-    if (response.statusCode == 403) return 'Out of energy! Please watch an ad to recharge.';
+    if (response.statusCode == 403) {
+      // Decode the precise message from the backend (e.g. "Generating a deck costs 3 energy.")
+      try {
+        final data = jsonDecode(response.body);
+        return data['error'] ?? 'Out of energy! Please watch an ad to recharge.';
+      } catch (_) {
+        return 'Out of energy! Please watch an ad to recharge.';
+      }
+    }
     
     try {
       final errorData = jsonDecode(response.body) as Map<String, dynamic>;
