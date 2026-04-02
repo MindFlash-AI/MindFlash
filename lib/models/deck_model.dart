@@ -22,39 +22,62 @@ class Deck {
       'name': name,
       'subject': subject,
       'cardCount': cardCount,
-      // Use Firestore Timestamp for the database
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
   factory Deck.fromMap(Map<String, dynamic> map) {
-    // Safely parse dates coming from either Firestore (Timestamp) or local fallback (String)
     DateTime parsedDate = DateTime.now();
-    if (map['createdAt'] != null) {
-      if (map['createdAt'] is Timestamp) {
-        parsedDate = (map['createdAt'] as Timestamp).toDate();
-      } else if (map['createdAt'] is String) {
-        parsedDate = DateTime.parse(map['createdAt']);
-      }
+
+    final rawDate = map['createdAt'];
+    if (rawDate is Timestamp) {
+      parsedDate = rawDate.toDate();
+    } else if (rawDate is String) {
+      try {
+        parsedDate = DateTime.parse(rawDate);
+      } catch (_) {}
+    } else if (rawDate is int) {
+      parsedDate = DateTime.fromMillisecondsSinceEpoch(rawDate);
     }
 
     return Deck(
-      id: map['id'] ?? '',
-      name: map['name'] ?? '',
-      subject: map['subject'] ?? '',
-      cardCount: map['cardCount']?.toInt() ?? 0,
+      // 🛡️ WEB FIX: Safe String Parsing
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? '',
+      subject: map['subject']?.toString() ?? '',
+
+      // 🛡️ WEB FIX: Safe Int Parsing
+      cardCount: (map['cardCount'] as num?)?.toInt() ?? 0,
+
       createdAt: parsedDate,
     );
   }
-
-  // Fallback JSON methods if you ever need to serialize outside of Firestore
+  
   String toJson() => json.encode({
-        'id': id,
-        'name': name,
-        'subject': subject,
-        'cardCount': cardCount,
-        'createdAt': createdAt.toIso8601String(),
-      });
+    'id': id,
+    'name': name,
+    'subject': subject,
+    'cardCount': cardCount,
+    'createdAt': createdAt.toIso8601String(),
+  });
 
-  factory Deck.fromJson(String source) => Deck.fromMap(json.decode(source));
+  // 🛡️ WEB FIX: Safely map decoded JSON
+  factory Deck.fromJson(String source) =>
+      Deck.fromMap(Map<String, dynamic>.from(json.decode(source) as Map));
+
+  Deck copyWith({
+    String? id,
+    String? name,
+    String? subject,
+    int? cardCount,
+    DateTime? createdAt,
+  }) {
+    return Deck(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      subject: subject ?? this.subject,
+      cardCount: cardCount ?? this.cardCount,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

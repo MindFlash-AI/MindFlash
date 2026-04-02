@@ -14,23 +14,24 @@ import '../services/pro_service.dart'; // Added to check Pro status
 import '../screens/settings/manage_subscription_screen.dart'; 
 import 'pro_paywall_sheet.dart'; // Added the new Universal Paywall Widget
 
+// 🛡️ WEB FIX: Accept raw bytes instead of a file path
 Future<String> _extractFileContentInBackground(
   Map<String, dynamic> data,
 ) async {
-  String path = data['path'];
-  String extension = data['extension'];
-  File file = File(path);
+  final map = Map<String, dynamic>.from(data);
+
+  Uint8List bytes = map['bytes'] as Uint8List;
+  String extension = map['extension']?.toString() ?? '';
   String fileContent = '';
 
   if (extension == 'pdf') {
-    final bytes = await file.readAsBytes();
     final PdfDocument document = PdfDocument(inputBytes: bytes);
     fileContent = PdfTextExtractor(document).extractText();
     document.dispose();
   } else if (extension == 'txt') {
-    fileContent = await file.readAsString();
+    // Safely decode text bytes
+    fileContent = utf8.decode(bytes, allowMalformed: true);
   } else if (['jpg', 'jpeg', 'png'].contains(extension)) {
-    final bytes = await file.readAsBytes();
     fileContent = "data:image/$extension;base64,${base64Encode(bytes)}";
   }
   return fileContent;
@@ -203,30 +204,43 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'txt', 'jpg', 'jpeg', 'png'],
+        withData: true, // 🚨 CRITICAL FOR WEB: Loads file bytes directly into memory
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null && result.files.isNotEmpty) {
         setState(() {
           _isFileProcessing = true;
         });
 
         await Future.delayed(const Duration(milliseconds: 50));
 
-        String fileName = result.files.single.name;
-        String extension = result.files.single.extension?.toLowerCase() ?? '';
+        final platformFile = result.files.first;
+        String fileName = platformFile.name;
+        String extension = platformFile.extension?.toLowerCase() ?? '';
 
-        String fileContent = await compute(_extractFileContentInBackground, {
-          'path': result.files.single.path!,
-          'extension': extension,
-        });
+        Uint8List? fileBytes = platformFile.bytes;
 
-        if (mounted) {
-          setState(() {
-            _selectedFileName = fileName;
-            _extractedFileText = fileContent;
-            _isFileProcessing = false;
+        // Fallback for Mobile if 'withData' didn't populate for a massive file
+        if (fileBytes == null && !kIsWeb && platformFile.path != null) {
+          fileBytes = await File(platformFile.path!).readAsBytes();
+        }
+
+        if (fileBytes != null) {
+          String fileContent = await compute(_extractFileContentInBackground, {
+            'bytes': fileBytes,
+            'extension': extension,
           });
-          HapticFeedback.mediumImpact();
+
+          if (mounted) {
+            setState(() {
+              _selectedFileName = fileName;
+              _extractedFileText = fileContent;
+              _isFileProcessing = false;
+            });
+            HapticFeedback.mediumImpact();
+          }
+        } else {
+           throw Exception("Could not retrieve file data.");
         }
       }
     } catch (e) {
@@ -288,7 +302,6 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
           _closeLoadingOverlay();
 
           // 🌟 POST-SUCCESS PAYWALL TRIGGER
-          // Check if the user is on the free tier. If so, show the targeted upsell!
           if (!ProService().isPro) {
             await ProPaywallSheet.show(
               context,

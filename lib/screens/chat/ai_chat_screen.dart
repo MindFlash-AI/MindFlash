@@ -13,7 +13,7 @@ import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/ad_helper.dart';
 import '../../services/card_storage_service.dart';
-import '../../services/pro_service.dart'; // Added Pro Check
+import '../../services/pro_service.dart'; 
 import '../../widgets/animated_mascot.dart'; 
 
 class ChatMessage {
@@ -27,9 +27,10 @@ class ChatMessage {
         'isUser': isUser,
       };
 
+  // 🛡️ WEB FIX: Safely cast strings and booleans
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-        text: json['text'],
-        isUser: json['isUser'],
+        text: json['text']?.toString() ?? '',
+        isUser: json['isUser'] == true,
       );
 }
 
@@ -93,12 +94,19 @@ class _AIChatScreenState extends State<AIChatScreen> {
           .get();
 
       if (doc.exists && doc.data() != null && doc.data()!['messages'] != null) {
-        final List<dynamic> decoded = doc.data()!['messages'];
+        final raw = doc.data()!['messages'];
+
+        if (raw is! List) return;
+
+        final List<dynamic> decoded = List<dynamic>.from(raw);
         if (mounted) {
           setState(() {
             _messages.clear();
+            // 🛡️ WEB FIX: Map<String, dynamic>.from() prevents the minified TypeError!
             _messages.addAll(
-              decoded.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>)).toList()
+              decoded
+        .where((e) => e is Map)
+        .map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e as Map))).toList()
             );
           });
           _scrollToBottom();
@@ -190,7 +198,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   void _loadBannerAd() {
-    // 🛡️ MINDFLASH PRO: Hide Banner Ads completely!
     if (kIsWeb || ProService().isPro) return;
     
     _bannerAd = BannerAd(
@@ -359,28 +366,46 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   Future<void> _grantEnergyReward() async {
-    if (mounted) setState(() => _isLoading = true); 
+    if (mounted) setState(() => _isLoading = true);
+
     try {
+      // ❗ BLOCK WEB BEFORE CALLING SERVICE
+      if (kIsWeb) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Ad rewards are only available on mobile."),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
       await _energyService.refillEnergy();
+
       if (mounted) {
         setState(() {
           _currentEnergy = _energyService.currentEnergy;
           _isLoading = false;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("⚡ Energy Restored!"),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
           ),
         );
       }
+
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Failed to restore energy."),
+          SnackBar(
+            content: Text("Failed: ${e.toString()}"),
             backgroundColor: Colors.red,
           ),
         );
@@ -409,6 +434,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     HapticFeedback.lightImpact();
 
     try {
+      // 💥 IF ERROR OCCURS HERE, the Try/Catch outputs it as a bot message.
       final List<Flashcard> cards = await _cardStorage.getCardsForDeck(widget.deck.id);
 
       final response = await _aiService.processTutorChat(
@@ -427,7 +453,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
       _saveChatHistory();
       _scrollToBottom();
       HapticFeedback.mediumImpact();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // 👈 ADD THIS PRINT STATEMENT to see the exact line in Chrome DevTools
+      print("🔥 CRASH REPORT: $e");
+      print("🔥 STACK TRACE: $stackTrace");
+
       if (e.toString().toLowerCase().contains('energy')) {
         setState(() {
           _currentEnergy = 0;
@@ -536,7 +566,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
       ),
       body: Column(
         children: [
-          // 🛡️ MINDFLASH PRO: Only display if not pro!
           if (!kIsWeb && !ProService().isPro)
             SizedBox(
               height: 50,
@@ -632,7 +661,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
               ),
             ),
 
-          // Input Area
           Container(
             padding: EdgeInsets.fromLTRB(
               16, 12, 16, 

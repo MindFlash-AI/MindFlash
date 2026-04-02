@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart'; // 🛡️ WEB FIX: Required for PointerDeviceKind
 import 'dart:math';
 import '../../../models/card_model.dart';
 
@@ -41,46 +42,57 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
   Widget build(BuildContext context) {
     if (widget.cards.isEmpty) return const SizedBox.shrink();
     
-    return PageView.builder(
-      controller: widget.pageController,
-      physics: const BouncingScrollPhysics(), 
-      onPageChanged: (index) {
-        setState(() {
-          _isFront = true;
-        });
-        widget.onPageChanged(index);
-      },
-      itemCount: widget.cards.length,
-      itemBuilder: (context, index) {
-        final card = widget.cards[index];
-        return GestureDetector(
-          onTap: _flipCard,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              final rotateAnim = Tween(begin: pi, end: 0.0).animate(animation);
-              return AnimatedBuilder(
-                animation: rotateAnim,
-                child: child,
-                builder: (context, widget) {
-                  final isUnder = (ValueKey(_isFront) != widget?.key);
-                  var tilt = ((animation.value - 0.5).abs() - 0.5) * 0.003;
-                  tilt *= isUnder ? -1.0 : 1.0;
-                  final value = isUnder ? min(rotateAnim.value, pi / 2) : rotateAnim.value;
-                  return Transform(
-                    transform: Matrix4.rotationY(value)..setEntry(3, 0, tilt),
-                    alignment: Alignment.center,
-                    child: widget,
-                  );
-                },
-              );
-            },
-            child: _isFront
-                ? _buildCardSide(context, card, true, key: const ValueKey(true))
-                : _buildCardSide(context, card, false, key: const ValueKey(false)),
-          ),
-        );
-      },
+    // 🛡️ WEB FIX: ScrollConfiguration allows mouse clicking & dragging on Flutter Web
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse, // Explicitly enables mouse swiping!
+          PointerDeviceKind.trackpad,
+        },
+      ),
+      child: PageView.builder(
+        controller: widget.pageController,
+        physics: const BouncingScrollPhysics(), 
+        onPageChanged: (index) {
+          setState(() {
+            _isFront = true;
+          });
+          widget.onPageChanged(index);
+        },
+        itemCount: widget.cards.length,
+        itemBuilder: (context, index) {
+          final card = widget.cards[index];
+          return GestureDetector(
+            onTap: _flipCard,
+            // ✨ IMPROVED ANIMATION: True 3D Flip with perspective and physics
+            child: TweenAnimationBuilder(
+              tween: Tween<double>(begin: 0, end: _isFront ? 0 : pi),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOutBack, // Gives the card a satisfying physical "snap"
+              builder: (context, double value, child) {
+                // If the rotation is past 90 degrees (pi/2), we are looking at the back
+                bool isUnder = value >= (pi / 2);
+                
+                return Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001) // Adds true 3D depth/perspective
+                    ..rotateY(value),
+                  child: isUnder
+                      // Rotate the back side by an extra 180 degrees so the text isn't mirrored!
+                      ? Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.rotationY(pi),
+                          child: _buildCardSide(context, card, false, key: const ValueKey(false)),
+                        )
+                      : _buildCardSide(context, card, true, key: const ValueKey(true)),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 

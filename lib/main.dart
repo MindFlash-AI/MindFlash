@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // Required for kIsWeb and kDebugMode
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_app_check/firebase_app_check.dart'; // Added App Check
+import 'package:firebase_app_check/firebase_app_check.dart'; 
 import 'firebase_options.dart';
 import 'screens/loading_screen/loading_screen.dart';
 import 'constants.dart';
@@ -14,41 +13,51 @@ import 'services/pro_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase FIRST
+  // 1. Initialize Firebase FIRST
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await ProService().init();
 
-  // Initialize App Check
+  // 2. Initialize App Check SECOND (Must be before ProService or any Firestore calls)
   if (!kIsWeb) {
+    // UPDATED: Using the new provider parameters and classes
     await FirebaseAppCheck.instance.activate(
-      androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+      providerAndroid: kDebugMode 
+          ? AndroidDebugProvider() 
+          : AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode 
+          ? AppleDebugProvider() 
+          : AppleDeviceCheckProvider(),
     );
   } else {
-    // NOTE: To enforce App Check on the Web, you will need to set up ReCAPTCHA v3
-    // in your Firebase Console and add it here later like this:
-    // await FirebaseAppCheck.instance.activate(
-    //   webProvider: ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
-    // );
+    // 🛡️ WEB FIX: Must use 'const' for the compiler to inject the value!
+    const recaptchaKey = String.fromEnvironment('RECAPTCHA_KEY');
+    
+    if (recaptchaKey.isNotEmpty) {
+      // UPDATED: Using providerWeb instead of webProvider
+      await FirebaseAppCheck.instance.activate(
+        providerWeb: ReCaptchaV3Provider(recaptchaKey),
+      );
+    } else {
+      debugPrint("Warning: RECAPTCHA_KEY is missing from build command");
+    }
   }
 
-  await dotenv.load(fileName: ".env");
+  // 3. NOW initialize services that use Firestore
+  await ProService().init();
   
-  // Only initialize AdMob if we are running on a mobile device, NOT the web.
   if (!kIsWeb) {
     await MobileAds.instance.initialize();
   }
 
   // --- Load Saved Theme Preference ---
   final prefs = await SharedPreferences.getInstance();
-  final isDarkMode = prefs.getBool('isDarkMode') ?? false; 
   
-  // Set the initial theme based on saved preference
+  // Defaulting to Dark Mode for all new users
+  final isDarkMode = prefs.getBool('isDarkMode') ?? true; 
+  
   themeNotifier.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
-  // Auto-Saving Listener
   themeNotifier.addListener(() {
     prefs.setBool('isDarkMode', themeNotifier.value == ThemeMode.dark);
   });

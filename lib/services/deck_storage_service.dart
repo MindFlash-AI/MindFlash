@@ -6,7 +6,6 @@ class DeckStorageService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Ensures we only fetch/save data for the currently logged-in user
   String? get _uid => _auth.currentUser?.uid;
 
   CollectionReference get _decksRef {
@@ -14,12 +13,44 @@ class DeckStorageService {
     return _firestore.collection('users').doc(_uid).collection('decks');
   }
 
+  // 🛡️ WEB-SAFE: Deep normalization for Firestore data
+  Map<String, dynamic> _safeMap(dynamic data) {
+    if (data is Map) {
+      return data.map((key, value) => MapEntry(
+            key.toString(),
+            _normalize(value),
+          ));
+    }
+    return {};
+  }
+
+  dynamic _normalize(dynamic value) {
+    if (value is Map) {
+      return _safeMap(value);
+    } else if (value is List) {
+      return value.map(_normalize).toList();
+    }
+    return value;
+  }
+
   Future<List<Deck>> getDecks() async {
     try {
       if (_uid == null) return [];
-      final snapshot = await _decksRef.orderBy('createdAt', descending: true).get();
+
+      final snapshot = await _decksRef
+          .orderBy('createdAt', descending: true)
+          .get();
+
       return snapshot.docs
-          .map((doc) => Deck.fromMap(doc.data() as Map<String, dynamic>))
+          .map((doc) {
+            final data = doc.data();
+
+            if (data is Map) {
+              return Deck.fromMap(_safeMap(data));
+            }
+            return null;
+          })
+          .whereType<Deck>() // 🛡️ avoids crashes
           .toList();
     } catch (e) {
       print("Error fetching decks from Firestore: $e");

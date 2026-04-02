@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Constants {
-  // Reads the keys securely from the .env file.
-  // We use a fallback of an empty string to prevent app crashes if the file is missing.
-  static String get revenueCatAppleApiKey => dotenv.env['REVENUECAT_APPLE_KEY'] ?? '';
-  static String get revenueCatGoogleApiKey => dotenv.env['REVENUECAT_GOOGLE_KEY'] ?? '';
+  // 🛡️ WEB FIX: Must use 'const' to pick up values from build flags
+  static const String revenueCatAppleApiKey = String.fromEnvironment('REVENUECAT_APPLE_KEY');
+  static const String revenueCatGoogleApiKey = String.fromEnvironment('REVENUECAT_GOOGLE_KEY');
   
-  // Your RevenueCat Entitlement ID
   static const String entitlementId = 'MindFlash: AI Flashcards Pro';
 }
 
@@ -17,7 +14,6 @@ class AppColors {
   static const Color background = Color(0xFFF8F9FA);
 }
 
-// Global Theme Notifier for Dark Mode Toggle
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 class AppTheme {
@@ -47,8 +43,8 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0B0714), // Deep Space Violet
-      cardColor: const Color(0xFF1A1128), // Dark card color
+      scaffoldBackgroundColor: const Color(0xFF0B0714), 
+      cardColor: const Color(0xFF1A1128), 
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF8B4EFF),
         brightness: Brightness.dark,
@@ -58,11 +54,6 @@ class AppTheme {
         backgroundColor: Color(0xFF0B0714),
         foregroundColor: Colors.white,
         elevation: 0,
-      ),
-      textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: Colors.white),
-        bodyMedium: TextStyle(color: Colors.white70),
-        titleLarge: TextStyle(color: Colors.white),
       ),
       useMaterial3: true,
     );

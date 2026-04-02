@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart'; // Required for AdMob
 import '../../models/quiz_question_model.dart';
 import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
+import '../../services/pro_service.dart'; // Required to check Pro status for the banner
 
 class QuizScreen extends StatefulWidget {
   final List<QuizQuestion> quiz;
@@ -22,7 +23,7 @@ class _QuizScreenState extends State<QuizScreen> {
   int _currentIndex = 0;
   late List<String?> _answers;
 
-  // FIX: Debounce timer — instead of writing to SharedPreferences on every
+  // Debounce timer — instead of writing to SharedPreferences on every
   // answer and every navigation tap (up to 40 writes for a 20-question quiz),
   // we schedule a write 800 ms after the last state change. If the user taps
   // quickly through questions, intermediate states are skipped entirely.
@@ -31,6 +32,10 @@ class _QuizScreenState extends State<QuizScreen> {
   // AdMob Interstitial variables
   InterstitialAd? _interstitialAd;
   bool _isAdLoaded = false;
+
+  // AdMob Banner variables
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
 
   bool _canPop = false;
   bool _isFinishing = false; // Controls the loading overlay
@@ -47,18 +52,45 @@ class _QuizScreenState extends State<QuizScreen> {
     _answers = List.filled(widget.quiz.length, null);
     _loadProgress();
     _loadInterstitialAd();
+    _loadBannerAd(); // Safely load the banner ad for Free users
   }
 
   @override
   void dispose() {
-    // FIX: Flush any pending debounced save immediately on dispose so progress
+    // Flush any pending debounced save immediately on dispose so progress
     // is never lost when the user backgrounds the app mid-quiz.
     _saveDebounce?.cancel();
     if (!_canPop) {
       _flushSave();
     }
     _interstitialAd?.dispose(); // Clean up AdMob resources
+    _bannerAd?.dispose(); // Clean up Banner Ad resources
     super.dispose();
+  }
+
+  void _loadBannerAd() {
+    if (kIsWeb) return;
+    if (ProService().isPro) return; // Pro users do not get banners
+
+    final adUnitId = AdHelper.bannerAdUnitId;
+    if (adUnitId.isEmpty) return;
+
+    _bannerAd = BannerAd(
+      adUnitId: adUnitId,
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          debugPrint('BannerAd failed to load: $error');
+        },
+      ),
+    )..load();
   }
 
   void _loadInterstitialAd() {
@@ -120,7 +152,7 @@ class _QuizScreenState extends State<QuizScreen> {
   int get _remainingCount =>
       widget.quiz.length - _answers.where((a) => a != null).length;
 
-  // FIX: Schedules a debounced save. Only the final state within the 800 ms
+  // Schedules a debounced save. Only the final state within the 800 ms
   // window is persisted, collapsing many rapid taps into a single write.
   void _scheduleSave() {
     _saveDebounce?.cancel();
@@ -343,9 +375,11 @@ class _QuizScreenState extends State<QuizScreen> {
         (_currentIndex + (_hasAnsweredCurrent ? 1 : 0)) / widget.quiz.length;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // FIX: Using PopScope with onPopInvokedWithResult to handle predictive back 
+    // gestures and remove the WillPopScope deprecation warning.
     return PopScope(
       canPop: _canPop,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
         if (shouldPop && context.mounted) {
@@ -661,6 +695,18 @@ class _QuizScreenState extends State<QuizScreen> {
                       ),
                     ),
                   ),
+
+                  // --- ADDED BANNER AD PLACEMENT ---
+                  // Strict 50px boundary reserved at the bottom to ensure the UI
+                  // does not jump around when the ad loads over slow networks.
+                  if (!kIsWeb && !ProService().isPro)
+                    SizedBox(
+                      height: 50,
+                      width: double.infinity,
+                      child: (_isBannerAdLoaded && _bannerAd != null)
+                          ? AdWidget(ad: _bannerAd!)
+                          : const SizedBox.shrink(),
+                    ),
                 ],
               ),
 

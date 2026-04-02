@@ -18,47 +18,51 @@ class ProService extends ChangeNotifier {
 
   bool _isPro = false;
   
+  // Track platform statuses independently to avoid overwriting conflicts
+  bool _isFirestorePro = false;
+  bool _isRcPro = false;
+  
   /// Returns true if the user has an active MindFlash Pro subscription.
   bool get isPro => _isPro;
 
   /// Initializes the service and listens for Pro status.
   Future<void> init() async {
     // ==========================================
-    // 🌐 WEB IMPLEMENTATION (FIRESTORE SYNC)
+    // 🌐 UNIVERSAL FIRESTORE SYNC (ALL PLATFORMS)
     // ==========================================
-    if (kIsWeb) {
-      // RevenueCat doesn't work on Web. Instead, we listen to the user's Auth state...
-      FirebaseAuth.instance.authStateChanges().listen((user) {
-        if (user != null) {
-          // ...and listen directly to their Firestore document!
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .snapshots()
-              .listen((doc) {
-            if (doc.exists) {
-              final data = doc.data() ?? {};
-              final entitlements = data['entitlements'] as Map<String, dynamic>? ?? {};
-              
-              // .containsKey works for both your manual "active" string and the Extension's map data
-              final isCurrentlyPro = entitlements.containsKey(Constants.entitlementId);
-              
-              if (_isPro != isCurrentlyPro) {
-                _isPro = isCurrentlyPro;
-                notifyListeners();
-              }
-            }
-          });
-        } else {
-          if (_isPro) {
-            _isPro = false;
-            notifyListeners();
+    // By running this on ALL platforms, a subscription bought on the Web 
+    // will instantly unlock Pro on the user's Android/iOS app.
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .snapshots()
+            .listen((doc) {
+          if (doc.exists) {
+            final rawData = doc.data();
+            
+            // 🛡️ WEB FIX: Safely cast the dynamic JSON object to a strict Map
+            final data = rawData != null ? Map<String, dynamic>.from(rawData as Map) : {};
+            
+            // 🛡️ WEB FIX: Safely cast the nested map
+            final entitlementsRaw = data['entitlements'];
+            final entitlements = entitlementsRaw != null 
+                ? Map<String, dynamic>.from(entitlementsRaw as Map) 
+                : {};
+            
+            _isFirestorePro = entitlements.containsKey(Constants.entitlementId);
+            _evaluateCombinedStatus();
           }
-        }
-      });
-      return; // Exit init early so Web doesn't touch RevenueCat
-    }
+        });
+      } else {
+        _isFirestorePro = false;
+        _evaluateCombinedStatus();
+      }
+    });
 
+    // RevenueCat doesn't work on Web, so we exit here for web builds.
+    if (kIsWeb) return; 
 
     // ==========================================
     // 📱 MOBILE IMPLEMENTATION (REVENUECAT)
@@ -72,7 +76,6 @@ class ProService extends ChangeNotifier {
 
     PurchasesConfiguration? configuration;
     
-    // Safely checking platform since we already returned early if kIsWeb
     if (Platform.isAndroid) {
       configuration = PurchasesConfiguration(Constants.revenueCatGoogleApiKey);
     } else if (Platform.isIOS) {
@@ -83,21 +86,28 @@ class ProService extends ChangeNotifier {
       await Purchases.configure(configuration);
 
       Purchases.addCustomerInfoUpdateListener((customerInfo) {
-        _updateProStatus(customerInfo);
+        _updateRcStatus(customerInfo);
       });
 
       try {
         CustomerInfo customerInfo = await Purchases.getCustomerInfo();
-        _updateProStatus(customerInfo);
+        _updateRcStatus(customerInfo);
       } catch (e) {
         debugPrint("Error fetching RevenueCat customer info: $e");
       }
     }
   }
 
-  /// Evaluates the CustomerInfo to determine if the user has the 'pro' entitlement.
-  void _updateProStatus(CustomerInfo customerInfo) {
-    final isCurrentlyPro = customerInfo.entitlements.all[Constants.entitlementId]?.isActive ?? false;
+  /// Updates the RevenueCat-specific status flag.
+  void _updateRcStatus(CustomerInfo customerInfo) {
+    _isRcPro = customerInfo.entitlements.all[Constants.entitlementId]?.isActive ?? false;
+    _evaluateCombinedStatus();
+  }
+
+  /// Combines Web (Firestore) and Mobile (RevenueCat) statuses.
+  /// If either platform says the user is Pro, we unlock the app.
+  void _evaluateCombinedStatus() {
+    final isCurrentlyPro = _isRcPro || _isFirestorePro;
     
     if (_isPro != isCurrentlyPro) {
       _isPro = isCurrentlyPro;
@@ -115,8 +125,8 @@ class ProService extends ChangeNotifier {
     if (_isMockMode) {
       debugPrint("🛠️ PRO SERVICE: Mocking successful purchase...");
       await Future.delayed(const Duration(seconds: 2)); // Simulate network request
-      _isPro = true;
-      notifyListeners();
+      _isRcPro = true;
+      _evaluateCombinedStatus();
       return true;
     }
 
@@ -125,7 +135,7 @@ class ProService extends ChangeNotifier {
       
       if (offerings.current != null && offerings.current!.monthly != null) {
         PurchaseResult result = await Purchases.purchasePackage(offerings.current!.monthly!);
-        _updateProStatus(result.customerInfo);
+        _updateRcStatus(result.customerInfo);
         return _isPro;
       } else {
         debugPrint("No current offering or monthly package found in RevenueCat.");
@@ -147,14 +157,14 @@ class ProService extends ChangeNotifier {
     if (_isMockMode) {
       debugPrint("🛠️ PRO SERVICE: Mocking successful restore...");
       await Future.delayed(const Duration(seconds: 1));
-      _isPro = true; // Assuming they had it in mock mode
-      notifyListeners();
+      _isRcPro = true; // Assuming they had it in mock mode
+      _evaluateCombinedStatus();
       return true;
     }
 
     try {
       CustomerInfo customerInfo = await Purchases.restorePurchases();
-      _updateProStatus(customerInfo);
+      _updateRcStatus(customerInfo);
       return _isPro;
     } catch (e) {
       debugPrint("Restore error: $e");

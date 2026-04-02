@@ -17,8 +17,18 @@ class CardStorageService {
     try {
       if (_uid == null) return [];
       final snapshot = await _cardsRef.get();
+
       return snapshot.docs
-          .map((doc) => Flashcard.fromMap(doc.data() as Map<String, dynamic>))
+          .map((doc) {
+            final data = doc.data();
+
+            if (data is Map) {
+              // 🛡️ WEB-SAFE & FAST: Top-level mapping prevents the UI from freezing
+              return Flashcard.fromMap(Map<String, dynamic>.from(data));
+            }
+            return null;
+          })
+          .whereType<Flashcard>()
           .toList();
     } catch (e) {
       print("Error fetching all cards: $e");
@@ -35,14 +45,15 @@ class CardStorageService {
     }
   }
 
-  // Uses Firestore Batch to upload AI generated quizzes instantly
   Future<void> addCards(List<Flashcard> cards) async {
     try {
       if (_uid == null) return;
       final batch = _firestore.batch();
+
       for (var card in cards) {
         batch.set(_cardsRef.doc(card.id), card.toMap());
       }
+
       await batch.commit();
     } catch (e) {
       print("Error adding multiple cards: $e");
@@ -67,15 +78,19 @@ class CardStorageService {
     }
   }
 
-  // Safely deletes all cards inside a deck when the deck is deleted
   Future<void> deleteCardsByDeck(String deckId) async {
     try {
       if (_uid == null) return;
-      final query = await _cardsRef.where('deckId', isEqualTo: deckId).get();
+
+      final query =
+          await _cardsRef.where('deckId', isEqualTo: deckId).get();
+
       final batch = _firestore.batch();
+
       for (var doc in query.docs) {
         batch.delete(doc.reference);
       }
+
       await batch.commit();
     } catch (e) {
       print("Error deleting cards by deck: $e");
@@ -85,8 +100,12 @@ class CardStorageService {
   Future<void> resetStatsForDeck(String deckId) async {
     try {
       if (_uid == null) return;
-      final query = await _cardsRef.where('deckId', isEqualTo: deckId).get();
+
+      final query =
+          await _cardsRef.where('deckId', isEqualTo: deckId).get();
+
       final batch = _firestore.batch();
+
       for (var doc in query.docs) {
         batch.update(doc.reference, {
           'isMastered': false,
@@ -98,6 +117,7 @@ class CardStorageService {
           'lastScore': null,
         });
       }
+
       await batch.commit();
     } catch (e) {
       print("Error resetting stats: $e");
@@ -107,9 +127,20 @@ class CardStorageService {
   Future<List<Flashcard>> getCardsForDeck(String deckId) async {
     try {
       if (_uid == null) return [];
-      final snapshot = await _cardsRef.where('deckId', isEqualTo: deckId).get();
+
+      final snapshot =
+          await _cardsRef.where('deckId', isEqualTo: deckId).get();
+
       return snapshot.docs
-          .map((doc) => Flashcard.fromMap(doc.data() as Map<String, dynamic>))
+          .map((doc) {
+            final data = doc.data();
+
+            if (data is Map) {
+              return Flashcard.fromMap(Map<String, dynamic>.from(data));
+            }
+            return null;
+          })
+          .whereType<Flashcard>()
           .toList();
     } catch (e) {
       print("Error fetching cards for deck: $e");
@@ -120,15 +151,24 @@ class CardStorageService {
   Future<List<Flashcard>> getDueCardsForDeck(String deckId) async {
     try {
       if (_uid == null) return [];
+
       final now = Timestamp.fromDate(DateTime.now());
+
       final snapshot = await _cardsRef
           .where('deckId', isEqualTo: deckId)
-          // FIRESTORE MAGIC: Offloads the date math to Google's servers
           .where('nextReviewDate', isLessThanOrEqualTo: now)
           .get();
-          
+
       return snapshot.docs
-          .map((doc) => Flashcard.fromMap(doc.data() as Map<String, dynamic>))
+          .map((doc) {
+            final data = doc.data();
+
+            if (data is Map) {
+              return Flashcard.fromMap(Map<String, dynamic>.from(data));
+            }
+            return null;
+          })
+          .whereType<Flashcard>()
           .toList();
     } catch (e) {
       print("Error fetching due cards: $e");

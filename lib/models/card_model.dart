@@ -6,15 +6,15 @@ class Flashcard {
   final String deckId;
   final String question;
   final String answer;
-  
+
   bool isMastered;
   bool isFlagged;
 
   int repetitions;
   double easeFactor;
-  int interval; 
+  int interval;
   DateTime nextReviewDate;
-  int? lastScore; 
+  int? lastScore;
 
   Flashcard({
     required this.id,
@@ -41,34 +41,43 @@ class Flashcard {
       'repetitions': repetitions,
       'easeFactor': easeFactor,
       'interval': interval,
-      // Use Firestore Timestamp for accurate Cloud queries
-      'nextReviewDate': Timestamp.fromDate(nextReviewDate), 
-      'lastScore': lastScore, 
+      'nextReviewDate': Timestamp.fromDate(nextReviewDate),
+      'lastScore': lastScore,
     };
   }
 
   factory Flashcard.fromMap(Map<String, dynamic> map) {
     DateTime parsedDate = DateTime.now();
-    if (map['nextReviewDate'] != null) {
-      if (map['nextReviewDate'] is Timestamp) {
-        parsedDate = (map['nextReviewDate'] as Timestamp).toDate();
-      } else if (map['nextReviewDate'] is String) {
-        parsedDate = DateTime.parse(map['nextReviewDate']);
-      }
+
+    final rawDate = map['nextReviewDate'];
+    if (rawDate is Timestamp) {
+      parsedDate = rawDate.toDate();
+    } else if (rawDate is String) {
+      try {
+        parsedDate = DateTime.parse(rawDate);
+      } catch (_) {}
+    } else if (rawDate is int) {
+      parsedDate = DateTime.fromMillisecondsSinceEpoch(rawDate);
     }
 
     return Flashcard(
-      id: map['id'] ?? '',
-      deckId: map['deckId'] ?? '',
-      question: map['question'] ?? '',
-      answer: map['answer'] ?? '',
-      isMastered: map['isMastered'] ?? false,
-      isFlagged: map['isFlagged'] ?? false,
-      repetitions: map['repetitions']?.toInt() ?? 0,
-      easeFactor: (map['easeFactor'] ?? 2.5).toDouble(),
-      interval: map['interval']?.toInt() ?? 0,
+      // 🛡️ WEB FIX: Safe String Parsing
+      id: map['id']?.toString() ?? '',
+      deckId: map['deckId']?.toString() ?? '',
+      question: map['question']?.toString() ?? '',
+      answer: map['answer']?.toString() ?? '',
+      
+      // 🛡️ WEB FIX: Safe Boolean Parsing
+      isMastered: map['isMastered'] == true,
+      isFlagged: map['isFlagged'] == true,
+
+      // 🛡️ WEB FIX: Safe Number Parsing
+      repetitions: (map['repetitions'] as num?)?.toInt() ?? 0,
+      easeFactor: (map['easeFactor'] as num?)?.toDouble() ?? 2.5,
+      interval: (map['interval'] as num?)?.toInt() ?? 0,
+      lastScore: (map['lastScore'] as num?)?.toInt(),
+      
       nextReviewDate: parsedDate,
-      lastScore: map['lastScore']?.toInt(),
     );
   }
 
@@ -82,13 +91,17 @@ class Flashcard {
         'repetitions': repetitions,
         'easeFactor': easeFactor,
         'interval': interval,
-        'nextReviewDate': nextReviewDate.toIso8601String(), 
+        'nextReviewDate': nextReviewDate.toIso8601String(),
         'lastScore': lastScore,
       });
 
-  factory Flashcard.fromJson(String source) => Flashcard.fromMap(json.decode(source));
+  // 🛡️ WEB FIX: Safely map decoded JSON to a strict Map
+  factory Flashcard.fromJson(String source) =>
+      Flashcard.fromMap(Map<String, dynamic>.from(json.decode(source) as Map));
 
   Flashcard copyWith({
+    String? id,
+    String? deckId,
     String? question,
     String? answer,
     bool? isMastered,
@@ -100,8 +113,8 @@ class Flashcard {
     int? lastScore,
   }) {
     return Flashcard(
-      id: id,
-      deckId: deckId,
+      id: id ?? this.id,
+      deckId: deckId ?? this.deckId,
       question: question ?? this.question,
       answer: answer ?? this.answer,
       isMastered: isMastered ?? this.isMastered,
