@@ -44,8 +44,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/MindFlash_logo.png
-    - assets/mascot/
+    - assets/
 
 flutter_launcher_icons:
   android: "launcher_icon"

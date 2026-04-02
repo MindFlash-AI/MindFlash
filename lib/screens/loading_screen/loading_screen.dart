@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Added Auth
+import 'package:flutter/foundation.dart'; // Added for kIsWeb
+import 'package:firebase_auth/firebase_auth.dart';
 import '../dashboard/dashboard_screen.dart';
-import '../login/login_screen.dart'; // Added Login Screen
+import '../login/login_screen.dart'; 
+import '../web_landing/web_landing_screen.dart'; // Added Web Landing Screen
 import '../../constants.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -43,13 +45,21 @@ class _LoadingScreenState extends State<LoadingScreen>
 
     _controller.forward();
 
-    // Check Auth State and route accordingly
+    // Check Auth State and route accordingly based on platform
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         final currentUser = FirebaseAuth.instance.currentUser;
-        final Widget nextScreen = currentUser != null 
-            ? const DashboardScreen() 
-            : const LoginScreen();
+        
+        Widget nextScreen;
+        if (kIsWeb) {
+          // Web users ALWAYS go to the landing page first, even if logged in.
+          // They must click "Launch Web App" to proceed to the gate/dashboard.
+          nextScreen = const WebLandingScreen();
+        } else {
+          // Mobile users bypass the landing page.
+          // They go straight to Dashboard if logged in, or Login if they aren't.
+          nextScreen = currentUser != null ? const DashboardScreen() : const LoginScreen();
+        }
 
         Navigator.pushReplacement(
           context,

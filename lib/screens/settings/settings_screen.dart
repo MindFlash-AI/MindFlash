@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart'; // Added for kIsWeb
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -9,9 +10,10 @@ import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/pro_service.dart';
 import '../login/login_screen.dart';
+import '../web_landing/web_landing_screen.dart'; // 🛡️ Changed to Web Landing Screen
 import 'account_settings_screen.dart';
 import '../../widgets/how_it_works_dialog.dart';
-import '../../widgets/pro_paywall_sheet.dart'; // Added the import for your fixed paywall
+import '../../widgets/pro_paywall_sheet.dart'; 
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -256,7 +258,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (context.mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          // 🛡️ Web users log out directly to the Landing Page instead of the Login Screen
+          MaterialPageRoute(builder: (context) => kIsWeb ? const WebLandingScreen() : const LoginScreen()),
           (Route<dynamic> route) => false,
         );
       }
@@ -302,7 +305,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   borderRadius: BorderRadius.circular(16),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
-                    // Call your fixed sheet instead of duplicating code!
                     onTap: isPro ? null : () => ProPaywallSheet.show(context),
                     child: Padding(
                       padding: const EdgeInsets.all(20),

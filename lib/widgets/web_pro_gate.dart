@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../services/pro_service.dart';
 import '../services/auth_service.dart';
-import '../screens/login/login_screen.dart';
+import '../screens/web_landing/web_landing_screen.dart'; // 🛡️ Changed import
 import '../constants.dart';
 
 /// A wrapper widget that blocks non-Pro users from accessing the Web version of the app.
@@ -16,8 +16,9 @@ class WebProGate extends StatelessWidget {
     HapticFeedback.lightImpact();
     await AuthService().signOut();
     if (context.mounted) {
+      // 🛡️ When logging out on the web, route them back to the Landing Page
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const WebLandingScreen()),
         (route) => false,
       );
     }
