@@ -1,38 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="flutter_application_1">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="icons/MindFlash_logo.png"/>
   <link rel="apple-touch-icon" href="icons/MindFlash_logo.png">
 
   <title>MindFlash: AI Flashcards</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    #update-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1e2f;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 9999;
+      font-family: sans-serif;
+    }
+
+    #update-banner button {
+      margin-left: 12px;
+      background: #8B4EFF;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
 </head>
+
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter_bootstrap.js"></script>
+
+  <!-- 🔔 Update Banner -->
+  <div id="update-banner">
+    🚀 New version available
+    <button onclick="window.location.reload()">Refresh</button>
+  </div>
+
+  <script>
+    window.addEventListener('load', function () {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((reg) => {
+
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  // ✅ New version detected
+
+                  // 🔔 Show update banner instead of forcing reload
+                  const banner = document.getElementById('update-banner');
+                  if (banner) {
+                    banner.style.display = 'block';
+                  }
+                }
+              }
+            });
+          });
+
+        });
+      }
+    });
+  </script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb; // 🛡️ Added for kIsWeb
 
 import '../../constants.dart';
 import '../../models/deck_model.dart';
@@ -16,6 +17,7 @@ import '../deck_view/deck_view.dart';
 import 'widgets/dashboard_header.dart';
 import '../../widgets/web_pro_gate.dart';
 import '../study_pad/study_pad_screen.dart';
+import '../web_landing/web_landing_screen.dart'; // 🛡️ Added for Web Back Navigation
 
 enum SortOption { nameAsc, nameDesc, countDesc, countAsc }
 
@@ -410,6 +412,38 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // 🛡️ Elegant Web Back Button
+                      if (kIsWeb)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: TextButton.icon(
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const WebLandingScreen()),
+                                  (route) => false,
+                                );
+                              },
+                              icon: Icon(Icons.arrow_back_rounded, size: 18, color: isDark ? Colors.white70 : Colors.black87),
+                              label: Text(
+                                "Back to Website",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      
                       const DashboardHeader(),
                       const SizedBox(height: 25),
                       _buildStatsRow(isDark),
@@ -762,7 +796,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // 🛡️ REBUILT ACTION BUTTONS: Now includes the Study Pad next to Manual Deck!
   Widget _buildActionButtons(BuildContext context, bool isDark) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -852,8 +885,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                         context,
                         MaterialPageRoute(
                           builder: (context) => StudyPadScreen(
-                            // Pass the dashboard's _loadDecks so the dashboard refreshes 
-                            // automatically when the new deck is created!
                             onDeckCreated: () => _loadDecks(), 
                           ),
                         ),

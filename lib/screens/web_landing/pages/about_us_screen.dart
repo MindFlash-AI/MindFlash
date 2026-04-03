@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart'; // 🛡️ ADDED: For launching external URLs
+
 import '../widgets/web_navigation_bar.dart'; 
 import '../login/web_login_screen.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../../widgets/web_pro_gate.dart';
-import '../web_landing_screen.dart'; // 🛡️ Imports HoverLift and HoverScale
+import '../web_landing_screen.dart'; 
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
@@ -172,6 +174,10 @@ class AboutUsScreen extends StatelessWidget {
                     name: "Chakinzo N. Sombito", 
                     role: "Founder & Lead Developer", 
                     imageUrl: "assets/sombito.png",
+                    funFact: "AI Enthusiast 🤖",
+                    linkedinUrl: "https://www.linkedin.com/in/chakinzo-sombito-97940736a/",
+                    githubUrl: "https://github.com/CSTwist",
+                    email: "schakinzo@gmail.com",
                   ),
                   _buildTeamMember(
                     context, 
@@ -179,6 +185,10 @@ class AboutUsScreen extends StatelessWidget {
                     name: "Matthew F. Simpas", 
                     role: "Founder & Developer", 
                     imageUrl: "assets/simpas.jpg",
+                    funFact: "UI/UX Obsessed 🎨",
+                    linkedinUrl: "https://linkedin.com/in/MATTHEW_LINKEDIN_HERE",
+                    githubUrl: "https://github.com/HewRMyFire",
+                    email: "fmatthewsimpas@gmail.com",
                   ),
                 ],
               ),
@@ -189,12 +199,19 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTeamMember(BuildContext context, bool isDark, {required String name, required String role, required String imageUrl}) {
+  Widget _buildTeamMember(BuildContext context, bool isDark, {
+    required String name, 
+    required String role, 
+    required String imageUrl, 
+    required String funFact,
+    required String linkedinUrl,
+    required String githubUrl,
+    required String email,
+  }) {
     final ImageProvider imageProvider = imageUrl.startsWith('http') 
         ? NetworkImage(imageUrl) 
         : AssetImage(imageUrl) as ImageProvider;
 
-    // 🛡️ HoverLift applied for an interactive glow-up
     return HoverLift(
       child: Container(
         width: 320,
@@ -209,9 +226,22 @@ class AboutUsScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  funFact,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             
-            // Profile Picture
             Container(
               width: 120,
               height: 120,
@@ -230,7 +260,6 @@ class AboutUsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             
-            // Name & Role
             Text(
               name,
               textAlign: TextAlign.center,
@@ -255,15 +284,15 @@ class AboutUsScreen extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 16),
             
-            // Social Links Row
+            // 🛡️ UPDATED: Passing specific URLs for each team member
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildSocialIcon(context, isDark, Icons.link_rounded, "LinkedIn"),
+                _buildSocialIcon(context, isDark, Icons.link_rounded, "LinkedIn", linkedinUrl),
                 const SizedBox(width: 16),
-                _buildSocialIcon(context, isDark, Icons.code_rounded, "GitHub"),
+                _buildSocialIcon(context, isDark, Icons.code_rounded, "GitHub", githubUrl),
                 const SizedBox(width: 16),
-                _buildSocialIcon(context, isDark, Icons.email_rounded, "Email"),
+                _buildSocialIcon(context, isDark, Icons.email_rounded, "Email", "mailto:$email"),
               ],
             ),
           ],
@@ -272,10 +301,17 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSocialIcon(BuildContext context, bool isDark, IconData icon, String tooltip) {
+  // 🛡️ ADDED: Accepts `url` and asynchronously launches it in a new tab
+  Widget _buildSocialIcon(BuildContext context, bool isDark, IconData icon, String tooltip, String url) {
     return HoverScale(
-      onTap: () {
-        // Implement actual URL launching here
+      onTap: () async {
+        final uri = Uri.parse(url);
+        try {
+          // LaunchMode.externalApplication ensures it opens in a new browser tab/window on web
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (e) {
+          debugPrint("Could not launch $url: $e");
+        }
       },
       child: Tooltip(
         message: tooltip,
@@ -526,9 +562,6 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  // ===========================================================================
-  // HELPERS
-  // ===========================================================================
   void _launchWebApp(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {

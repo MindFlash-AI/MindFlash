@@ -3,7 +3,7 @@ import '../../../services/auth_service.dart';
 import '../../../widgets/web_pro_gate.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../../constants.dart';
-import '../web_landing_screen.dart'; // Fixed exact path
+import '../../web_landing/web_landing_screen.dart'; // Fixed exact path
 
 class WebLoginScreen extends StatefulWidget {
   const WebLoginScreen({super.key});
@@ -23,11 +23,11 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (user != null) {
-        // Success! Route them to the WebProGate (which wraps the Dashboard)
+        // Success! Route them back to the WebLandingScreen
         Navigator.pushAndRemoveUntil(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const WebProGate(child: DashboardScreen()),
+            pageBuilder: (context, animation, secondaryAnimation) => const WebLandingScreen(),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },
