@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async'; // 🛡️ Added to handle StreamSubscription
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,6 +22,9 @@ class ProService extends ChangeNotifier {
   // Track platform statuses independently to avoid overwriting conflicts
   bool _isFirestorePro = false;
   bool _isRcPro = false;
+
+  // 🛡️ FIX: Store the subscription so we can cleanly cancel it on logout
+  StreamSubscription<DocumentSnapshot>? _firestoreSubscription;
   
   /// Returns true if the user has an active MindFlash Pro subscription.
   bool get isPro => _isPro;
@@ -34,7 +38,10 @@ class ProService extends ChangeNotifier {
     // will instantly unlock Pro on the user's Android/iOS app.
     FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null) {
-        FirebaseFirestore.instance
+        // Cancel any previous listener before starting a new one
+        _firestoreSubscription?.cancel();
+        
+        _firestoreSubscription = FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .snapshots()
@@ -56,6 +63,9 @@ class ProService extends ChangeNotifier {
           }
         });
       } else {
+        // 🛡️ CRITICAL FIX: Cancel the active listener when logging out!
+        _firestoreSubscription?.cancel();
+        
         _isFirestorePro = false;
         _evaluateCombinedStatus();
       }
