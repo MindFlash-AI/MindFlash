@@ -12,10 +12,12 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    if (kIsWeb) return; // Notifications and timezone packages lack full web support
+
     tz.initializeTimeZones();
     // 🛡️ BUG FIX: Set local location for accurate daily scheduling
     try {
-      final TimezoneInfo timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+      final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
     } catch (e) {
       debugPrint("Could not set local timezone: $e");
@@ -39,11 +41,11 @@ class NotificationService {
   }
 
   Future<void> scheduleDailyReminder() async {
-    if (!kIsWeb) {
-      await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
-    }
+    if (kIsWeb) return;
+
+    await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
 
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'daily_reminder_channel',
@@ -64,13 +66,15 @@ class NotificationService {
       'Keep your streak alive! Open MindFlash and review a few cards.',
       _nextInstanceOfSevenPM(),
       platformDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // 🛡️ BUG FIX: Prevents SecurityException crashes on Android 14+
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
   Future<void> cancelAllReminders() async {
+    if (kIsWeb) return;
+    
     await _notificationsPlugin.cancelAll();
   }
 
