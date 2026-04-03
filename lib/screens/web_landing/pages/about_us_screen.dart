@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../widgets/web_navigation_bar.dart'; // 🛡️ Import the sticky navbar
+import '../widgets/web_navigation_bar.dart'; 
 import '../login/web_login_screen.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../../widgets/web_pro_gate.dart';
-import '../../../constants.dart';
+import '../web_landing_screen.dart'; // 🛡️ Imports HoverLift and HoverScale
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
@@ -17,7 +17,6 @@ class AboutUsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // 🛡️ HCI FIX: Use Stack for Sticky Navigation so the NavBar stays at the top
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -36,79 +35,34 @@ class AboutUsScreen extends StatelessWidget {
             Positioned.fill(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1000),
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        left: isMobile ? 32.0 : 64.0,
-                        right: isMobile ? 32.0 : 64.0,
-                        // Add top padding so the team header starts below the sticky navbar
-                        top: isMobile ? 120.0 : 160.0, 
-                        bottom: 80.0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8B4EFF).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.3)),
-                            ),
-                            child: const Text(
-                              "MEET THE TEAM",
-                              style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            "About Us",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: isMobile ? 42 : 64,
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                              letterSpacing: -1.5,
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            "We are a passionate team of developers and educators dedicated to making learning faster, smarter, and more accessible through AI.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: isMobile ? 18 : 20,
-                              height: 1.5,
-                              color: isDark ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 60),
-                          
-                          // --- Team Grid ---
-                          Wrap(
-                            spacing: 32,
-                            runSpacing: 32,
-                            alignment: WrapAlignment.center,
-                            children: [
-                              _buildTeamMember(context, isDark, "Founder, Developer", "Chakinzo N. Sombito", "assets/sombito.png"),
-                              _buildTeamMember(context, isDark, "Founder, Developer", "Matthew F. Simpas", "assets/simpas.jpg"),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                child: Column(
+                  children: [
+                    // 1. The Origin Story
+                    _buildMissionSection(context, isDark, isMobile),
+                    const SizedBox(height: 80),
+                    
+                    // 2. Meet The Team
+                    _buildTeamSection(context, isDark, isMobile),
+                    const SizedBox(height: 120),
+                    
+                    // 3. Core Values
+                    _buildCoreValuesSection(context, isDark, isMobile),
+                    const SizedBox(height: 120),
+                    
+                    // 4. Bottom CTA
+                    _buildBottomCTA(context, isDark, isMobile),
+                    const SizedBox(height: 60),
+                    
+                    // 5. Footer
+                    _buildFooter(context, isDark, isMobile),
+                  ],
                 ),
               ),
             ),
 
             // --- Sticky Top Navigation Bar ---
             Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
+              top: 0, left: 0, right: 0,
               child: WebNavBar(
                 onActionTap: () => _launchWebApp(context),
               ),
@@ -119,7 +73,462 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  // 🛡️ Consistent navigation logic for the Sign In / Dashboard button
+  // ===========================================================================
+  // SECTION 1: THE ORIGIN STORY & MISSION
+  // ===========================================================================
+  Widget _buildMissionSection(BuildContext context, bool isDark, bool isMobile) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 900),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: isMobile ? 32.0 : 64.0,
+            right: isMobile ? 32.0 : 64.0,
+            top: isMobile ? 140.0 : 180.0, 
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.3)),
+                ),
+                child: const Text(
+                  "OUR STORY",
+                  style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "Empowering students\nthrough AI.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isMobile ? 42 : 64,
+                  fontWeight: FontWeight.w900,
+                  height: 1.1,
+                  letterSpacing: -1.5,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 40),
+              Text(
+                "Studying used to mean hours of highlighting, writing repetitive flashcards, and feeling overwhelmed by the sheer volume of material. We knew there had to be a better way.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isMobile ? 18 : 22,
+                  height: 1.6,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "We built MindFlash to eliminate the busywork. By leveraging advanced AI and proven spaced-repetition algorithms, we are helping students spend less time preparing to study, and more time actually mastering the material.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isMobile ? 16 : 18,
+                  height: 1.6,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // SECTION 2: MEET THE TEAM
+  // ===========================================================================
+  Widget _buildTeamSection(BuildContext context, bool isDark, bool isMobile) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 32.0 : 64.0),
+          child: Column(
+            children: [
+              Text(
+                "Meet the Founders",
+                style: TextStyle(
+                  fontSize: isMobile ? 32 : 42,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -1,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 60),
+              Wrap(
+                spacing: 40,
+                runSpacing: 40,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildTeamMember(
+                    context, 
+                    isDark, 
+                    name: "Chakinzo N. Sombito", 
+                    role: "Founder & Lead Developer", 
+                    imageUrl: "assets/sombito.png",
+                  ),
+                  _buildTeamMember(
+                    context, 
+                    isDark, 
+                    name: "Matthew F. Simpas", 
+                    role: "Founder & Developer", 
+                    imageUrl: "assets/simpas.jpg",
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeamMember(BuildContext context, bool isDark, {required String name, required String role, required String imageUrl}) {
+    final ImageProvider imageProvider = imageUrl.startsWith('http') 
+        ? NetworkImage(imageUrl) 
+        : AssetImage(imageUrl) as ImageProvider;
+
+    // 🛡️ HoverLift applied for an interactive glow-up
+    return HoverLift(
+      child: Container(
+        width: 320,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            
+            // Profile Picture
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF8B4EFF), width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B4EFF).withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  )
+                ],
+                image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Name & Role
+            Text(
+              name,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              role,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8B4EFF),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+            
+            // Social Links Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSocialIcon(context, isDark, Icons.link_rounded, "LinkedIn"),
+                const SizedBox(width: 16),
+                _buildSocialIcon(context, isDark, Icons.code_rounded, "GitHub"),
+                const SizedBox(width: 16),
+                _buildSocialIcon(context, isDark, Icons.email_rounded, "Email"),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialIcon(BuildContext context, bool isDark, IconData icon, String tooltip) {
+    return HoverScale(
+      onTap: () {
+        // Implement actual URL launching here
+      },
+      child: Tooltip(
+        message: tooltip,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 20, color: isDark ? Colors.white70 : Colors.black87),
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // SECTION 3: CORE VALUES
+  // ===========================================================================
+  Widget _buildCoreValuesSection(BuildContext context, bool isDark, bool isMobile) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 32.0 : 64.0),
+          child: Column(
+            children: [
+              Text(
+                "Our Core Values",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isMobile ? 32 : 48,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 60),
+              Wrap(
+                spacing: 32,
+                runSpacing: 32,
+                alignment: WrapAlignment.center,
+                children: [
+                  HoverLift(child: _buildValueCard(context, isDark, "AI for Good", "Using technology to empower your learning and critical thinking, not replace it.", Icons.psychology_rounded)),
+                  HoverLift(child: _buildValueCard(context, isDark, "Student-First", "Building tools that actually save you time, reduce stress, and boost your grades.", Icons.bolt_rounded)),
+                  HoverLift(child: _buildValueCard(context, isDark, "Privacy Focused", "Your notes are your notes. We never train public models on your private study materials.", Icons.lock_rounded)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildValueCard(BuildContext context, bool isDark, String title, String description, IconData icon) {
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFFE841A1), size: 40),
+          const SizedBox(height: 24),
+          Text(
+            title,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: TextStyle(fontSize: 15, height: 1.5, color: isDark ? Colors.white70 : Colors.black54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // SECTION 4: BOTTOM CTA
+  // ===========================================================================
+  Widget _buildBottomCTA(BuildContext context, bool isDark, bool isMobile) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 32.0 : 64.0),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isMobile ? 40 : 60),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+              ),
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                  blurRadius: 40,
+                  offset: const Offset(0, 20),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Text(
+                  "Ready to ace your next exam?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: isMobile ? 32 : 48,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "Join thousands of students learning faster with MindFlash.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: isMobile ? 16 : 20,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+                const SizedBox(height: 40),
+                HoverScale(
+                  onTap: () => _launchWebApp(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      "Get Started for Free",
+                      style: TextStyle(color: Color(0xFF8B4EFF), fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // SECTION 5: FOOTER
+  // ===========================================================================
+  Widget _buildFooter(BuildContext context, bool isDark, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 40, horizontal: isMobile ? 32 : 64),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05))),
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: isMobile
+              ? Column(
+                  children: [
+                    _buildFooterLogo(context),
+                    const SizedBox(height: 24),
+                    _buildFooterLinks(isDark),
+                    const SizedBox(height: 24),
+                    Text(
+                      "© ${DateTime.now().year} MindFlash. All rights reserved.",
+                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFooterLogo(context),
+                        const SizedBox(height: 12),
+                        Text(
+                          "© ${DateTime.now().year} MindFlash. All rights reserved.",
+                          style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    _buildFooterLinks(isDark),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterLogo(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.bolt_rounded, color: Color(0xFF8B4EFF), size: 24),
+        const SizedBox(width: 8),
+        Text(
+          "MindFlash",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooterLinks(bool isDark) {
+    return Wrap(
+      spacing: 24,
+      runSpacing: 12,
+      alignment: WrapAlignment.center,
+      children: [
+        HoverScale(child: _buildFooterLink("Privacy Policy", isDark), scaleFactor: 1.05),
+        HoverScale(child: _buildFooterLink("Terms of Service", isDark), scaleFactor: 1.05),
+        HoverScale(child: _buildFooterLink("Contact Support", isDark), scaleFactor: 1.05),
+      ],
+    );
+  }
+
+  Widget _buildFooterLink(String title, bool isDark) {
+    return Text(
+      title,
+      style: TextStyle(
+        color: isDark ? Colors.white70 : Colors.black87,
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // HELPERS
+  // ===========================================================================
   void _launchWebApp(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -138,77 +547,5 @@ class AboutUsScreen extends StatelessWidget {
         MaterialPageRoute(builder: (context) => const WebLoginScreen()),
       );
     }
-  }
-
-  Widget _buildTeamMember(BuildContext context, bool isDark, String role, String name, String imageUrl) {
-    final ImageProvider imageProvider = imageUrl.startsWith('http') 
-        ? NetworkImage(imageUrl) 
-        : AssetImage(imageUrl) as ImageProvider;
-
-    return Container(
-      width: 280,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFF8B4EFF), 
-                width: 3,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                )
-              ],
-              image: DecorationImage(
-                image: imageProvider, 
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            name,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            role,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF8B4EFF),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
