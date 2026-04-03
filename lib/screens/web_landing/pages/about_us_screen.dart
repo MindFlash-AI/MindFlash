@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart'; // 🛡️ ADDED: For launching external URLs
 
 import '../widgets/web_navigation_bar.dart'; 
+import '../widgets/web_footer.dart'; // 🛡️ Import the new reusable footer
 import '../login/web_login_screen.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../../widgets/web_pro_gate.dart';
@@ -55,8 +56,8 @@ class AboutUsScreen extends StatelessWidget {
                     _buildBottomCTA(context, isDark, isMobile),
                     const SizedBox(height: 60),
                     
-                    // 5. Footer
-                    _buildFooter(context, isDark, isMobile),
+                    // 5. Footer (🛡️ Replaced with the global widget)
+                    const WebFooter(),
                   ],
                 ),
               ),
@@ -284,7 +285,6 @@ class AboutUsScreen extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 16),
             
-            // 🛡️ UPDATED: Passing specific URLs for each team member
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -301,13 +301,11 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  // 🛡️ ADDED: Accepts `url` and asynchronously launches it in a new tab
   Widget _buildSocialIcon(BuildContext context, bool isDark, IconData icon, String tooltip, String url) {
     return HoverScale(
       onTap: () async {
         final uri = Uri.parse(url);
         try {
-          // LaunchMode.externalApplication ensures it opens in a new browser tab/window on web
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         } catch (e) {
           debugPrint("Could not launch $url: $e");
@@ -468,96 +466,6 @@ class AboutUsScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // SECTION 5: FOOTER
-  // ===========================================================================
-  Widget _buildFooter(BuildContext context, bool isDark, bool isMobile) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 40, horizontal: isMobile ? 32 : 64),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05))),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: isMobile
-              ? Column(
-                  children: [
-                    _buildFooterLogo(context),
-                    const SizedBox(height: 24),
-                    _buildFooterLinks(isDark),
-                    const SizedBox(height: 24),
-                    Text(
-                      "© ${DateTime.now().year} MindFlash. All rights reserved.",
-                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14),
-                    ),
-                  ],
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFooterLogo(context),
-                        const SizedBox(height: 12),
-                        Text(
-                          "© ${DateTime.now().year} MindFlash. All rights reserved.",
-                          style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                    _buildFooterLinks(isDark),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFooterLogo(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.bolt_rounded, color: Color(0xFF8B4EFF), size: 24),
-        const SizedBox(width: 8),
-        Text(
-          "MindFlash",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFooterLinks(bool isDark) {
-    return Wrap(
-      spacing: 24,
-      runSpacing: 12,
-      alignment: WrapAlignment.center,
-      children: [
-        HoverScale(child: _buildFooterLink("Privacy Policy", isDark), scaleFactor: 1.05),
-        HoverScale(child: _buildFooterLink("Terms of Service", isDark), scaleFactor: 1.05),
-        HoverScale(child: _buildFooterLink("Contact Support", isDark), scaleFactor: 1.05),
-      ],
-    );
-  }
-
-  Widget _buildFooterLink(String title, bool isDark) {
-    return Text(
-      title,
-      style: TextStyle(
-        color: isDark ? Colors.white70 : Colors.black87,
-        fontWeight: FontWeight.w600,
-        fontSize: 14,
       ),
     );
   }

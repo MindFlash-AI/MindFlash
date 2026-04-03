@@ -11,30 +11,35 @@ class Constants {
 class AppColors {
   static const Color blueStart = Color(0xFF5B4FE6);
   static const Color pinkStart = Color(0xFFE940A3);
-  static const Color background = Color(0xFFF8F9FA);
+  static const Color background = Color(0xFFE2E4E9); // 🛡️ HCI: Soothing slate grey
 }
 
-final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,
-      scaffoldBackgroundColor: const Color(0xFFFDF9FF),
-      cardColor: Colors.white,
+      // 🛡️ HCI: Using a softer, cooler slate grey to dramatically reduce glare and eye strain
+      scaffoldBackgroundColor: const Color(0xFFE2E4E9), 
+      cardColor: Colors.white, // Crisp white reserved only for elevated components
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF8B4EFF),
         brightness: Brightness.light,
+        surface: const Color(0xFFE2E4E9),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFFDF9FF),
-        foregroundColor: Colors.black87,
+        backgroundColor: Color(0xFFE2E4E9),
+        // 🛡️ HCI: Soft slate gray instead of harsh pure black
+        foregroundColor: Color(0xFF1E293B), 
         elevation: 0,
       ),
       textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: Colors.black87),
-        bodyMedium: TextStyle(color: Colors.black87),
-        titleLarge: TextStyle(color: Colors.black87),
+        // 🛡️ HCI: Avoid pure #000000 on light backgrounds to prevent halation (eye strain).
+        // Dark slate grays look much more premium and are gentler on the eyes.
+        bodyLarge: TextStyle(color: Color(0xFF1E293B)), 
+        bodyMedium: TextStyle(color: Color(0xFF475569)), 
+        titleLarge: TextStyle(color: Color(0xFF0F172A)), 
       ),
       useMaterial3: true,
     );

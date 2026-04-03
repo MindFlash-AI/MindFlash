@@ -1,3 +1,4 @@
+import 'dart:ui'; // 🛡️ Added for ImageFilter (Glassmorphism & Glows)
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -8,6 +9,7 @@ import 'login/web_login_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../widgets/web_pro_gate.dart'; 
 import 'widgets/web_navigation_bar.dart'; 
+import 'widgets/web_footer.dart'; 
 import '../../constants.dart'; 
 
 class WebLandingScreen extends StatelessWidget {
@@ -51,7 +53,7 @@ class WebLandingScreen extends StatelessWidget {
                     _buildBottomCTA(context, isDark, isMobile),
                     const SizedBox(height: 60),
                     
-                    _buildFooter(context, isDark, isMobile),
+                    const WebFooter(), 
                   ],
                 ),
               ),
@@ -108,7 +110,7 @@ class WebLandingScreen extends StatelessWidget {
                   children: [
                     Expanded(flex: 5, child: _buildHeroContent(context, isDark, isMobile: false)),
                     const SizedBox(width: 60),
-                    Expanded(flex: 4, child: HeroInteractiveWrapper(child: _buildHeroImage(context, isDark))),
+                    Expanded(flex: 5, child: HeroInteractiveWrapper(child: _buildHeroImage(context, isDark))),
                   ],
                 ),
         ),
@@ -157,7 +159,6 @@ class WebLandingScreen extends StatelessWidget {
         ),
         const SizedBox(height: 40),
         
-        // 🛡️ The Main CTA: Retains its click ability
         HoverScale(
           onTap: () => _launchWebApp(context),
           child: Container(
@@ -192,55 +193,194 @@ class WebLandingScreen extends StatelessWidget {
     );
   }
 
+  // 🛡️ REBUILT: Premium SaaS App Mockup
   Widget _buildHeroImage(BuildContext context, bool isDark) {
     return Container(
-      height: 500,
+      height: 520,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: isDark ? const Color(0xFF1E1437) : Colors.white,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
+            color: const Color(0xFF8B4EFF).withOpacity(isDark ? 0.3 : 0.15),
+            blurRadius: 80,
+            offset: const Offset(0, 30),
           ),
         ],
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: 40, left: 40, right: 40,
-            child: Container(
-              height: 120,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)]),
-                borderRadius: BorderRadius.circular(24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Stack(
+          children: [
+            // --- Ambient Background Glows ---
+            Positioned(
+              top: -50,
+              right: -50,
+              child: Container(
+                width: 250, height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF8B4EFF).withOpacity(0.4),
+                ),
+                child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -20, left: 60, right: 60,
-            child: Container(
-              height: 300,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2A1B3D) : Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, -10)),
-                ],
-              ),
-              child: const Center(
-                child: Icon(Icons.style_rounded, size: 80, color: Color(0xFF8B4EFF)),
+            Positioned(
+              bottom: -50,
+              left: -50,
+              child: Container(
+                width: 250, height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE841A1).withOpacity(0.3),
+                ),
+                child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
               ),
             ),
-          ),
-        ],
+
+            // --- App Header (Mac Window Style) ---
+            Positioned(
+              top: 0, left: 0, right: 0,
+              child: Container(
+                height: 60,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                  border: Border(bottom: BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
+                ),
+                child: Row(
+                  children: [
+                    _buildWindowDot(Colors.redAccent),
+                    const SizedBox(width: 8),
+                    _buildWindowDot(Colors.orangeAccent),
+                    const SizedBox(width: 8),
+                    _buildWindowDot(Colors.greenAccent),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text("MindFlash Pro", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54)),
+                    )
+                  ],
+                ),
+              ),
+            ),
+
+            // --- Floating Flashcard Mockup ---
+            Center(
+              child: Transform.rotate(
+                angle: -0.05,
+                child: Container(
+                  width: 320,
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2A1B3D) : Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.5), width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B4EFF).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text("Biology 101", style: TextStyle(color: Color(0xFF8B4EFF), fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                          Icon(Icons.volume_up_rounded, color: isDark ? Colors.white38 : Colors.black26, size: 20),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Text("What is the powerhouse of the cell?", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.3)),
+                      const SizedBox(height: 24),
+                      Divider(color: isDark ? Colors.white12 : Colors.black12),
+                      const SizedBox(height: 24),
+                      const Text("Mitochondria", style: TextStyle(fontSize: 20, color: Color(0xFFE841A1), fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // --- Floating AI Badge ---
+            Positioned(
+              top: 100,
+              right: 20,
+              child: Transform.rotate(
+                angle: 0.1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2A1B3D) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05)),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10))],
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome_rounded, color: Color(0xFFE841A1), size: 20),
+                      SizedBox(width: 8),
+                      Text("AI Generated", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // --- Floating Mastery Badge ---
+            Positioned(
+              bottom: 80,
+              left: 20,
+              child: Transform.rotate(
+                angle: -0.12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF8B4EFF), Color(0xFF5B4FE6)]),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text("Mastered", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildWindowDot(Color color) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 
@@ -445,7 +585,6 @@ class WebLandingScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 40),
-                // 🛡️ The Bottom CTA: Retains its click ability
                 HoverScale(
                   onTap: () => _launchWebApp(context),
                   child: Container(
@@ -471,97 +610,6 @@ class WebLandingScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // SECTION 5: FOOTER
-  // ===========================================================================
-  Widget _buildFooter(BuildContext context, bool isDark, bool isMobile) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 40, horizontal: isMobile ? 32 : 64),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05))),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: isMobile
-              ? Column(
-                  children: [
-                    _buildFooterLogo(context),
-                    const SizedBox(height: 24),
-                    _buildFooterLinks(isDark),
-                    const SizedBox(height: 24),
-                    Text(
-                      "© ${DateTime.now().year} MindFlash. All rights reserved.",
-                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14),
-                    ),
-                  ],
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFooterLogo(context),
-                        const SizedBox(height: 12),
-                        Text(
-                          "© ${DateTime.now().year} MindFlash. All rights reserved.",
-                          style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                    _buildFooterLinks(isDark),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFooterLogo(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.bolt_rounded, color: Color(0xFF8B4EFF), size: 24),
-        const SizedBox(width: 8),
-        Text(
-          "MindFlash",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFooterLinks(bool isDark) {
-    return Wrap(
-      spacing: 24,
-      runSpacing: 12,
-      alignment: WrapAlignment.center,
-      children: [
-        // No onTap means these automatically get the basic (non-clickable) mouse cursor
-        HoverScale(child: _buildFooterLink("Privacy Policy", isDark), scaleFactor: 1.05),
-        HoverScale(child: _buildFooterLink("Terms of Service", isDark), scaleFactor: 1.05),
-        HoverScale(child: _buildFooterLink("Contact Support", isDark), scaleFactor: 1.05),
-      ],
-    );
-  }
-
-  Widget _buildFooterLink(String title, bool isDark) {
-    return Text(
-      title,
-      style: TextStyle(
-        color: isDark ? Colors.white70 : Colors.black87,
-        fontWeight: FontWeight.w600,
-        fontSize: 14,
       ),
     );
   }
@@ -655,7 +703,6 @@ class _HoverLiftState extends State<HoverLift> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      // 🛡️ FIX: Removed the 'SystemMouseCursors.click' so it stays basic
       cursor: SystemMouseCursors.basic, 
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -707,7 +754,6 @@ class _HoverScaleState extends State<HoverScale> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      // 🛡️ UX: Automatically changes to basic cursor if there's no onTap action
       cursor: widget.onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
       child: GestureDetector(
         onTapDown: (_) => setState(() => _isPressed = true),

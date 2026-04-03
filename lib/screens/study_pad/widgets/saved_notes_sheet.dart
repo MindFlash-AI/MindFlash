@@ -5,7 +5,10 @@ import '../../../../../models/note_model.dart';
 import '../../../../../services/note_storage_service.dart';
 
 class SavedNotesSheet extends StatefulWidget {
-  const SavedNotesSheet({super.key});
+  // 🛡️ FIX: Added optional callback to allow the Web Sidebar to talk to the main screen
+  final Function(Note)? onNoteSelected;
+
+  const SavedNotesSheet({super.key, this.onNoteSelected});
 
   @override
   State<SavedNotesSheet> createState() => _SavedNotesSheetState();
@@ -37,7 +40,6 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
     await _noteStorage.deleteNote(id);
   }
 
-  // 🛡️ NEW: Confirmation dialog before deleting
   void _confirmDelete(BuildContext context, String id, String title) {
     HapticFeedback.mediumImpact();
     showDialog(
@@ -47,7 +49,10 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           "Delete Note?",
-          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyLarge?.color, 
+            fontWeight: FontWeight.bold
+          ),
         ),
         content: Text(
           "Are you sure you want to delete \"$title\"? This action cannot be undone.",
@@ -60,8 +65,8 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(dialogContext); // Close the dialog
-              _deleteNote(id); // Actually delete the note
+              Navigator.pop(dialogContext);
+              _deleteNote(id);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
@@ -80,22 +85,27 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
+      // 🛡️ UX: When used as an endDrawer on Web, we remove the fixed height constraint
+      height: widget.onNoteSelected != null ? double.infinity : MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: widget.onNoteSelected != null 
+            ? BorderRadius.zero 
+            : const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
           const SizedBox(height: 16),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white24 : Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+          // Only show the "grabber" handle if it's a bottom sheet (Mobile)
+          if (widget.onNoteSelected == null)
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Row(
@@ -157,12 +167,17 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
                               ),
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                // 🛡️ REPLACED direct deletion with the confirmation dialog
                                 onPressed: () => _confirmDelete(context, note.id, noteTitle),
                               ),
                               onTap: () {
                                 HapticFeedback.lightImpact();
-                                Navigator.pop(context, note); // Return the selected note to the Study Pad
+                                // 🛡️ FIX: If a callback is provided (Web), use it. 
+                                // Otherwise, pop the result (Mobile).
+                                if (widget.onNoteSelected != null) {
+                                  widget.onNoteSelected!(note);
+                                } else {
+                                  Navigator.pop(context, note);
+                                }
                               },
                             ),
                           );

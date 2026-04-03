@@ -102,15 +102,7 @@ class StatCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(icon, color: Colors.white, size: 28),
-                        ),
+                        const SizedBox(width: 12)
                       ],
                     ),
                   ),

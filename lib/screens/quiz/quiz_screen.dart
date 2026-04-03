@@ -12,8 +12,9 @@ import '../../services/pro_service.dart'; // Required to check Pro status for th
 class QuizScreen extends StatefulWidget {
   final List<QuizQuestion> quiz;
   final String deckTitle;
+  final String deckId; // 🛡️ BUG FIX: Require unique deckId to prevent progress collisions
 
-  const QuizScreen({super.key, required this.quiz, required this.deckTitle});
+  const QuizScreen({super.key, required this.quiz, required this.deckTitle, required this.deckId});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -162,15 +163,15 @@ class _QuizScreenState extends State<QuizScreen> {
   Future<void> _flushSave() async {
     final prefs = await SharedPreferences.getInstance();
     final savedAnswers = _answers.map((e) => e ?? '').toList();
-    await prefs.setStringList('quiz_answers_${widget.deckTitle}', savedAnswers);
-    await prefs.setInt('quiz_index_${widget.deckTitle}', _currentIndex);
+    await prefs.setStringList('quiz_answers_${widget.deckId}', savedAnswers);
+    await prefs.setInt('quiz_index_${widget.deckId}', _currentIndex);
   }
 
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
     final savedAnswers =
-        prefs.getStringList('quiz_answers_${widget.deckTitle}');
-    final savedIndex = prefs.getInt('quiz_index_${widget.deckTitle}');
+        prefs.getStringList('quiz_answers_${widget.deckId}');
+    final savedIndex = prefs.getInt('quiz_index_${widget.deckId}');
 
     if (savedAnswers != null && savedAnswers.length == widget.quiz.length) {
       setState(() {
@@ -183,8 +184,8 @@ class _QuizScreenState extends State<QuizScreen> {
   Future<void> _clearProgress() async {
     _saveDebounce?.cancel(); // discard any pending debounced save
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('quiz_answers_${widget.deckTitle}');
-    await prefs.remove('quiz_index_${widget.deckTitle}');
+    await prefs.remove('quiz_answers_${widget.deckId}');
+    await prefs.remove('quiz_index_${widget.deckId}');
   }
 
   void _checkAnswer(String answer) {
@@ -368,6 +369,216 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
+  Widget _buildProgressBar(double progress, bool isDark) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: progress),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, _) => Container(
+        height: 6,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white12 : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(3),
+        ),
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: value,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: _brandGradient,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildStatBadge(
+            Icons.check_circle_rounded,
+            isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
+            '$_correctCount',
+          ),
+          _buildStatBadge(
+            Icons.cancel_rounded,
+            isDark ? Colors.redAccent.shade200 : Colors.red.shade500,
+            '$_incorrectCount',
+          ),
+          _buildStatBadge(
+            Icons.help_outline_rounded,
+            isDark ? Colors.white54 : Colors.grey.shade500,
+            '$_remainingCount',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(QuizQuestion currentQuestion, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Text(
+            currentQuestion.question,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionsList(QuizQuestion currentQuestion, bool isDark) {
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      itemCount: currentQuestion.options.length,
+      itemBuilder: (context, index) {
+        final option = currentQuestion.options[index];
+        Color buttonColor = Theme.of(context).cardColor;
+        Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87;
+        Color borderColor = Colors.transparent;
+        IconData? feedbackIcon;
+        Color iconColor = Colors.transparent;
+
+        if (_hasAnsweredCurrent) {
+          if (option == currentQuestion.correctAnswer) {
+            buttonColor = isDark ? Colors.green.withOpacity(0.2) : Colors.green.shade50;
+            borderColor = isDark ? Colors.greenAccent : Colors.green.shade400;
+            textColor = isDark ? Colors.greenAccent : Colors.green.shade800;
+            feedbackIcon = Icons.check_circle_rounded;
+            iconColor = isDark ? Colors.greenAccent : Colors.green.shade500;
+          } else if (option == _selectedAnswerCurrent) {
+            buttonColor = isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50;
+            borderColor = isDark ? Colors.redAccent : Colors.red.shade400;
+            textColor = isDark ? Colors.redAccent : Colors.red.shade800;
+            feedbackIcon = Icons.cancel_rounded;
+            iconColor = isDark ? Colors.redAccent : Colors.red.shade500;
+          }
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: InkWell(
+            onTap: () => _checkAnswer(option),
+            borderRadius: BorderRadius.circular(16),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: buttonColor,
+                border: Border.all(color: borderColor, width: 2),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      option,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (feedbackIcon != null)
+                    Icon(feedbackIcon, color: iconColor, size: 24),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNavigationButtons(bool isDark) {
+    return Row(
+      children: [
+        if (_currentIndex > 0)
+          Expanded(
+            flex: 1,
+            child: OutlinedButton(
+              onPressed: _previousQuestion,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300, width: 2),
+              ),
+              child: Text(
+                'Previous',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.white70 : Colors.grey.shade700,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        if (_currentIndex > 0 && _hasAnsweredCurrent) const SizedBox(width: 12),
+        if (_hasAnsweredCurrent)
+          Expanded(
+            flex: 2,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: _brandGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: const Color(0xFF8B4EFF).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 6)),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: _nextQuestion,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text(
+                  _currentIndex < widget.quiz.length - 1 ? 'Next Question' : 'Finish Quiz',
+                  style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.quiz[_currentIndex];
@@ -431,59 +642,12 @@ class _QuizScreenState extends State<QuizScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0, end: progress),
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, value, _) => Container(
-                      height: 6,
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white12 : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: value,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: _brandGradient,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildStatBadge(
-                          Icons.check_circle_rounded,
-                          isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
-                          '$_correctCount',
-                        ),
-                        _buildStatBadge(
-                          Icons.cancel_rounded,
-                          isDark ? Colors.redAccent.shade200 : Colors.red.shade500,
-                          '$_incorrectCount',
-                        ),
-                        _buildStatBadge(
-                          Icons.help_outline_rounded,
-                          isDark ? Colors.white54 : Colors.grey.shade500,
-                          '$_remainingCount',
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildProgressBar(progress, isDark),
+                  _buildStatsRow(isDark),
 
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -499,198 +663,10 @@ class _QuizScreenState extends State<QuizScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
-                          Expanded(
-                            flex: 3,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(24),
-                                border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: SingleChildScrollView(
-                                  child: Text(
-                                    currentQuestion.question,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          Expanded(flex: 3, child: _buildQuestionCard(currentQuestion, isDark)),
                           const SizedBox(height: 20),
-
-                          Expanded(
-                            flex: 5,
-                            child: ListView.builder(
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: currentQuestion.options.length,
-                              itemBuilder: (context, index) {
-                                final option = currentQuestion.options[index];
-
-                                Color buttonColor = Theme.of(context).cardColor;
-                                Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87;
-                                Color borderColor = Colors.transparent;
-                                IconData? feedbackIcon;
-                                Color iconColor = Colors.transparent;
-
-                                if (_hasAnsweredCurrent) {
-                                  if (option == currentQuestion.correctAnswer) {
-                                    buttonColor = isDark ? Colors.green.withOpacity(0.2) : Colors.green.shade50;
-                                    borderColor = isDark ? Colors.greenAccent : Colors.green.shade400;
-                                    textColor = isDark ? Colors.greenAccent : Colors.green.shade800;
-                                    feedbackIcon = Icons.check_circle_rounded;
-                                    iconColor = isDark ? Colors.greenAccent : Colors.green.shade500;
-                                  } else if (option == _selectedAnswerCurrent) {
-                                    buttonColor = isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50;
-                                    borderColor = isDark ? Colors.redAccent : Colors.red.shade400;
-                                    textColor = isDark ? Colors.redAccent : Colors.red.shade800;
-                                    feedbackIcon = Icons.cancel_rounded;
-                                    iconColor = isDark ? Colors.redAccent : Colors.red.shade500;
-                                  }
-                                }
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: InkWell(
-                                    onTap: () => _checkAnswer(option),
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 250),
-                                      curve: Curves.easeInOut,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 16),
-                                      decoration: BoxDecoration(
-                                        color: buttonColor,
-                                        border:
-                                            Border.all(color: borderColor, width: 2),
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(isDark ? 0.3 : 0.03),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              option,
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: textColor,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                          if (feedbackIcon != null)
-                                            Icon(feedbackIcon,
-                                                color: iconColor, size: 24),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-
-                          SizedBox(
-                            height: 56,
-                            child: Row(
-                              children: [
-                                if (_currentIndex > 0)
-                                  Expanded(
-                                    flex: 1,
-                                    child: OutlinedButton(
-                                      onPressed: _previousQuestion,
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 16),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                        side: BorderSide(
-                                            color: isDark ? Colors.white24 : Colors.grey.shade300, width: 2),
-                                      ),
-                                      child: Text(
-                                        'Previous',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: isDark ? Colors.white70 : Colors.grey.shade700,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                if (_currentIndex > 0 && _hasAnsweredCurrent)
-                                  const SizedBox(width: 12),
-
-                                if (_hasAnsweredCurrent)
-                                  Expanded(
-                                    flex: 2,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        gradient: _brandGradient,
-                                        borderRadius:
-                                            BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF8B4EFF)
-                                                .withOpacity(0.3),
-                                            blurRadius: 15,
-                                            offset: const Offset(0, 6),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ElevatedButton(
-                                        onPressed: _nextQuestion,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.transparent,
-                                          shadowColor: Colors.transparent,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          _currentIndex < widget.quiz.length - 1
-                                              ? 'Next Question'
-                                              : 'Finish Quiz',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                          Expanded(flex: 5, child: _buildOptionsList(currentQuestion, isDark)),
+                          SizedBox(height: 56, child: _buildNavigationButtons(isDark)),
                         ],
                       ),
                     ),

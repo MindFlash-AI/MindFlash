@@ -15,7 +15,7 @@ class ProService extends ChangeNotifier {
 
   // 🛠️ DEVELOPMENT BYPASS: Set this to 'true' to test the app without a Google Play/Apple Developer account.
   // 🛑 IMPORTANT: Change this to 'false' before publishing your app!
-  static const bool _isMockMode = true;
+  static const bool _isMockMode = kDebugMode;
 
   bool _isPro = false;
   

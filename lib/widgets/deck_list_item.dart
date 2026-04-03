@@ -109,12 +109,17 @@ class DeckListItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
+          // 🛡️ REBUILT: Added a clean grey border for light mode to make the cards crisp
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.05) : const Color.fromARGB(255, 224, 224, 224), 
+            width: 2,
+          ),
+          // 🛡️ REBUILT: Enhanced the drop shadow for a deeper "floating" SaaS feel
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 16),
             ),
           ],
         ),

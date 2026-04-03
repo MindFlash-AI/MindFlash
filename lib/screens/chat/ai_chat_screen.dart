@@ -22,12 +22,20 @@ class ChatMessage {
 
   ChatMessage({required this.text, required this.isUser});
 
-  Map<String, dynamic> toJson() => {
-        'text': text,
-        'isUser': isUser,
-      };
+  Map<String, dynamic> toJson() {
+    // 🛡️ SECURITY FIX 3: Prevent 1MB Database Crashes
+    // Cap saved messages to 2,500 characters. If they pasted a massive document, 
+    // it was already sent to the AI. We don't need to save the whole 40k chars to DB history!
+    final safeText = text.length > 2500 
+        ? '${text.substring(0, 2500)}... [Message truncated to save space]' 
+        : text;
 
-  // 🛡️ WEB FIX: Safely cast strings and booleans
+    return {
+      'text': safeText,
+      'isUser': isUser,
+    };
+  }
+
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
         text: json['text']?.toString() ?? '',
         isUser: json['isUser'] == true,
@@ -54,7 +62,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   bool _isLoading = false;
   bool _isFetchingHistory = true;
-  int _currentEnergy = 0;
 
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
@@ -71,11 +78,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   Future<void> _initServices() async {
     await _energyService.init();
-    if (mounted) {
-      setState(() {
-        _currentEnergy = _energyService.currentEnergy;
-      });
-    }
   }
 
   Future<void> _loadChatHistory() async {
@@ -102,11 +104,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
         if (mounted) {
           setState(() {
             _messages.clear();
-            // 🛡️ WEB FIX: Map<String, dynamic>.from() prevents the minified TypeError!
             _messages.addAll(
               decoded
-        .where((e) => e is Map)
-        .map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e as Map))).toList()
+                  .where((e) => e is Map)
+                  .map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e as Map))).toList()
             );
           });
           _scrollToBottom();
@@ -128,7 +129,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
     if (uid == null) return;
 
     try {
-      final List<Map<String, dynamic>> jsonList = _messages.map((m) => m.toJson()).toList();
+      final List<ChatMessage> recentMessages = _messages.length > 50 
+          ? _messages.sublist(_messages.length - 50) 
+          : _messages;
+
+      final List<Map<String, dynamic>> jsonList = recentMessages.map((m) => m.toJson()).toList();
       await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
@@ -235,8 +240,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   void _showEnergyDialog() {
-    final bool isOutOfEnergy = _currentEnergy <= 0;
-    final bool isFullEnergy = _currentEnergy >= _energyService.maxEnergy;
+    final int currentEnergy = _energyService.currentEnergy;
+    final bool isOutOfEnergy = currentEnergy <= 0;
+    final bool isFullEnergy = currentEnergy >= _energyService.maxEnergy;
 
     showDialog(
       context: context,
@@ -278,7 +284,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         content: Text(
           isOutOfEnergy
               ? "Your AI Tutor needs a quick breather! Your energy automatically resets every day at midnight.\n\nWant to skip the wait? Watch a short ad to fully recharge right now and keep studying!"
-              : "You currently have $_currentEnergy energy left! You're all set to keep chatting with your AI Tutor.\n\nRemember, your energy automatically refills to full every day at midnight." + (!isFullEnergy ? "\n\nWant to top up to full right now?" : ""),
+              : "You currently have $currentEnergy energy left! You're all set to keep chatting with your AI Tutor.\n\nRemember, your energy automatically refills to full every day at midnight." + (!isFullEnergy ? "\n\nWant to top up to full right now?" : ""),
           textAlign: TextAlign.center,
           style: TextStyle(height: 1.4, color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
@@ -369,7 +375,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
     if (mounted) setState(() => _isLoading = true);
 
     try {
-      // ❗ BLOCK WEB BEFORE CALLING SERVICE
       if (kIsWeb) {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -387,7 +392,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
       if (mounted) {
         setState(() {
-          _currentEnergy = _energyService.currentEnergy;
           _isLoading = false;
         });
 
@@ -417,7 +421,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    if (_currentEnergy <= 0) {
+    if (_energyService.currentEnergy <= 0) {
       HapticFeedback.heavyImpact();
       _showEnergyDialog();
       return;
@@ -434,19 +438,20 @@ class _AIChatScreenState extends State<AIChatScreen> {
     HapticFeedback.lightImpact();
 
     try {
-      // 💥 IF ERROR OCCURS HERE, the Try/Catch outputs it as a bot message.
       final List<Flashcard> cards = await _cardStorage.getCardsForDeck(widget.deck.id);
+
+      final recentHistory = _messages.length > 8 
+          ? _messages.sublist(_messages.length - 8) 
+          : _messages;
 
       final response = await _aiService.processTutorChat(
         text: text,
         deck: widget.deck,
         cards: cards,
+        chatHistory: recentHistory.map((m) => m.toJson()).toList(), 
       );
       
-      await _energyService.deductEnergy();
-      
       setState(() {
-        _currentEnergy = _energyService.currentEnergy;
         _messages.add(ChatMessage(text: response.message, isUser: false));
         _isLoading = false;
       });
@@ -454,13 +459,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
       _scrollToBottom();
       HapticFeedback.mediumImpact();
     } catch (e, stackTrace) {
-      // 👈 ADD THIS PRINT STATEMENT to see the exact line in Chrome DevTools
       print("🔥 CRASH REPORT: $e");
       print("🔥 STACK TRACE: $stackTrace");
 
       if (e.toString().toLowerCase().contains('energy')) {
         setState(() {
-          _currentEnergy = 0;
           _isLoading = false;
           if (_messages.isNotEmpty && _messages.last.isUser) _messages.removeLast();
         });
@@ -526,41 +529,49 @@ class _AIChatScreenState extends State<AIChatScreen> {
             onPressed: _clearChat,
             tooltip: 'Clear Chat',
           ),
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            child: Material(
-              color: _currentEnergy > 0 
-                  ? const Color(0xFF8B4EFF).withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  _showEnergyDialog();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.bolt,
-                        color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                        size: 18,
+          
+          StreamBuilder<int>(
+            stream: _energyService.energyStream,
+            initialData: _energyService.currentEnergy,
+            builder: (context, snapshot) {
+              final currentEnergy = snapshot.data ?? 0;
+              return Container(
+                margin: const EdgeInsets.only(right: 16),
+                child: Material(
+                  color: currentEnergy > 0 
+                      ? const Color(0xFF8B4EFF).withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _showEnergyDialog();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.bolt,
+                            color: currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "$currentEnergy",
+                            style: TextStyle(
+                              color: currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        "$_currentEnergy",
-                        style: TextStyle(
-                          color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }
           ),
         ],
       ),

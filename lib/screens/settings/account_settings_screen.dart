@@ -2,11 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 🛡️ Added Firestore import for GDPR wipe
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
+import '../../services/card_storage_service.dart';
 import '../../services/pro_service.dart';
 import '../login/login_screen.dart';
-import 'manage_subscription_screen.dart'; // Added the import for the new screen
+import 'manage_subscription_screen.dart'; 
+import 'dialogs/edit_profile_dialog.dart';
+import 'dialogs/legal_document_dialog.dart';
+import 'dialogs/delete_account_dialog.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -31,52 +36,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     _nameController.text = user.displayName ?? '';
 
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            "Edit Profile",
-            style: TextStyle(
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: TextField(
-            controller: _nameController,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              labelText: "Display Name",
-              labelStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
-              ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF8B4EFF), width: 2),
-              ),
-            ),
-            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, _nameController.text.trim()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B4EFF),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
+    final newName = await EditProfileDialog.show(context, user.displayName ?? '');
 
     if (newName != null && newName.isNotEmpty && newName != user.displayName) {
       setState(() {
@@ -115,144 +75,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
-  void _showLegalDocument(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Dialog(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 10, 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.pop(context);
-                      },
-                      icon: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white12 : Colors.grey.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          color: isDark ? Colors.white54 : Colors.black54,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
-              Flexible(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white70 : Colors.grey.shade700,
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
-                      foregroundColor: const Color(0xFF8B4EFF),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      "Close",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   void _handleDeleteAccount() async {
     HapticFeedback.heavyImpact();
 
-    // 1. Show strict confirmation dialog
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
-            const SizedBox(width: 8),
-            Text(
-              "Delete Account",
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          "This action is permanent and cannot be undone. All your decks, flashcards, AI chat history, and pro status will be permanently erased.\n\nAre you absolutely sure?",
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text("Delete Everything", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+    final shouldDelete = await DeleteAccountDialog.show(context);
 
     if (shouldDelete != true) return;
 
@@ -263,12 +89,51 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     try {
       final user = AuthService().currentUser;
       if (user != null) {
-        // 2. Attempt to delete the user from Firebase
+        // 🛡️ BUG FIX: Check if the login is recent BEFORE wiping the database.
+        // Otherwise, data is wiped, but user.delete() fails with 'requires-recent-login', leaving an empty zombie account.
+        final lastSignIn = user.metadata.lastSignInTime;
+        if (lastSignIn == null || DateTime.now().difference(lastSignIn).inMinutes > 5) {
+          throw FirebaseAuthException(
+            code: 'requires-recent-login',
+            message: 'Please log out and log back in to verify your identity before deleting your account.',
+          );
+        }
+
+        // 🛡️ SECURITY FIX 1: GDPR-Compliant Account Deletion
+        // Wipe all associated Firestore data before deleting the Auth Token
+        final uid = user.uid;
+        final firestore = FirebaseFirestore.instance;
+
+        // 1. Wipe all Decks & their associated Cards
+        final decks = await firestore.collection('users').doc(uid).collection('decks').get();
+        final cardStorage = CardStorageService();
+        for (var deck in decks.docs) {
+          // 🛡️ BUG FIX: Use chunked batches to prevent rate limits and OOM crashes
+          await cardStorage.deleteCardsByDeck(deck.id);
+          await deck.reference.delete();
+        }
+
+        // 2. Wipe Study Pad Notes
+        final notes = await firestore.collection('users').doc(uid).collection('notes').get();
+        for (var note in notes.docs) {
+          await note.reference.delete();
+        }
+
+        // 3. Wipe Chat History & Energy Stats
+        final chats = await firestore.collection('users').doc(uid).collection('chat').get();
+        for (var chat in chats.docs) {
+          await chat.reference.delete();
+        }
+        await firestore.collection('users').doc(uid).collection('stats').doc('energy').delete();
+
+        // 4. Delete the main User Document
+        await firestore.collection('users').doc(uid).delete();
+
+        // 5. FINALLY, delete the Auth token
         await user.delete();
         await AuthService().signOut();
 
         if (mounted) {
-          // 3. Clear navigation stack and return to Login Screen
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
             (Route<dynamic> route) => false,
@@ -276,8 +141,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         }
       }
     } on FirebaseAuthException catch (e) {
-      // Firebase requires a recent login to perform sensitive actions like deletion.
-      // If the token is too old, it throws 'requires-recent-login'
       if (mounted) {
         String errorMessage = "Failed to delete account. Please try again later.";
         
@@ -290,6 +153,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             content: Text(errorMessage),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("An error occurred: ${e.toString()}"),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -453,7 +325,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 child: ListTile(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    // 👉 This now correctly opens the new Manage Subscription Screen
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const ManageSubscriptionScreen()),
@@ -518,7 +389,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     ListTile(
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        _showLegalDocument(
+                        LegalDocumentDialog.show(
+                          context,
                           "Privacy Policy",
                           '''Last Updated: March 2026\n\nWelcome to MindFlash. Your privacy is critically important to us.\n\n1. Information We Collect\n• Account Data: When you sign in using Google, we collect your email address, display name, and profile picture.\n• App Usage Data: We store the flashcards, decks, and chat history you create to sync them across your devices.\n• Uploaded Documents: Documents you upload are temporarily processed by our servers to generate flashcards but are not permanently stored or used to train global AI models.\n• Device Data: We may collect anonymized device information and crash reports to improve app stability.\n\n2. Third-Party Services We Use\nWe use trusted third-party services that may collect data in accordance with their own privacy policies:\n• Google Cloud & Firebase (for database storage and secure authentication)\n• Google AdMob (to display advertisements to free users)\n• Google Gemini API (to generate AI flashcards and power the AI Tutor)\n• RevenueCat (to process and manage MindFlash Pro subscriptions)\n\n3. How We Use Your Data\nWe use your data solely to provide, maintain, and improve the MindFlash service. We do NOT sell your personal information to third parties.\n\n4. Your Rights & Data Deletion\nYou own your study materials. You can permanently delete your account, flashcards, and all associated data at any time using the "Delete Account" button in this app's settings.\n\n5. Children's Privacy\nMindFlash is intended for students and learners. We do not knowingly collect personal information from children under the age of 13 without parental consent.\n\nIf you have any questions about this Privacy Policy, please contact us via the Help & Support menu.''',
                         );
@@ -544,7 +416,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     ListTile(
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        _showLegalDocument(
+                        LegalDocumentDialog.show(
+                          context,
                           "Terms of Service",
                           '''Last Updated: March 2026\n\nPlease read these Terms of Service carefully before using MindFlash.\n\n1. Acceptance of Terms\nBy accessing or using MindFlash, you agree to be bound by these Terms. If you disagree with any part of the terms, you do not have permission to access the service.\n\n2. AI Generation Disclaimer (Crucial)\nMindFlash uses artificial intelligence (Google Gemini) to generate study materials, answer questions, and summarize documents. \n• AI can make mistakes (hallucinations). \n• MindFlash does NOT guarantee the 100% accuracy, completeness, or reliability of generated content. \n• You are solely responsible for verifying the facts before relying on them for exams, medical, legal, or professional purposes. MindFlash is not liable for academic outcomes.\n\n3. User Content & Conduct\nYou are responsible for the documents and text you upload. You agree NOT to upload:\n• Copyrighted material you do not have the right to use.\n• Highly sensitive personal data (e.g., social security numbers, medical records).\n• Illegal, explicit, or harmful content.\n\n4. Subscriptions (MindFlash Pro)\nMindFlash offers auto-renewing subscriptions ("MindFlash Pro") that unlock premium features and remove ads. \n• Payment will be charged to your Apple or Google account at confirmation of purchase.\n• Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.\n• You can manage or cancel your subscription directly in your device's App Store / Play Store settings.\n\n5. Termination\nWe reserve the right to terminate or suspend your account immediately, without prior notice, if you breach these Terms (e.g., attempting to hack the AI energy system or API).\n\n6. Changes to Terms\nWe reserve the right to modify these terms at any time. We will notify users of significant changes.''',
                         );
@@ -634,7 +507,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
               child: const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFF8B4EFF), // Default loading color instead of red
+                  color: Color(0xFF8B4EFF),
                 ),
               ),
             ),

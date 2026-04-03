@@ -204,7 +204,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            QuizScreen(quiz: quizQuestions, deckTitle: _currentDeck.name),
+            QuizScreen(quiz: quizQuestions, deckId: _currentDeck.id, deckTitle: _currentDeck.name),
       ),
     );
   }

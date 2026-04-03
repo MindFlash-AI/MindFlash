@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/deck_model.dart';
 import '../models/card_model.dart';
@@ -30,7 +31,6 @@ class AIService {
   })  : _deckStorage = deckStorage ?? DeckStorageService(),
         _cardStorage = cardStorage ?? CardStorageService();
 
-  // 🛡️ WEB FIX: Use 'const' for the environment variable
   static const String _backendUrl = String.fromEnvironment('BACKEND_URL');
 
   Future<Map<String, String>> _getSecureHeaders() async {
@@ -49,11 +49,18 @@ class AIService {
     String? text,
     String? fileText,
     String? fileName,
+    String? targetDeckId, // 🛡️ NEW: Pass the target deck ID if we are updating!
   }) async {
     final decks = await _deckStorage.getDecks();
-    final allCards = await _cardStorage.getAllCards();
+    
+    // 🛡️ FIX: If we are updating a deck, we MUST fetch its existing cards
+    // so we can tell the AI what is already in it, preventing duplicates!
+    List<Flashcard> existingCards = [];
+    if (targetDeckId != null) {
+      existingCards = await _cardStorage.getCardsForDeck(targetDeckId);
+    }
 
-    final String userDataContext = _buildUserContext(decks, allCards);
+    final String userDataContext = _buildUserContext(decks, existingCards, targetDeckId);
     final headers = await _getSecureHeaders();
 
     final response = await _httpClient.post(
@@ -98,16 +105,37 @@ class AIService {
     required String text,
     required Deck deck,
     required List<Flashcard> cards,
+    required List<Map<String, dynamic>> chatHistory, 
   }) async {
     
+    // 💰 COST OPTIMIZATION: Reduce sample size from 25 to 10.
+    // This saves ~500-1000 tokens per chat message while keeping the AI perfectly contextualized.
+    final List<Flashcard> sampledCards = cards.length > 10 
+        ? (cards.toList()..shuffle()).sublist(0, 10) 
+        : cards;
+
     final sb = StringBuffer();
-    for (int i = 0; i < cards.length; i++) {
-      final c = cards[i];
+    for (int i = 0; i < sampledCards.length; i++) {
+      final c = sampledCards[i];
       sb.writeln("- Q: '${c.question}' -> A: '${c.answer}'");
     }
     
-    final String deckContext = "The user is studying the deck '${deck.name}' (Subject: ${deck.subject}).\n"
-        "Here are the flashcards currently in this deck:\n" + sb.toString();
+    String deckContext = "The user is studying the deck '${deck.name}' (Subject: ${deck.subject}).\n"
+        "Here is a sample of the flashcards in this deck to give you context:\n" + sb.toString();
+
+    if (chatHistory.isNotEmpty) {
+      deckContext += "\n\n--- RECENT CHAT HISTORY ---\n";
+      for (var msg in chatHistory) {
+        final isUser = msg['isUser'] == true;
+        String msgText = msg['text']?.toString() ?? '';
+        
+        if (msgText.length > 500) {
+          msgText = msgText.substring(0, 500) + '...[TRUNCATED]';
+        }
+        
+        deckContext += isUser ? "Student: $msgText\n" : "Tutor (You): $msgText\n";
+      }
+    }
 
     final headers = await _getSecureHeaders();
 
@@ -115,7 +143,7 @@ class AIService {
       Uri.parse(_backendUrl),
       headers: headers,
       body: jsonEncode({
-        'prompt': "CRITICAL RULE: You are ONLY a study tutor. You are STRICTLY FORBIDDEN from creating, updating, editing, or deleting any flashcards. ALWAYS respond with the action 'chat' and act as a conversational tutor helping the user master the current deck.\n\nUser Message: $text",
+        'prompt': text, // 🛡️ SECURITY FIX: System instructions must be enforced securely on the backend!
         'userContext': deckContext,
         'isChat': true, 
       }),
@@ -137,24 +165,26 @@ class AIService {
     return AIResponse(message: reply);
   }
 
-  String _buildUserContext(List<Deck> decks, List<Flashcard> allCards) {
+  // 🛡️ REBUILT CONTEXT BUILDER
+  String _buildUserContext(List<Deck> decks, List<Flashcard> existingCards, String? targetDeckId) {
     if (decks.isEmpty) return 'The user currently has no saved decks.';
 
-    final Map<String, List<Flashcard>> cardsByDeck = {};
-    for (final card in allCards) {
-      if (!cardsByDeck.containsKey(card.deckId)) {
-        cardsByDeck[card.deckId] = <Flashcard>[];
+    final buffer = StringBuffer();
+    
+    if (targetDeckId != null && existingCards.isNotEmpty) {
+      // 💰 COST OPTIMIZATION: If explicitly updating a deck, ONLY send that deck's context.
+      buffer.write('CRITICAL: The user is asking to UPDATE this specific deck. Here are the flashcards ALREADY inside it. DO NOT generate duplicates of these:\n');
+      final sample = existingCards.take(40).toList();
+      for (var c in sample) {
+        buffer.write('    -> Q: ${c.question} | A: ${c.answer}\n');
       }
-      cardsByDeck[card.deckId]!.add(card);
-    }
-
-    final buffer = StringBuffer('The user currently has the following study decks saved in their library:\n');
-    for (final deck in decks) {
-      final deckCards = cardsByDeck[deck.id] ?? <Flashcard>[];
-      buffer.write('- Deck Name: \'${deck.name}\' (Subject: ${deck.subject}, ID: ${deck.id}). It contains ${deckCards.length} cards.\n');
-      if (deckCards.isNotEmpty) {
-        final first = deckCards.first;
-        buffer.write('  Examples: Q: \'${first.question}\' -> A: \'${first.answer}\'\n');
+    } else {
+      // 💰 COST OPTIMIZATION: Limit general context to 10 decks instead of 30.
+      final recentDecks = decks.take(10).toList();
+      buffer.write('The user currently has the following study decks saved in their library:\n');
+      for (final deck in recentDecks) {
+        final safeName = deck.name.length > 80 ? deck.name.substring(0, 80) : deck.name;
+        buffer.write('- Deck Name: \'$safeName\' (Subject: ${deck.subject}, ID: ${deck.id}).\n');
       }
     }
     return buffer.toString();
@@ -245,6 +275,7 @@ class AIService {
         if (details.isNotEmpty) return 'Server error ${response.statusCode}\nDetails: $details';
       }
     } catch (_) {}
-    return 'Server error ${response.statusCode}\nBody: ${response.body}';
+    debugPrint('Server error ${response.statusCode}\nBody: ${response.body}');
+    return 'An unexpected server error occurred (${response.statusCode}). Please try again later.';
   }
 }

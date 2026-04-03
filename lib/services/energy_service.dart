@@ -34,75 +34,51 @@ class EnergyService {
 
   static const String _backendUrl = String.fromEnvironment('BACKEND_URL');
 
+  Stream<int> get energyStream {
+    if (_uid == null) return Stream.value(maxEnergy);
+    
+    return _energyRef.snapshots().map((doc) {
+      // 🛡️ If the doc doesn't exist yet, the backend will create it on their 
+      // first generation request. We just assume maxEnergy for the UI until then.
+      if (!doc.exists) return maxEnergy;
+      
+      final data = doc.data() as Map<String, dynamic>?;
+      if (data == null) return maxEnergy;
+      
+      final energy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
+      _currentEnergy = energy; 
+      return energy;
+    });
+  }
+
   Future<void> init() async {
     if (_uid == null) return;
 
     try {
+      // 🔒 SECURED: We completely removed all client-side writes to Firestore.
+      // The frontend now simply reads the document to set initial state.
+      // The backend (index.js) handles all daily resets and initializations.
       var doc = await _energyRef.get();
-
-      if (!doc.exists) {
+      if (doc.exists && doc.data() != null) {
+        final data = Map<String, dynamic>.from(doc.data() as Map);
+        _currentEnergy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
+      } else {
         _currentEnergy = maxEnergy;
-        await _energyRef.set({
-          'energy': maxEnergy,
-          'lastResetDate': FieldValue.serverTimestamp(),
-          'serverPing': FieldValue.serverTimestamp(),
-        });
-        return;
       }
-
-      final rawData = doc.data();
-      if (rawData == null) return;
-
-      final data = Map<String, dynamic>.from(rawData as Map);
-
-      _currentEnergy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
-
-      final Timestamp? lastResetStamp = data['lastResetDate'];
-
-      if (lastResetStamp != null) {
-        final now = DateTime.now().toUtc();
-        final lastReset = lastResetStamp.toDate().toUtc();
-
-        if (lastReset.year != now.year ||
-            lastReset.month != now.month ||
-            lastReset.day != now.day) {
-          _currentEnergy = maxEnergy;
-
-          await _energyRef.set({
-            'energy': maxEnergy,
-            'lastResetDate': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-        }
-      }
-
-      await _energyRef.set({
-        'serverPing': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
     } catch (e) {
       print("Error initializing EnergyService: $e");
     }
   }
 
-  Future<void> deductEnergy({int amount = 1}) async {
-    _currentEnergy = (_currentEnergy >= amount)
-        ? _currentEnergy - amount
-        : 0;
-  }
-
-  /// 🔥 CLEAN REFILL LOGIC
+  /// 🔥 SECURE REFILL LOGIC
   Future<void> refillEnergy() async {
     if (kIsWeb) {
-      // Do NOT allow web to call backend
       throw Exception("Energy refill is not allowed on web.");
     }
 
     if (_uid == null) {
       throw Exception("User not authenticated.");
     }
-
-    int previousEnergy = _currentEnergy;
-    _currentEnergy = maxEnergy;
 
     try {
       final String baseUrl = _backendUrl.replaceAll('/generate-deck', '');
@@ -121,11 +97,9 @@ class EnergyService {
       );
 
       if (response.statusCode != 200) {
-        _currentEnergy = previousEnergy;
         throw Exception("Backend validation failed: ${response.body}");
       }
     } catch (e) {
-      _currentEnergy = previousEnergy;
       throw Exception("Refill failed: $e");
     }
   }

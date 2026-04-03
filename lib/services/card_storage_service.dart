@@ -21,9 +21,7 @@ class CardStorageService {
       return snapshot.docs
           .map((doc) {
             final data = doc.data();
-
             if (data is Map) {
-              // 🛡️ WEB-SAFE & FAST: Top-level mapping prevents the UI from freezing
               return Flashcard.fromMap(Map<String, dynamic>.from(data));
             }
             return null;
@@ -45,16 +43,23 @@ class CardStorageService {
     }
   }
 
+  // 🛡️ SECURITY FIX 1: Array Chunking for Batches
+  // Firestore strictly limits batches to 500 writes. If the AI generates 501+ cards,
+  // the app would crash. We now slice them into safe chunks of 450.
   Future<void> addCards(List<Flashcard> cards) async {
     try {
       if (_uid == null) return;
-      final batch = _firestore.batch();
-
-      for (var card in cards) {
-        batch.set(_cardsRef.doc(card.id), card.toMap());
+      
+      const int chunkSize = 450;
+      for (var i = 0; i < cards.length; i += chunkSize) {
+        final batch = _firestore.batch();
+        final chunk = cards.skip(i).take(chunkSize);
+        
+        for (var card in chunk) {
+          batch.set(_cardsRef.doc(card.id), card.toMap());
+        }
+        await batch.commit();
       }
-
-      await batch.commit();
     } catch (e) {
       print("Error adding multiple cards: $e");
     }
@@ -78,47 +83,55 @@ class CardStorageService {
     }
   }
 
+  // 🛡️ SECURITY FIX 1 (Cont): Chunking deletes to prevent orphans
   Future<void> deleteCardsByDeck(String deckId) async {
     try {
       if (_uid == null) return;
 
-      final query =
-          await _cardsRef.where('deckId', isEqualTo: deckId).get();
+      final query = await _cardsRef.where('deckId', isEqualTo: deckId).get();
+      final docs = query.docs;
 
-      final batch = _firestore.batch();
-
-      for (var doc in query.docs) {
-        batch.delete(doc.reference);
+      const int chunkSize = 450;
+      for (var i = 0; i < docs.length; i += chunkSize) {
+        final batch = _firestore.batch();
+        final chunk = docs.skip(i).take(chunkSize);
+        
+        for (var doc in chunk) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
       }
-
-      await batch.commit();
     } catch (e) {
       print("Error deleting cards by deck: $e");
     }
   }
 
+  // 🛡️ SECURITY FIX 1 (Cont): Chunking updates
   Future<void> resetStatsForDeck(String deckId) async {
     try {
       if (_uid == null) return;
 
-      final query =
-          await _cardsRef.where('deckId', isEqualTo: deckId).get();
+      final query = await _cardsRef.where('deckId', isEqualTo: deckId).get();
+      final docs = query.docs;
 
-      final batch = _firestore.batch();
-
-      for (var doc in query.docs) {
-        batch.update(doc.reference, {
-          'isMastered': false,
-          'isFlagged': false,
-          'repetitions': 0,
-          'easeFactor': 2.5,
-          'interval': 0,
-          'nextReviewDate': Timestamp.fromDate(DateTime.now()),
-          'lastScore': null,
-        });
+      const int chunkSize = 450;
+      for (var i = 0; i < docs.length; i += chunkSize) {
+        final batch = _firestore.batch();
+        final chunk = docs.skip(i).take(chunkSize);
+        
+        for (var doc in chunk) {
+          batch.update(doc.reference, {
+            'isMastered': false,
+            'isFlagged': false,
+            'repetitions': 0,
+            'easeFactor': 2.5,
+            'interval': 0,
+            'nextReviewDate': Timestamp.fromDate(DateTime.now()),
+            'lastScore': null,
+          });
+        }
+        await batch.commit();
       }
-
-      await batch.commit();
     } catch (e) {
       print("Error resetting stats: $e");
     }
@@ -128,13 +141,11 @@ class CardStorageService {
     try {
       if (_uid == null) return [];
 
-      final snapshot =
-          await _cardsRef.where('deckId', isEqualTo: deckId).get();
+      final snapshot = await _cardsRef.where('deckId', isEqualTo: deckId).get();
 
       return snapshot.docs
           .map((doc) {
             final data = doc.data();
-
             if (data is Map) {
               return Flashcard.fromMap(Map<String, dynamic>.from(data));
             }
@@ -162,7 +173,6 @@ class CardStorageService {
       return snapshot.docs
           .map((doc) {
             final data = doc.data();
-
             if (data is Map) {
               return Flashcard.fromMap(Map<String, dynamic>.from(data));
             }

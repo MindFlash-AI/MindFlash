@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:ui'; // Required for ImageFilter (BackdropFilter)
+import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -10,18 +10,15 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/ad_helper.dart';
 import '../services/energy_service.dart';
-import '../services/pro_service.dart'; // Added to check Pro status
+import '../services/pro_service.dart'; 
 import '../screens/settings/manage_subscription_screen.dart'; 
-import 'pro_paywall_sheet.dart'; // Added the new Universal Paywall Widget
+import 'pro_paywall_sheet.dart'; 
 
-// 🛡️ WEB FIX: Accept raw bytes instead of a file path
 Future<String> _extractFileContentInBackground(
   Map<String, dynamic> data,
 ) async {
-  final map = Map<String, dynamic>.from(data);
-
-  Uint8List bytes = map['bytes'] as Uint8List;
-  String extension = map['extension']?.toString() ?? '';
+  Uint8List bytes = data['bytes'];
+  String extension = data['extension'];
   String fileContent = '';
 
   if (extension == 'pdf') {
@@ -29,7 +26,6 @@ Future<String> _extractFileContentInBackground(
     fileContent = PdfTextExtractor(document).extractText();
     document.dispose();
   } else if (extension == 'txt') {
-    // Safely decode text bytes
     fileContent = utf8.decode(bytes, allowMalformed: true);
   } else if (['jpg', 'jpeg', 'png'].contains(extension)) {
     fileContent = "data:image/$extension;base64,${base64Encode(bytes)}";
@@ -200,11 +196,13 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
   }
 
   Future<void> _handleFileUpload() async {
+    if (_isSubmitting || _isFileProcessing) return; // 🛡️ Strict lock
+    
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'txt', 'jpg', 'jpeg', 'png'],
-        withData: true, // 🚨 CRITICAL FOR WEB: Loads file bytes directly into memory
+        withData: true, 
       );
 
       if (result != null && result.files.isNotEmpty) {
@@ -218,9 +216,14 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         String fileName = platformFile.name;
         String extension = platformFile.extension?.toLowerCase() ?? '';
 
+        // 🛡️ SECURITY FIX: Enforce a strict 5MB file size limit to prevent OOM crashes and payload limits
+        final int fileSizeInBytes = platformFile.size;
+        if (fileSizeInBytes > 5 * 1024 * 1024) {
+          throw Exception("File is too large. Please select a file under 5MB.");
+        }
+
         Uint8List? fileBytes = platformFile.bytes;
 
-        // Fallback for Mobile if 'withData' didn't populate for a massive file
         if (fileBytes == null && !kIsWeb && platformFile.path != null) {
           fileBytes = await File(platformFile.path!).readAsBytes();
         }
@@ -268,6 +271,8 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
   }
 
   void _submitTopic() async {
+    if (_isSubmitting) return; // 🛡️ SECURITY FIX: Prevents multi-tap energy drains
+    
     if (_formKey.currentState!.validate()) {
       HapticFeedback.lightImpact();
 
@@ -301,7 +306,6 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         if (mounted) {
           _closeLoadingOverlay();
 
-          // 🌟 POST-SUCCESS PAYWALL TRIGGER
           if (!ProService().isPro) {
             await ProPaywallSheet.show(
               context,
@@ -484,7 +488,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       if (mounted) {
         _closeLoadingOverlay();
         setState(() => _isSubmitting = false);
-        _submitTopic(); // Automatically retry submission!
+        _submitTopic(); 
       }
     } catch (e) {
       if (mounted) {
