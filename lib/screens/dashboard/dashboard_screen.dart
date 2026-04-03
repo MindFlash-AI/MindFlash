@@ -15,6 +15,7 @@ import '../../widgets/update_deck_ai_dialog.dart';
 import '../deck_view/deck_view.dart';
 import 'widgets/dashboard_header.dart';
 import '../../widgets/web_pro_gate.dart';
+import '../study_pad/study_pad_screen.dart';
 
 enum SortOption { nameAsc, nameDesc, countDesc, countAsc }
 
@@ -474,7 +475,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               title: "Total Decks",
               count: _decks.length.toString(),
               icon: Icons.chrome_reader_mode_outlined,
-              // Adjusted to be slightly lighter in dark mode for better contrast
               colors: isDark 
                   ? const [Color(0xFF533E9E), Color(0xFF382773)] 
                   : const [Color(0xFF5B4FE6), Color(0xFF8B4EFF)],
@@ -487,7 +487,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               title: "Total Cards",
               count: totalCards.toString(),
               icon: Icons.auto_awesome_outlined,
-              // Adjusted to be slightly lighter in dark mode for better contrast
               colors: isDark 
                   ? const [Color(0xFF863B6B), Color(0xFF5E244B)] 
                   : const [Color(0xFFE940A3), Color(0xFFD041E6)],
@@ -763,10 +762,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // 🛡️ REBUILT ACTION BUTTONS: Now includes the Study Pad next to Manual Deck!
   Widget _buildActionButtons(BuildContext context, bool isDark) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Top Row: Full Width "Generate with AI" Button
         AnimatedBuilder(
           animation: _pulseController,
           builder: (context, child) {
@@ -827,56 +828,122 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
         const SizedBox(height: 12),
-        Container(
-          height: 55,
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) =>
-                      CreateDeckDialog(onDeckCreated: _onDeckCreated),
-                );
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add, color: Theme.of(context).textTheme.bodyLarge?.color),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      "Create Deck Manually",
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+        
+        // Bottom Row: 50/50 Split for "Study Pad" and "Manual Deck"
+        Row(
+          children: [
+            // --- NEW: Study Pad Button ---
+            Expanded(
+              child: Container(
+                height: 55,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2A1B3D) : Colors.purple.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.5), width: 1.5),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudyPadScreen(
+                            // Pass the dashboard's _loadDecks so the dashboard refreshes 
+                            // automatically when the new deck is created!
+                            onDeckCreated: () => _loadDecks(), 
+                          ),
+                        ),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text("Study Pad feature coming soon!"),
+                          backgroundColor: const Color(0xFF8B4EFF),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.edit_note_rounded, color: Color(0xFF8B4EFF)),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            "Study Pad",
+                            style: TextStyle(
+                              color: Color(0xFF8B4EFF),
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            
+            // --- EXISTING: Manual Deck Button ---
+            Expanded(
+              child: Container(
+                height: 55,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => CreateDeckDialog(onDeckCreated: _onDeckCreated),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, color: Theme.of(context).textTheme.bodyLarge?.color, size: 20),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            "Manual Deck",
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

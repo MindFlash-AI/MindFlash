@@ -1,26 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; 
+import 'package:flutter/gestures.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart'; 
+// 🛡️ ADDED: Required for Quill Localization
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart'; 
+
 import 'firebase_options.dart';
 import 'screens/loading_screen/loading_screen.dart';
 import 'constants.dart';
 import 'services/notification_service.dart';
 import 'services/pro_service.dart';
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+      };
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Initialize Firebase FIRST
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 2. Initialize App Check SECOND (Must be before ProService or any Firestore calls)
   if (!kIsWeb) {
-    // UPDATED: Using the new provider parameters and classes
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode 
           ? AndroidDebugProvider() 
@@ -30,32 +41,22 @@ void main() async {
           : AppleDeviceCheckProvider(),
     );
   } else {
-    // 🛡️ WEB FIX: Must use 'const' for the compiler to inject the value!
     const recaptchaKey = String.fromEnvironment('RECAPTCHA_KEY');
-    
     if (recaptchaKey.isNotEmpty) {
-      // UPDATED: Using providerWeb instead of webProvider
       await FirebaseAppCheck.instance.activate(
         providerWeb: ReCaptchaV3Provider(recaptchaKey),
       );
-    } else {
-      debugPrint("Warning: RECAPTCHA_KEY is missing from build command");
     }
   }
 
-  // 3. NOW initialize services that use Firestore
   await ProService().init();
   
   if (!kIsWeb) {
     await MobileAds.instance.initialize();
   }
 
-  // --- Load Saved Theme Preference ---
   final prefs = await SharedPreferences.getInstance();
-  
-  // Defaulting to Dark Mode for all new users
   final isDarkMode = prefs.getBool('isDarkMode') ?? true; 
-  
   themeNotifier.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
   themeNotifier.addListener(() {
@@ -82,6 +83,18 @@ class MindFlashApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: currentMode,
+          scrollBehavior: AppScrollBehavior(),
+          // 🛡️ FIX: Added Localization Delegates for Flutter Quill
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en', 'US'),
+            Locale('zh', 'CN'), // Standard required by the package
+          ],
           home: const LoadingScreen(),
         );
       },
