@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 🛡️ Added for HapticFeedback
 import 'package:firebase_auth/firebase_auth.dart';
 import '../pages/about_us_screen.dart'; 
 import '../pages/features_screen.dart';
@@ -219,9 +220,50 @@ class WebNavBar extends StatelessWidget {
         } else if (value == 'billing') {
           // TODO: Navigate to Stripe/Billing Portal
         } else if (value == 'signout') {
-          await FirebaseAuth.instance.signOut();
-          if (context.mounted) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
+          // 🛡️ ADDED: Confirmation Modal before Sign Out
+          HapticFeedback.mediumImpact();
+          final shouldSignOut = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                "Sign Out",
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Text(
+                "Are you sure you want to sign out of MindFlash?",
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Sign Out", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+
+          // Only proceed with sign out if the user confirmed
+          if (shouldSignOut == true) {
+            await FirebaseAuth.instance.signOut();
+            if (context.mounted) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }
           }
         }
       },
