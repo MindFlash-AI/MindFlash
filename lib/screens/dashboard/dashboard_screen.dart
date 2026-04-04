@@ -108,6 +108,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _showManualDeckModal() {
+    if (_decks.length >= 20) {
+      HapticFeedback.heavyImpact();
+      _showFeedbackModal(context, false, "You have reached the maximum limit of 20 decks. Please delete some to create new ones! 🛑");
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -348,6 +354,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                         onTap: () async {
                           HapticFeedback.lightImpact();
                           Navigator.pop(modalContext);
+
+                          if (_decks.length >= 20) {
+                            HapticFeedback.heavyImpact();
+                            _showFeedbackModal(
+                              parentContext,
+                              false,
+                              "You have reached the maximum limit of 20 decks. Please delete some to create new ones! 🛑",
+                            );
+                            return;
+                          }
 
                           final successMessage = await showModalBottomSheet<String>(
                             context: parentContext,

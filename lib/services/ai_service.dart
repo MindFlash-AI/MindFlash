@@ -60,11 +60,21 @@ class AIService {
 
     final decks = await _deckStorage.getDecks();
     
+    // 🛡️ SECURITY FIX: Enforce Maximum 20 Decks per User
+    if (targetDeckId == null && decks.length >= 20) {
+      throw Exception("You have reached the maximum limit of 20 decks. Please delete some decks to create new ones! 🛑");
+    }
+
     // 🛡️ FIX: If we are updating a deck, we MUST fetch its existing cards
     // so we can tell the AI what is already in it, preventing duplicates!
     List<Flashcard> existingCards = [];
     if (targetDeckId != null) {
       existingCards = await _cardStorage.getCardsForDeck(targetDeckId);
+      
+      // 🛡️ SECURITY FIX: Enforce Maximum 100 Cards per Deck
+      if (existingCards.length >= 100) {
+         throw Exception("This deck is completely full (100 cards max)! Please update a different deck. 🛑");
+      }
     }
 
     final String userDataContext = _buildUserContext(decks, existingCards, targetDeckId);
@@ -210,6 +220,7 @@ class AIService {
 
     final List<Flashcard> newCards = <Flashcard>[];
     for (var cardData in rawCards) {
+      if (newCards.length >= 100) break; // 🛡️ ENFORCE: Max 100 cards limit
       if (cardData is Map) {
         newCards.add(Flashcard(
           id: _uuid.v4(),
@@ -219,6 +230,8 @@ class AIService {
         ));
       }
     }
+
+    newDeck.cardCount = newCards.length; // Ensure accurate count
 
     await _deckStorage.addDeck(newDeck);
     await _cardStorage.addCards(newCards);
@@ -237,8 +250,13 @@ class AIService {
 
     final Deck editedDeck = decks[index];
     
+    // 🛡️ ENFORCE: Max 100 cards limit
+    final int availableSlots = 100 - editedDeck.cardCount;
+    if (availableSlots <= 0) return editedDeck;
+
     final List<Flashcard> newCards = <Flashcard>[];
     for (var cardData in rawCards) {
+      if (newCards.length >= availableSlots) break; // Drop any extra generated cards
       if (cardData is Map) {
         newCards.add(Flashcard(
           id: _uuid.v4(),

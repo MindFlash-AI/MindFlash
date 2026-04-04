@@ -151,6 +151,17 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
   void _submitUpdate() async {
     if (_formKey.currentState!.validate() && _selectedDeck != null) {
+      if (_selectedDeck!.cardCount >= 100) {
+        HapticFeedback.heavyImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("This deck is full (100 cards max)! Please choose another deck. 🛑"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isSubmitting = true;
       });
