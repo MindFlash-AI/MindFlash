@@ -50,15 +50,15 @@ class AccountSettingsWeb extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(24),
-                      border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 20, offset: const Offset(0, 10))],
+                      border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 20, offset: const Offset(0, 10))],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundColor: const Color(0xFF5B4FE6).withOpacity(0.1),
+                          backgroundColor: const Color(0xFF5B4FE6).withValues(alpha: 0.1),
                           backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
                           child: user?.photoURL == null ? const Icon(Icons.person, size: 50, color: Color(0xFF8B4EFF)) : null,
                         ),
@@ -146,14 +146,14 @@ class AccountSettingsWeb extends StatelessWidget {
                       const SizedBox(height: 40),
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text("DANGER ZONE", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent.withOpacity(0.8), letterSpacing: 1.2)),
+                        child: Text("DANGER ZONE", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent.withValues(alpha: 0.8), letterSpacing: 1.2)),
                       ),
                       Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1),
-                          boxShadow: [BoxShadow(color: Colors.redAccent.withOpacity(isDark ? 0.1 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3), width: 1),
+                          boxShadow: [BoxShadow(color: Colors.redAccent.withValues(alpha: isDark ? 0.1 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                         ),
                         child: ListTile(
                           onTap: onDeleteAccount,
@@ -179,8 +179,8 @@ class AccountSettingsWeb extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: child,
     );
@@ -189,7 +189,7 @@ class AccountSettingsWeb extends StatelessWidget {
   Widget _buildIconBox(IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
       child: Icon(icon, color: color),
     );
   }

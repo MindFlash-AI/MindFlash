@@ -52,8 +52,8 @@ class WebProGate extends StatelessWidget {
                   height: 400,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.pinkStart.withOpacity(isDark ? 0.1 : 0.05),
-                    boxShadow: [BoxShadow(color: AppColors.pinkStart.withOpacity(isDark ? 0.2 : 0.1), blurRadius: 100)],
+                    color: AppColors.pinkStart.withValues(alpha: isDark ? 0.1 : 0.05),
+                    boxShadow: [BoxShadow(color: AppColors.pinkStart.withValues(alpha: isDark ? 0.2 : 0.1), blurRadius: 100)],
                   ),
                 ),
               ),
@@ -65,8 +65,8 @@ class WebProGate extends StatelessWidget {
                   height: 400,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.blueStart.withOpacity(isDark ? 0.1 : 0.05),
-                    boxShadow: [BoxShadow(color: AppColors.blueStart.withOpacity(isDark ? 0.2 : 0.1), blurRadius: 100)],
+                    color: AppColors.blueStart.withValues(alpha: isDark ? 0.1 : 0.05),
+                    boxShadow: [BoxShadow(color: AppColors.blueStart.withValues(alpha: isDark ? 0.2 : 0.1), blurRadius: 100)],
                   ),
                 ),
               ),
@@ -78,12 +78,12 @@ class WebProGate extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 500),
                     padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor.withOpacity(isDark ? 0.7 : 1.0),
+                      color: Theme.of(context).cardColor.withValues(alpha: isDark ? 0.7 : 1.0),
                       borderRadius: BorderRadius.circular(32),
-                      border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                      border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                           blurRadius: 30,
                           offset: const Offset(0, 10),
                         ),
@@ -98,7 +98,7 @@ class WebProGate extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
-                              colors: [AppColors.pinkStart.withOpacity(0.2), AppColors.blueStart.withOpacity(0.2)],
+                              colors: [AppColors.pinkStart.withValues(alpha: 0.2), AppColors.blueStart.withValues(alpha: 0.2)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),

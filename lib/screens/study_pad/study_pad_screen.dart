@@ -12,6 +12,8 @@ import '../../widgets/create_deck_ai_dialog.dart';
 import 'study_pad_mobile.dart';
 import 'study_pad_web.dart';
 import 'widgets/drawing_overlay.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../web_landing/web_landing_screen.dart';
 import 'widgets/saved_notes_sheet.dart';
 
 class StudyPadScreen extends StatefulWidget {
@@ -34,6 +36,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   StreamSubscription? _docChangeSubscription;
   Timer? _debounceTimer;
   bool _isDrawingMode = false;
+  bool _isSidebarVisible = true; // 🛡️ Sidebar minimization state
   bool _isEraserMode = false;
   bool _isHighlighterMode = false;
   final ValueNotifier<String> _saveNotifier = ValueNotifier("Saved");
@@ -127,6 +130,23 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
         _focusNode.unfocus(); 
       }
     });
+  }
+
+  void _toggleSidebar() {
+    HapticFeedback.lightImpact();
+    setState(() => _isSidebarVisible = !_isSidebarVisible);
+  }
+
+  void _navigateToDashboard() {
+    Navigator.pushAndRemoveUntil(
+      context, MaterialPageRoute(builder: (context) => const DashboardScreen()), (route) => false,
+    );
+  }
+
+  void _navigateToWebsite() {
+    Navigator.pushAndRemoveUntil(
+      context, MaterialPageRoute(builder: (context) => const WebLandingScreen()), (route) => false,
+    );
   }
 
   void _openSavedNotes() async {
@@ -413,6 +433,10 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             scrollController: _scrollController,
             titleController: _titleController,
             isDrawingMode: _isDrawingMode,
+            isSidebarVisible: _isSidebarVisible,
+            onToggleSidebar: _toggleSidebar,
+            onDashboardTap: _navigateToDashboard,
+            onWebsiteTap: _navigateToWebsite,
             saveNotifier: _saveNotifier,
             strokes: _strokes,
             drawingNotifier: _drawingNotifier,

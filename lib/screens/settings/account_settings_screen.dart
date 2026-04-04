@@ -216,7 +216,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     children: [
                       CircleAvatar(
                         radius: 40,
-                        backgroundColor: const Color(0xFF5B4FE6).withOpacity(0.1),
+                        backgroundColor: const Color(0xFF5B4FE6).withValues(alpha: 0.1),
                         backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
                         child: user.photoURL == null
                             ? const Icon(Icons.person, size: 40, color: Color(0xFF8B4EFF))
@@ -262,10 +262,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                  border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -293,7 +293,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2979FF).withOpacity(0.1),
+                      color: const Color(0xFF2979FF).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.edit_rounded, color: Color(0xFF2979FF)),
@@ -321,10 +321,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                  border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -355,7 +355,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                      color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.star_rounded, color: Color(0xFF8B4EFF)),
@@ -383,10 +383,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                  border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -413,7 +413,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00C853).withOpacity(0.1),
+                          color: const Color(0xFF00C853).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.privacy_tip_rounded, color: Color(0xFF00C853)),
@@ -440,7 +440,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF9100).withOpacity(0.1),
+                          color: const Color(0xFFFF9100).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.description_rounded, color: Color(0xFFFF9100)),
@@ -459,7 +459,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.redAccent.withOpacity(0.8),
+                    color: Colors.redAccent.withValues(alpha: 0.8),
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -470,10 +470,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1),
+                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3), width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.redAccent.withOpacity(isDark ? 0.1 : 0.05),
+                      color: Colors.redAccent.withValues(alpha: isDark ? 0.1 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -498,7 +498,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.1),
+                      color: Colors.redAccent.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
@@ -512,7 +512,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           // Full-screen loading overlay while deleting/updating
           if (_isLoading)
             Container(
-              color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
+              color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
               child: const Center(
                 child: CircularProgressIndicator(
                   color: Color(0xFF8B4EFF),

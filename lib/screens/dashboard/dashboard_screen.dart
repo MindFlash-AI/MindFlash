@@ -13,6 +13,7 @@ import '../../widgets/deck_list_item.dart';
 import '../../widgets/create_deck_dialog.dart';
 import '../../widgets/create_deck_ai_dialog.dart';
 import '../../widgets/update_deck_ai_dialog.dart';
+import '../../widgets/universal_sidebar.dart';
 
 import '../deck_view/deck_view.dart';
 import '../../widgets/web_pro_gate.dart';
@@ -155,8 +156,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isSuccess 
-                      ? (isDark ? Colors.green.withOpacity(0.15) : Colors.green.shade50) 
-                      : (isDark ? Colors.red.withOpacity(0.15) : Colors.red.shade50),
+                      ? (isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50) 
+                      : (isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -324,7 +325,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF5B4FE6).withOpacity(0.1),
+                            color: const Color(0xFF5B4FE6).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
@@ -376,7 +377,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         leading: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE940A3).withOpacity(0.1),
+                            color: const Color(0xFFE940A3).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.update, color: Color(0xFFE940A3)),
@@ -439,155 +440,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildSidebarContent(BuildContext context, bool isDark) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Logo
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8), 
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "MindFlash",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 32),
-            Divider(color: isDark ? Colors.white12 : Colors.grey.shade200, height: 1),
-            const SizedBox(height: 24),
-            
-            Text(
-              "MENU",
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                color: isDark ? Colors.white38 : Colors.black38,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            _buildSidebarItem(
-              context, 
-              isDark, 
-              icon: Icons.dashboard_rounded, 
-              title: "Dashboard", 
-              isActive: true, 
-              onTap: () {
-                if (_scaffoldKey.currentState?.isDrawerOpen == true) {
-                  Navigator.pop(context);
-                }
-              }
-            ),
-            
-            _buildSidebarItem(
-              context, 
-              isDark, 
-              icon: Icons.edit_note_rounded, 
-              title: "Study Pad", 
-              onTap: _navigateToStudyPad
-            ),
-
-            const Spacer(),
-            
-            Divider(color: isDark ? Colors.white12 : Colors.grey.shade200, height: 1),
-            const SizedBox(height: 16),
-            _buildSidebarItem(
-              context, 
-              isDark, 
-              icon: Icons.public_rounded, 
-              title: "Back to Website", 
-              onTap: _navigateToWebsite
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSidebarItem(BuildContext context, bool isDark, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    bool isActive = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: isActive ? [
-          BoxShadow(
-            color: const Color(0xFF8B4EFF).withOpacity(isDark ? 0.3 : 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ] : [],
-      ),
-      child: Material(
-        color: isActive 
-            ? (isDark ? const Color(0xFF8B4EFF).withOpacity(0.2) : Colors.white)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isActive 
-                    ? const Color(0xFF8B4EFF).withOpacity(0.4) 
-                    : Colors.transparent,
-                width: 1.5,
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Icon(
-                  icon, 
-                  color: isActive ? const Color(0xFF8B4EFF) : (isDark ? Colors.white54 : Colors.black54),
-                  size: 22,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                    color: isActive ? const Color(0xFF8B4EFF) : (isDark ? Colors.white70 : Colors.black87),
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildOverviewWidgets(BuildContext context, bool isDark, double maxWidth) {
     return StreamBuilder<int>(
       stream: EnergyService().energyStream,
@@ -604,7 +456,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             colors: isDark 
                 ? const [Color(0xFF533E9E), Color(0xFF382773)] 
                 : const [Color(0xFF6366F1), Color(0xFF4F46E5)], 
-            shadowColor: isDark ? Colors.black87 : const Color(0xFF4F46E5).withOpacity(0.3),
+            shadowColor: isDark ? Colors.black87 : const Color(0xFF4F46E5).withValues(alpha: 0.3),
           ),
           StatCard(
             title: "Total Cards",
@@ -613,7 +465,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             colors: isDark 
                 ? const [Color(0xFF863B6B), Color(0xFF5E244B)] 
                 : const [Color(0xFFEC4899), Color(0xFFDB2777)], 
-            shadowColor: isDark ? Colors.black87 : const Color(0xFFDB2777).withOpacity(0.3),
+            shadowColor: isDark ? Colors.black87 : const Color(0xFFDB2777).withValues(alpha: 0.3),
           ),
           StatCard(
             title: "AI Energy",
@@ -622,7 +474,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             colors: isDark 
                 ? const [Color(0xFF0F766E), Color(0xFF172554)] 
                 : const [Color(0xFF0EA5E9), Color(0xFF0284C7)], 
-            shadowColor: isDark ? Colors.black87 : const Color(0xFF0284C7).withOpacity(0.3),
+            shadowColor: isDark ? Colors.black87 : const Color(0xFF0284C7).withValues(alpha: 0.3),
           ),
         ];
 
@@ -736,7 +588,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       elevation: 16, 
-                      shadowColor: const Color(0xFF8B4EFF).withOpacity(0.6), 
+                      shadowColor: const Color(0xFF8B4EFF).withValues(alpha: 0.6), 
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
@@ -751,8 +603,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildAnimatedDeckGhost(bool isDark) {
     final borderColor = isDark ? Colors.white24 : Colors.grey.shade300;
-    final gradientStart = isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6);
-    final gradientEnd = isDark ? Colors.transparent : Colors.white.withOpacity(0.1);
+    final gradientStart = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.6);
+    final gradientEnd = isDark ? Colors.transparent : Colors.white.withValues(alpha: 0.1);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -780,7 +632,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           boxShadow: isDark ? [] : [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 15,
               offset: const Offset(0, 5),
             )
@@ -904,7 +756,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             color: isDark ? Theme.of(context).cardColor : Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
@@ -1052,7 +904,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B4EFF).withOpacity(0.4),
+                    color: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   )
@@ -1094,10 +946,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF2A1B3D) : Colors.purple.shade50,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.5), width: 1.5),
+                    border: Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.5), width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                        color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       )
@@ -1137,10 +989,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
+                    border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1) : null,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       )
@@ -1202,12 +1054,12 @@ class _DashboardScreenState extends State<DashboardScreen>
         color: isPrimary ? null : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         border: isPrimary ? null : Border.all(
-          color: color?.withOpacity(0.5) ?? (isDark ? Colors.white24 : Colors.grey.shade200),
+          color: color?.withValues(alpha: 0.5) ?? (isDark ? Colors.white24 : Colors.grey.shade200),
           width: 1,
         ),
         boxShadow: isPrimary
-            ? [BoxShadow(color: const Color(0xFF8B4EFF).withOpacity(isDark ? 0.4 : 0.3), blurRadius: 20, offset: const Offset(0, 8))]
-            : [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 16, offset: const Offset(0, 6))],
+            ? [BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.4 : 0.3), blurRadius: 20, offset: const Offset(0, 8))]
+            : [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Material(
         color: Colors.transparent,
@@ -1262,7 +1114,16 @@ class _DashboardScreenState extends State<DashboardScreen>
               final maxWidth = constraints.maxWidth;
               final isDesktop = maxWidth >= 850;
               
-              final sidebar = _buildSidebarContent(context, isDark);
+              final sidebar = UniversalSidebar(
+                activeItem: SidebarActiveItem.dashboard,
+                onDashboardTap: () {
+                  if (_scaffoldKey.currentState?.isDrawerOpen == true) {
+                    Navigator.pop(context);
+                  }
+                },
+                onStudyPadTap: _navigateToStudyPad,
+                onWebsiteTap: _navigateToWebsite,
+              );
               final overview = _buildOverviewWidgets(context, isDark, maxWidth);
               final actions = _buildActionButtons(context, isDark, maxWidth);
               

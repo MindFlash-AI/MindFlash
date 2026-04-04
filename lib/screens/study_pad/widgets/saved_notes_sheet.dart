@@ -127,7 +127,7 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(Icons.folder_copy_rounded, color: Color(0xFF8B4EFF), size: 22),
@@ -188,8 +188,8 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
                                     decoration: BoxDecoration(
                                       color: Theme.of(context).cardColor,
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
-                                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                                      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+                                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
                                     ),
                                     child: Material(
                                       color: Colors.transparent,
@@ -210,7 +210,7 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
                                             children: [
                                               Container(
                                                 padding: const EdgeInsets.all(12),
-                                                decoration: BoxDecoration(color: const Color(0xFF8B4EFF).withOpacity(0.1), shape: BoxShape.circle),
+                                                decoration: BoxDecoration(color: const Color(0xFF8B4EFF).withValues(alpha: 0.1), shape: BoxShape.circle),
                                                 child: const Icon(Icons.edit_document, color: Color(0xFF8B4EFF)),
                                               ),
                                               const SizedBox(width: 16),

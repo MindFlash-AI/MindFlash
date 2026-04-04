@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'widgets/drawing_overlay.dart';
+import '../../widgets/universal_sidebar.dart';
 
 class StudyPadWeb extends StatelessWidget {
   final quill.QuillController controller;
@@ -8,6 +9,10 @@ class StudyPadWeb extends StatelessWidget {
   final ScrollController scrollController;
   final TextEditingController titleController;
   final bool isDrawingMode;
+  final bool isSidebarVisible;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onDashboardTap;
+  final VoidCallback onWebsiteTap;
   final ValueNotifier<String> saveNotifier;
   
   final List<DrawingStroke> strokes;
@@ -45,6 +50,10 @@ class StudyPadWeb extends StatelessWidget {
     required this.scrollController,
     required this.titleController,
     required this.isDrawingMode,
+    required this.isSidebarVisible,
+    required this.onToggleSidebar,
+    required this.onDashboardTap,
+    required this.onWebsiteTap,
     required this.saveNotifier,
     required this.strokes,
     required this.drawingNotifier,
@@ -89,14 +98,27 @@ class StudyPadWeb extends StatelessWidget {
       Colors.white,
     ];
 
-    return Scaffold(
+    final mainContent = Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).textTheme.bodyLarge?.color),
-          onPressed: onBack,
+        leadingWidth: isSidebarVisible ? 56 : 100, 
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isSidebarVisible)
+              IconButton(
+                icon: Icon(Icons.menu_rounded, color: Theme.of(context).textTheme.bodyLarge?.color),
+                onPressed: onToggleSidebar,
+                tooltip: "Open Sidebar",
+              ),
+            IconButton(
+              icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).textTheme.bodyLarge?.color),
+              onPressed: onBack,
+              tooltip: "Back",
+            ),
+          ],
         ),
         title: TextField(
           controller: titleController,
@@ -111,7 +133,7 @@ class StudyPadWeb extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: status == "Saved" ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                    color: status == "Saved" ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -163,7 +185,7 @@ class StudyPadWeb extends StatelessWidget {
                             children: [
                               IconButton(icon: Icon(Icons.undo_rounded, color: canUndo ? (isDark ? Colors.white : Colors.black) : Colors.grey), onPressed: canUndo ? onUndo : null, tooltip: "Undo"),
                               IconButton(icon: Icon(Icons.redo_rounded, color: canRedo ? (isDark ? Colors.white : Colors.black) : Colors.grey), onPressed: canRedo ? onRedo : null, tooltip: "Redo"),
-                              Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
+                              Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
                               
                               // 🛡️ HCI: Desktop Grouped Tool Selectors
                               GestureDetector(
@@ -175,7 +197,7 @@ class StudyPadWeb extends StatelessWidget {
                                   cursor: SystemMouseCursors.click,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(color: (!isEraserMode && !isHighlighterMode) ? selectedColor.withOpacity(0.15) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                                    decoration: BoxDecoration(color: (!isEraserMode && !isHighlighterMode) ? selectedColor.withValues(alpha: 0.15) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
                                     child: Row(
                                       children: [
                                         Icon(Icons.edit_rounded, size: 18, color: (!isEraserMode && !isHighlighterMode) ? selectedColor : Colors.grey),
@@ -193,7 +215,7 @@ class StudyPadWeb extends StatelessWidget {
                                   cursor: SystemMouseCursors.click,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(color: isHighlighterMode ? Colors.amber.withOpacity(0.15) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                                    decoration: BoxDecoration(color: isHighlighterMode ? Colors.amber.withValues(alpha: 0.15) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
                                     child: Row(
                                       children: [
                                         Icon(Icons.border_color_rounded, size: 18, color: isHighlighterMode ? Colors.amber : Colors.grey),
@@ -211,7 +233,7 @@ class StudyPadWeb extends StatelessWidget {
                                   cursor: SystemMouseCursors.click,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(color: isEraserMode ? const Color(0xFFE841A1).withOpacity(0.15) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                                    decoration: BoxDecoration(color: isEraserMode ? const Color(0xFFE841A1).withValues(alpha: 0.15) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
                                     child: Row(
                                       children: [
                                         Icon(Icons.backspace_rounded, size: 18, color: isEraserMode ? const Color(0xFFE841A1) : Colors.grey),
@@ -225,7 +247,7 @@ class StudyPadWeb extends StatelessWidget {
   
                               // 🛡️ HCI: Hide irrelevant controls
                               if (!isEraserMode) ...[
-                                Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 16)),
+                                Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3), margin: const EdgeInsets.symmetric(horizontal: 16)),
                                 ..._drawingColors.map((color) => GestureDetector(
                                   onTap: () => onColorSelected(color),
                                   child: MouseRegion(
@@ -233,19 +255,19 @@ class StudyPadWeb extends StatelessWidget {
                                     child: Container(
                                       margin: const EdgeInsets.symmetric(horizontal: 6),
                                       width: 28, height: 28,
-                                      decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: selectedColor == color ? (isDark ? Colors.white : Colors.black) : Colors.grey.withOpacity(0.5), width: selectedColor == color ? 3 : 1)),
+                                      decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: selectedColor == color ? (isDark ? Colors.white : Colors.black) : Colors.grey.withValues(alpha: 0.5), width: selectedColor == color ? 3 : 1)),
                                     ),
                                   ),
                                 )),
                                 const SizedBox(width: 12),
-                                Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3)),
+                                Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
                                 const SizedBox(width: 16),
                                 Icon(Icons.line_weight_rounded, size: 20, color: isDark ? Colors.white54 : Colors.black54),
-                                SizedBox(width: 120, child: Slider(value: selectedWidth, min: 1.0, max: 20.0, activeColor: selectedColor, inactiveColor: selectedColor.withOpacity(0.3), onChanged: onWidthSelected)),
+                                SizedBox(width: 120, child: Slider(value: selectedWidth, min: 1.0, max: 20.0, activeColor: selectedColor, inactiveColor: selectedColor.withValues(alpha: 0.3), onChanged: onWidthSelected)),
                               ],
   
                               // 🛡️ HCI: Add actions to desktop toolbar instead of floating buttons
-                              Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 16)),
+                              Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3), margin: const EdgeInsets.symmetric(horizontal: 16)),
                               TextButton.icon(icon: isRecognizing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.text_fields_rounded), label: Text(isRecognizing ? "Recognizing..." : "To Text", style: const TextStyle(fontWeight: FontWeight.bold)), style: TextButton.styleFrom(foregroundColor: Colors.blueAccent), onPressed: isRecognizing ? null : onRecognizeText),
                               const SizedBox(width: 8),
                               TextButton.icon(icon: const Icon(Icons.delete_sweep_rounded), label: const Text("Clear", style: TextStyle(fontWeight: FontWeight.bold)), style: TextButton.styleFrom(foregroundColor: Colors.redAccent), onPressed: onClearDrawing),
@@ -363,6 +385,34 @@ class StudyPadWeb extends StatelessWidget {
               style: TextStyle(color: isDrawingMode ? Colors.white : const Color(0xFF8B4EFF), fontWeight: FontWeight.bold),
             ),
           ),
+        ],
+      ),
+    );
+
+    return Scaffold(
+      body: Row(
+        children: [
+          // 🚀 Smoothly sliding sidebar using AnimatedContainer and OverflowBox protection
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+            width: isSidebarVisible ? 280 : 0,
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.topLeft,
+                maxWidth: 280,
+                minWidth: 280,
+                child: UniversalSidebar(
+                  activeItem: SidebarActiveItem.studyPad,
+                  showMinimizeButton: true,
+                  onMinimizeTap: onToggleSidebar,
+                  onDashboardTap: onDashboardTap,
+                  onWebsiteTap: onWebsiteTap,
+                ),
+              ),
+            ),
+          ),
+          Expanded(child: mainContent),
         ],
       ),
     );

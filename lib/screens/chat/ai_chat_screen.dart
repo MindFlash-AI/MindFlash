@@ -346,7 +346,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
             _loadRewardedAd();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Failed to show ad. Please try again.")),
+                const SnackBar(content: Text("Oh no, the ad couldn't be played. Please try again later! 🎬")),
               );
             }
           },
@@ -360,11 +360,16 @@ class _AIChatScreenState extends State<AIChatScreen> {
       } catch (e) {
         setState(() => _rewardedAd = null);
         _loadRewardedAd();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Oops! The ad system hit a snag. You might have reached your daily limit. Please check back tomorrow! 🌟")),
+          );
+        }
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Ad is still loading, please try again in a moment.")),
+          const SnackBar(content: Text("We couldn't find an ad right now. You may have reached your daily limit (5/day) to keep the AI healthy! Please try again tomorrow. 🌟")),
         );
       }
       _loadRewardedAd();
@@ -472,7 +477,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         setState(() {
           _messages.add(
             ChatMessage(
-              text: "Sorry, I encountered an error: ${e.toString().replaceAll('Exception: ', '')}",
+              text: "Oops, my circuits got a little tangled! 🤖 I couldn't process that right now. Could you please try asking again?",
               isUser: false,
             ),
           );

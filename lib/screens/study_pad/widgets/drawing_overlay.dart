@@ -77,7 +77,7 @@ class DrawingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (var stroke in strokes) {
       final paint = Paint()
-        ..color = stroke.isHighlighter ? stroke.color.withOpacity(0.4) : stroke.color
+        ..color = stroke.isHighlighter ? stroke.color.withValues(alpha: 0.4) : stroke.color
         ..strokeWidth = stroke.width
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
@@ -128,13 +128,13 @@ class HoverCursorPainter extends CustomPainter {
     if (isEraser) {
       radius = 25.0; // Fixed radius from logic
       paint.color = const Color(0xFFE841A1); // Brand Pink
-      canvas.drawCircle(hoverPosition!, radius, Paint()..style = PaintingStyle.fill..color = const Color(0xFFE841A1).withOpacity(0.15));
+      canvas.drawCircle(hoverPosition!, radius, Paint()..style = PaintingStyle.fill..color = const Color(0xFFE841A1).withValues(alpha: 0.15));
     } else if (isHighlighter) {
       radius = (width * 2.5) / 2;
-      paint.color = color.withOpacity(0.8);
+      paint.color = color.withValues(alpha: 0.8);
     } else {
       radius = width / 2;
-      paint.color = color.withOpacity(0.8);
+      paint.color = color.withValues(alpha: 0.8);
     }
 
     canvas.drawCircle(hoverPosition!, radius, paint);

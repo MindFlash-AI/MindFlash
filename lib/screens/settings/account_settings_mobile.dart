@@ -44,7 +44,7 @@ class AccountSettingsMobile extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 40,
-                    backgroundColor: const Color(0xFF5B4FE6).withOpacity(0.1),
+                    backgroundColor: const Color(0xFF5B4FE6).withValues(alpha: 0.1),
                     backgroundImage: user!.photoURL != null ? NetworkImage(user!.photoURL!) : null,
                     child: user!.photoURL == null ? const Icon(Icons.person, size: 40, color: Color(0xFF8B4EFF)) : null,
                   ),
@@ -74,8 +74,8 @@ class AccountSettingsMobile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: ListTile(
               onTap: onEditProfile,
@@ -83,7 +83,7 @@ class AccountSettingsMobile extends StatelessWidget {
               subtitle: Text("Change how your name appears", style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600)),
               leading: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: const Color(0xFF2979FF).withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: const Color(0xFF2979FF).withValues(alpha: 0.1), shape: BoxShape.circle),
                 child: const Icon(Icons.edit_rounded, color: Color(0xFF2979FF)),
               ),
               trailing: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -102,8 +102,8 @@ class AccountSettingsMobile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: ListTile(
               onTap: onManageSubscription,
@@ -111,7 +111,7 @@ class AccountSettingsMobile extends StatelessWidget {
               subtitle: Text("View or change your current plan", style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600)),
               leading: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: const Color(0xFF8B4EFF).withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: const Color(0xFF8B4EFF).withValues(alpha: 0.1), shape: BoxShape.circle),
                 child: const Icon(Icons.star_rounded, color: Color(0xFF8B4EFF)),
               ),
               trailing: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -130,8 +130,8 @@ class AccountSettingsMobile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: Column(
               children: [
@@ -140,7 +140,7 @@ class AccountSettingsMobile extends StatelessWidget {
                   title: Text("Privacy Policy", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: const Color(0xFF00C853).withOpacity(0.1), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: const Color(0xFF00C853).withValues(alpha: 0.1), shape: BoxShape.circle),
                     child: const Icon(Icons.privacy_tip_rounded, color: Color(0xFF00C853)),
                   ),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -151,7 +151,7 @@ class AccountSettingsMobile extends StatelessWidget {
                   title: Text("Terms of Service", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: const Color(0xFFFF9100).withOpacity(0.1), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: const Color(0xFFFF9100).withValues(alpha: 0.1), shape: BoxShape.circle),
                     child: const Icon(Icons.description_rounded, color: Color(0xFFFF9100)),
                   ),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -165,15 +165,15 @@ class AccountSettingsMobile extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               "DANGER ZONE",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent.withOpacity(0.8), letterSpacing: 1.2),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent.withValues(alpha: 0.8), letterSpacing: 1.2),
             ),
           ),
           Container(
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1),
-              boxShadow: [BoxShadow(color: Colors.redAccent.withOpacity(isDark ? 0.1 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3), width: 1),
+              boxShadow: [BoxShadow(color: Colors.redAccent.withValues(alpha: isDark ? 0.1 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: ListTile(
               onTap: onDeleteAccount,
@@ -181,7 +181,7 @@ class AccountSettingsMobile extends StatelessWidget {
               subtitle: Text("Permanently erase all your data", style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600)),
               leading: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.1), shape: BoxShape.circle),
                 child: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
               ),
               trailing: const Icon(Icons.chevron_right, color: Colors.grey),

@@ -306,7 +306,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
             _loadRewardedAd();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Failed to show ad. Please try again.")),
+                const SnackBar(content: Text("Oh no, the ad couldn't be played. Please try again later! 🎬")),
               );
             }
           },
@@ -322,12 +322,12 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
         _isRewardedAdLoaded = false;
         _loadRewardedAd();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Ad system error. Please try again.")),
+          const SnackBar(content: Text("Oops! The ad system hit a snag. You might have reached your daily limit. Please check back tomorrow! 🌟")),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ad is still loading, please try again in a moment.")),
+        const SnackBar(content: Text("We couldn't find an ad right now. You may have reached your daily limit (5/day) to keep the AI healthy! Please try again tomorrow. 🌟")),
       );
       _loadRewardedAd();
     }

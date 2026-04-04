@@ -16,7 +16,7 @@ class WebFooter extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 40, horizontal: isMobile ? 32 : 64),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05))),
+        border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05))),
       ),
       child: Center(
         child: ConstrainedBox(

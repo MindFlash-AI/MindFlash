@@ -56,9 +56,9 @@ class FAQScreen extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.3)),
+                                  border: Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3)),
                                 ),
                                 child: const Text(
                                   "SUPPORT",
@@ -187,7 +187,7 @@ class FAQScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                   blurRadius: 40,
                   offset: const Offset(0, 20),
                 ),
@@ -211,7 +211,7 @@ class FAQScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: isMobile ? 16 : 20,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -226,7 +226,7 @@ class FAQScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -337,15 +337,15 @@ class _AnimatedFAQItemState extends State<_AnimatedFAQItem> with SingleTickerPro
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: _isHovered || _isExpanded
-                  ? const Color(0xFF8B4EFF).withOpacity(0.5)
-                  : (widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                  ? const Color(0xFF8B4EFF).withValues(alpha: 0.5)
+                  : (widget.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
                 color: _isHovered
-                    ? const Color(0xFF8B4EFF).withOpacity(0.15)
-                    : Colors.black.withOpacity(widget.isDark ? 0.2 : 0.05),
+                    ? const Color(0xFF8B4EFF).withValues(alpha: 0.15)
+                    : Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.05),
                 blurRadius: _isHovered ? 30 : 20,
                 offset: Offset(0, _isHovered ? 15 : 10),
               ),
@@ -374,7 +374,7 @@ class _AnimatedFAQItemState extends State<_AnimatedFAQItem> with SingleTickerPro
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: _isExpanded
-                          ? const Color(0xFF8B4EFF).withOpacity(0.1)
+                          ? const Color(0xFF8B4EFF).withValues(alpha: 0.1)
                           : (widget.isDark ? Colors.white12 : Colors.grey.shade100),
                       shape: BoxShape.circle,
                     ),

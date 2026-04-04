@@ -156,7 +156,7 @@ class StudyPadMobile extends StatelessWidget {
                             onPressed: canRedo ? onRedo : null,
                             tooltip: "Redo",
                           ),
-                          Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 8)),
+                          Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3), margin: const EdgeInsets.symmetric(horizontal: 8)),
                           
                           // 🛡️ HCI: Grouped Tool Selectors with clear visual active states
                           GestureDetector(
@@ -167,7 +167,7 @@ class StudyPadMobile extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: (!isEraserMode && !isHighlighterMode) ? selectedColor.withOpacity(0.15) : Colors.transparent,
+                                color: (!isEraserMode && !isHighlighterMode) ? selectedColor.withValues(alpha: 0.15) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -185,7 +185,7 @@ class StudyPadMobile extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isHighlighterMode ? Colors.amber.withOpacity(0.15) : Colors.transparent,
+                                color: isHighlighterMode ? Colors.amber.withValues(alpha: 0.15) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -203,7 +203,7 @@ class StudyPadMobile extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isEraserMode ? const Color(0xFFE841A1).withOpacity(0.15) : Colors.transparent,
+                                color: isEraserMode ? const Color(0xFFE841A1).withValues(alpha: 0.15) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -218,7 +218,7 @@ class StudyPadMobile extends StatelessWidget {
 
                           // 🛡️ HCI: Hide Color & Width sliders when erasing to prevent cognitive overload
                           if (!isEraserMode) ...[
-                            Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
+                            Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
                             ..._drawingColors.map((color) => GestureDetector(
                               onTap: () => onColorSelected(color),
                               child: Container(
@@ -229,15 +229,15 @@ class StudyPadMobile extends StatelessWidget {
                                   color: color,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: selectedColor == color ? (isDark ? Colors.white : Colors.black) : Colors.grey.withOpacity(0.5),
+                                    color: selectedColor == color ? (isDark ? Colors.white : Colors.black) : Colors.grey.withValues(alpha: 0.5),
                                     width: selectedColor == color ? 3 : 1,
                                   ),
                                 ),
                               ),
                             )),
-                            Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 8)),
+                            Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3), margin: const EdgeInsets.symmetric(horizontal: 8)),
                             Icon(Icons.line_weight_rounded, size: 20, color: isDark ? Colors.white54 : Colors.black54),
-                            SizedBox(width: 100, child: Slider(value: selectedWidth, min: 1.0, max: 20.0, activeColor: selectedColor, inactiveColor: selectedColor.withOpacity(0.3), onChanged: onWidthSelected)),
+                            SizedBox(width: 100, child: Slider(value: selectedWidth, min: 1.0, max: 20.0, activeColor: selectedColor, inactiveColor: selectedColor.withValues(alpha: 0.3), onChanged: onWidthSelected)),
                           ],
                         ],
                       ),

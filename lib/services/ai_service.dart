@@ -263,10 +263,10 @@ class AIService {
         final decodedJson = jsonDecode(response.body);
         if (decodedJson is Map) {
            final decoded = Map<String, dynamic>.from(decodedJson as Map);
-           return decoded['error']?.toString() ?? 'Out of energy! Please watch an ad to recharge.';
+           return decoded['error']?.toString() ?? 'It looks like you are out of energy! ⚡ Please watch a quick ad to recharge.';
         }
       } catch (_) {}
-      return 'Out of energy! Please watch an ad to recharge.';
+      return 'It looks like you are out of energy! ⚡ Please watch a quick ad to recharge.';
     }
     
     try {
@@ -275,14 +275,14 @@ class AIService {
         final decoded = Map<String, dynamic>.from(decodedJson as Map);
         final details = decoded['details']?.toString() ?? '';
         if (details.contains('503') || details.contains('high demand')) {
-          return 'The AI service is currently experiencing high demand. Please try again in a few moments.';
+          return 'The AI is a little overwhelmed with students right now! 🎓 Please take a deep breath and try again in a few moments.';
         }
         final error = decoded['error']?.toString();
-        if (error != null) return 'Server error ${response.statusCode}\nError: $error';
-        if (details.isNotEmpty) return 'Server error ${response.statusCode}\nDetails: $details';
+        if (error != null) return 'Oops, our servers had a tiny hiccup! 🛠️ Please try that again.\nError: $error';
+        if (details.isNotEmpty) return 'Oops, our servers had a tiny hiccup! 🛠️ Please try that again.\nDetails: $details';
       }
     } catch (_) {}
     debugPrint('Server error ${response.statusCode}\nBody: ${response.body}');
-    return 'An unexpected server error occurred (${response.statusCode}). Please try again later.';
+    return 'Something unexpected happened behind the scenes! 🙈 Please try again later.';
   }
 }

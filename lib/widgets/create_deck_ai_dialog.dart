@@ -133,7 +133,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
           body: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
             child: Container(
-              color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
+              color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
               width: double.infinity,
               height: double.infinity,
               child: Column(
@@ -407,7 +407,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                 icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF8B4EFF)),
                 label: const Text("Upgrade to Pro", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold, fontSize: 15)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                  backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -448,7 +448,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
             _loadRewardedAd();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Failed to show ad. Please try again.")),
+                const SnackBar(content: Text("Oh no, the ad couldn't be played. Please try again later! 🎬")),
               );
             }
           },
@@ -464,12 +464,12 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         _isRewardedAdLoaded = false;
         _loadRewardedAd();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Ad system error. Please try again.")),
+          const SnackBar(content: Text("Oops! The ad system hit a snag. You might have reached your daily limit. Please check back tomorrow! 🌟")),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ad is still loading, please try again in a moment.")),
+        const SnackBar(content: Text("We couldn't find an ad right now. You may have reached your daily limit (5/day) to keep the AI healthy! Please try again tomorrow. 🌟")),
       );
       _loadRewardedAd();
     }
@@ -687,14 +687,14 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: _isFileProcessing
-                                          ? const Color(0xFF8B4EFF).withOpacity(0.08)
+                                          ? const Color(0xFF8B4EFF).withValues(alpha: 0.08)
                                           : (_selectedFileName != null
-                                              ? const Color(0xFF8B4EFF).withOpacity(0.05)
+                                              ? const Color(0xFF8B4EFF).withValues(alpha: 0.05)
                                               : (isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA))),
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
                                         color: _isFileProcessing
-                                            ? const Color(0xFF8B4EFF).withOpacity(0.4)
+                                            ? const Color(0xFF8B4EFF).withValues(alpha: 0.4)
                                             : (_selectedFileName != null
                                                 ? const Color(0xFF8B4EFF)
                                                 : Colors.transparent),
@@ -833,7 +833,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                      color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -866,7 +866,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                   max: 50,
                                   divisions: 9,
                                   activeColor: const Color(0xFF8B4EFF),
-                                  inactiveColor: const Color(0xFF8B4EFF).withOpacity(0.2),
+                                  inactiveColor: const Color(0xFF8B4EFF).withValues(alpha: 0.2),
                                   onChanged: _isSubmitting
                                       ? null
                                       : (value) {
@@ -899,7 +899,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                       ? null
                                       : [
                                           BoxShadow(
-                                            color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                                            color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                                             blurRadius: 15,
                                             offset: const Offset(0, 6),
                                           ),
