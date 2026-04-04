@@ -143,10 +143,9 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
     if (!process.env.GEMINI_API_KEY) throw new Error("MISSING_API_KEY");
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const MAX_PROMPT_CHARS = 5000;
-    // 💰 COST OPTIMIZATION: Lower max document size to 50,000 chars (~12k tokens). 
-    // This is plenty for flashcard generation and prevents massive files from burning API quota.
-    const MAX_FILE_CHARS = 50000; 
+    // 💰 COST OPTIMIZATION: Tighter input constraints to prevent token burning.
+    const MAX_PROMPT_CHARS = 2000;
+    const MAX_FILE_CHARS = 35000; // ~8k-10k tokens, optimal for generating flashcards without overwhelming the context window
 
     let rawPrompt = req.body.prompt || req.body.text || ""; 
     let rawFileText = req.body.fileText || "";
