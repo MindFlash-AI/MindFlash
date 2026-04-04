@@ -30,15 +30,23 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   final TextEditingController _titleController = TextEditingController();
   final NoteStorageService _noteService = NoteStorageService();
   
+  StreamSubscription? _docChangeSubscription;
   Timer? _debounceTimer;
   bool _isDrawingMode = false;
+  bool _isEraserMode = false;
+  bool _isHighlighterMode = false;
   final ValueNotifier<String> _saveNotifier = ValueNotifier("Saved");
+  Color _selectedColor = const Color(0xFF8B4EFF);
+  double _selectedWidth = 4.0;
   late String _noteId;
 
   // Drawing State
   List<DrawingStroke> _strokes = [];
   DrawingStroke? _currentStroke;
   final ValueNotifier<int> _drawingNotifier = ValueNotifier(0);
+  final ValueNotifier<Offset?> _hoverNotifier = ValueNotifier(null);
+  List<List<DrawingStroke>> _undoHistory = [];
+  List<List<DrawingStroke>> _redoHistory = [];
   final DigitalInkService _inkService = DigitalInkService();
   bool _isRecognizing = false;
 
@@ -71,7 +79,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     }
 
     // Attach Debounced Auto-Save Listeners
-    _controller.document.changes.listen((_) => _triggerAutoSave());
+    _docChangeSubscription = _controller.document.changes.listen((_) => _triggerAutoSave());
     _titleController.addListener(_triggerAutoSave);
   }
 
@@ -108,6 +116,10 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     setState(() {
       _isDrawingMode = !_isDrawingMode;
       _controller.readOnly = _isDrawingMode; // Lock/Unlock text editing directly via controller
+      if (!_isDrawingMode) {
+        _isEraserMode = false; // Turn off tools if drawing mode closed
+        _isHighlighterMode = false;
+      }
 
       if (_isDrawingMode) {
         // FIX 2: Explicitly drop keyboard to maximize drawing canvas
@@ -116,8 +128,26 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     });
   }
 
+  void _toggleEraserMode() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isEraserMode = !_isEraserMode;
+      if (_isEraserMode) _isHighlighterMode = false;
+    });
+  }
+
+  void _toggleHighlighterMode() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isHighlighterMode = !_isHighlighterMode;
+      if (_isHighlighterMode) _isEraserMode = false;
+    });
+  }
+
   void _clearDrawing() {
+    if (_strokes.isEmpty) return; // Prevent useless undo states
     HapticFeedback.mediumImpact();
+    _saveUndoState();
     setState(() {
       _strokes.clear();
       _currentStroke = null;
@@ -230,29 +260,114 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     }
   }
 
+  // --- Undo & Redo Mechanisms ---
+  void _saveUndoState() {
+    _undoHistory.add(List.from(_strokes));
+    _redoHistory.clear();
+  }
+
+  void _undo() {
+    if (_undoHistory.isEmpty) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _redoHistory.add(List.from(_strokes));
+      _strokes = _undoHistory.removeLast();
+    });
+    _drawingNotifier.value++;
+    _triggerAutoSave();
+  }
+
+  void _redo() {
+    if (_redoHistory.isEmpty) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _undoHistory.add(List.from(_strokes));
+      _strokes = _redoHistory.removeLast();
+    });
+    _drawingNotifier.value++;
+    _triggerAutoSave();
+  }
+
+  void _eraseAt(Offset position) {
+    final double eraserRadius = 25.0; // The radius size of the eraser
+    bool removed = false;
+    
+    _strokes.removeWhere((stroke) {
+      for (final point in stroke.points) {
+        // Quick bounding box check for performance before expensive math
+        if ((point.dx - position.dx).abs() <= eraserRadius && 
+            (point.dy - position.dy).abs() <= eraserRadius) {
+          if ((point - position).distance <= eraserRadius) {
+            removed = true;
+            return true; // 🗑️ Object Eraser: Delete the entire continuous stroke
+          }
+        }
+      }
+      return false;
+    });
+
+    if (removed) {
+      _drawingNotifier.value++;
+    }
+  }
+
+  void _onHoverUpdate(Offset position) {
+    _hoverNotifier.value = position;
+  }
+
+  void _onHoverExit() {
+    _hoverNotifier.value = null;
+  }
+
   // --- Drawing Handlers ---
   void _onStrokeStart(Offset localPosition) {
+    _saveUndoState(); // Save snapshot before we mutate the canvas
+    _hoverNotifier.value = localPosition;
+    if (_isEraserMode) {
+      _eraseAt(localPosition);
+      return;
+    }
     _currentStroke = DrawingStroke(
       points: [localPosition],
-      color: Theme.of(context).brightness == Brightness.dark ? Colors.yellowAccent : const Color(0xFF8B4EFF),
+      color: _selectedColor,
+      width: _isHighlighterMode ? _selectedWidth * 2.5 : _selectedWidth, // Make highlight broader automatically
+      isHighlighter: _isHighlighterMode,
     );
     _strokes.add(_currentStroke!);
     _drawingNotifier.value++;
   }
 
   void _onStrokeUpdate(Offset localPosition) {
+    _hoverNotifier.value = localPosition;
+    if (_isEraserMode) {
+      _eraseAt(localPosition);
+      return;
+    }
     _currentStroke?.points.add(localPosition);
     _drawingNotifier.value++;
   }
 
   void _onStrokeEnd() {
+    if (_isEraserMode) {
+      // Check if they dragged the eraser but didn't actually hit anything
+      if (_undoHistory.isNotEmpty && _undoHistory.last.length == _strokes.length) {
+        _undoHistory.removeLast(); // Discard the useless undo state
+      } else {
+        setState(() {}); // Update the Undo/Redo button states visually
+      }
+      _triggerAutoSave();
+      return;
+    }
     _currentStroke = null;
+    setState(() {}); // Update the Undo/Redo button states visually
     _triggerAutoSave();
   }
 
   @override
   void dispose() {
     // FIX 3: Prevent memory leaks and background crashes
+    _docChangeSubscription?.cancel();
+    _titleController.removeListener(_triggerAutoSave);
     _debounceTimer?.cancel(); 
     _controller.dispose();
     _inkService.dispose();
@@ -260,6 +375,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     _scrollController.dispose();
     _titleController.dispose();
     _drawingNotifier.dispose();
+    _hoverNotifier.dispose();
     _saveNotifier.dispose();
     super.dispose();
   }
@@ -280,7 +396,14 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             saveNotifier: _saveNotifier,
             strokes: _strokes,
             drawingNotifier: _drawingNotifier,
+            hoverNotifier: _hoverNotifier,
+            onHoverUpdate: _onHoverUpdate,
+            onHoverExit: _onHoverExit,
             onToggleDrawing: _toggleDrawingMode,
+            isEraserMode: _isEraserMode,
+            onToggleEraser: _toggleEraserMode,
+            isHighlighterMode: _isHighlighterMode,
+            onToggleHighlighter: _toggleHighlighterMode,
             onClearDrawing: _clearDrawing,
             onStrokeStart: _onStrokeStart,
             onStrokeUpdate: _onStrokeUpdate,
@@ -288,6 +411,14 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             isRecognizing: _isRecognizing,
             onRecognizeText: _recognizeHandwriting,
             onGenerateWithAI: _generateDeckWithAI,
+            selectedColor: _selectedColor,
+            onColorSelected: (color) => setState(() => _selectedColor = color),
+            selectedWidth: _selectedWidth,
+            onWidthSelected: (width) => setState(() => _selectedWidth = width),
+            canUndo: _undoHistory.isNotEmpty,
+            canRedo: _redoHistory.isNotEmpty,
+            onUndo: _undo,
+            onRedo: _redo,
             onBack: () => Navigator.pop(context),
           );
         } else {
@@ -300,7 +431,14 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             saveNotifier: _saveNotifier,
             strokes: _strokes,
             drawingNotifier: _drawingNotifier,
+            hoverNotifier: _hoverNotifier,
+            onHoverUpdate: _onHoverUpdate,
+            onHoverExit: _onHoverExit,
             onToggleDrawing: _toggleDrawingMode,
+            isEraserMode: _isEraserMode,
+            onToggleEraser: _toggleEraserMode,
+            isHighlighterMode: _isHighlighterMode,
+            onToggleHighlighter: _toggleHighlighterMode,
             onClearDrawing: _clearDrawing,
             onStrokeStart: _onStrokeStart,
             onStrokeUpdate: _onStrokeUpdate,
@@ -308,6 +446,14 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             isRecognizing: _isRecognizing,
             onRecognizeText: _recognizeHandwriting,
             onGenerateWithAI: _generateDeckWithAI,
+            selectedColor: _selectedColor,
+            onColorSelected: (color) => setState(() => _selectedColor = color),
+            selectedWidth: _selectedWidth,
+            onWidthSelected: (width) => setState(() => _selectedWidth = width),
+            canUndo: _undoHistory.isNotEmpty,
+            canRedo: _redoHistory.isNotEmpty,
+            onUndo: _undo,
+            onRedo: _redo,
             onBack: () => Navigator.pop(context),
           );
         }
