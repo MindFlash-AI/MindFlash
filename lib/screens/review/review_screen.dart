@@ -10,11 +10,8 @@ import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 import '../../services/srs_service.dart'; // SRS Math Engine
 import 'review_completion.dart';
 
-import 'widgets/review_header.dart';
-import 'widgets/review_progress_bar.dart';
-import 'widgets/session_stats_bar.dart';
-import 'widgets/flashcard_stack_view.dart';
-import '../../widgets/floating_tutor_button.dart'; // Mascot Button Import
+import 'review_screen_mobile.dart';
+import 'review_screen_web.dart';
 
 class ReviewScreen extends StatefulWidget {
   final Deck deck;
@@ -81,6 +78,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
+          if (!mounted) {
+            ad.dispose();
+            return;
+          }
           setState(() {
             _isBannerAdLoaded = true;
           });
@@ -180,81 +181,44 @@ class _ReviewScreenState extends State<ReviewScreen> {
       ) : SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Column(
-            children: [
-              ReviewHeader(
-                currentIndex: _currentIndex,
-                totalCards: _reviewCards.length,
-                onExit: () => Navigator.pop(context),
-                onShuffle: _handleShuffle,
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 850;
 
-              ReviewProgressBar(
-                currentIndex: _currentIndex,
-                totalCards: _reviewCards.length,
-              ),
-
-              const SizedBox(height: 12),
-
-              SessionStatsBar(
-                correctCount: _correctCount,
-                incorrectCount: _incorrectCount,
-              ),
-
-              // 1. The Flashcard gets all the remaining vertical space
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(top: 16),
-                  child: FlashcardStackView(
-                    cards: _reviewCards,
-                    currentIndex: _currentIndex,
-                    pageController: _pageController,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentIndex = index;
-                        _showAnswer = false; 
-                      });
-                    },
-                    onFlip: (isFront) {
-                      setState(() {
-                        _showAnswer = !isFront;
-                      });
-                    },
-                    // Handlers passed into the contextual action buttons
-                    onCorrect: () => _handleAnswer(true),
-                    onIncorrect: () => _handleAnswer(false),
-                  ),
-                ),
-              ),
-
-              // 2. The Mascot sits neatly BELOW the flashcard and above the banner
-              Align(
-                alignment: Alignment.centerLeft,
-                heightFactor: 0.5, 
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 16.0),
-                  child: FloatingTutorButton(deck: widget.deck),
-                ),
-              ),
-
-              const SizedBox(height: 35),
-              
-              // 3. Ad Banner natively sits at the absolute bottom
-              if (!kIsWeb)
-                SizedBox(
-                  height: 50,
-                  width: double.infinity,
-                  child: (_isBannerAdLoaded && _bannerAd != null)
-                      ? AdWidget(ad: _bannerAd!)
-                      : const SizedBox.shrink(),
-                ),
-            ],
-          ),
-        ),
+          if (isDesktop) {
+            return ReviewScreenWeb(
+              deck: widget.deck,
+              reviewCards: _reviewCards,
+              currentIndex: _currentIndex,
+              pageController: _pageController,
+              correctCount: _correctCount,
+              incorrectCount: _incorrectCount,
+              onExit: () => Navigator.pop(context),
+              onShuffle: _handleShuffle,
+              onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
+              onFlip: (isFront) => setState(() => _showAnswer = !isFront),
+              onCorrect: () => _handleAnswer(true),
+              onIncorrect: () => _handleAnswer(false),
+            );
+          } else {
+            return ReviewScreenMobile(
+              deck: widget.deck,
+              reviewCards: _reviewCards,
+              currentIndex: _currentIndex,
+              pageController: _pageController,
+              correctCount: _correctCount,
+              incorrectCount: _incorrectCount,
+              isBannerAdLoaded: _isBannerAdLoaded,
+              bannerAd: _bannerAd,
+              onExit: () => Navigator.pop(context),
+              onShuffle: _handleShuffle,
+              onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
+              onFlip: (isFront) => setState(() => _showAnswer = !isFront),
+              onCorrect: () => _handleAnswer(true),
+              onIncorrect: () => _handleAnswer(false),
+            );
+          }
+        },
       ),
     );
   }

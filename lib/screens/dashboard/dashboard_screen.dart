@@ -79,6 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _loadDecks() async {
     final decks = await _storageService.getDecks();
+    if (!mounted) return;
     setState(() {
       _decks = decks;
       _totalCards = decks.fold(0, (sum, deck) => sum + deck.cardCount);
@@ -122,9 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => StudyPadScreen(
-          onDeckCreated: () => _loadDecks(), 
-        ),
+        builder: (context) => const StudyPadScreen(),
       ),
     );
   }
@@ -589,7 +588,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildOverviewWidgets(BuildContext context, bool isDark, bool isDesktop) {
+  Widget _buildOverviewWidgets(BuildContext context, bool isDark, double maxWidth) {
     return StreamBuilder<int>(
       stream: EnergyService().energyStream,
       initialData: EnergyService().currentEnergy,
@@ -627,7 +626,9 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ];
 
-        if (isDesktop) {
+        final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+        if (maxWidth >= 850 || (isLandscape && maxWidth >= 600)) {
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -639,6 +640,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Expanded(child: statCards[2]),
               ],
             ),
+          );
+        } else if (maxWidth < 380) {
+          // 📱 HCI Layout Improvement: Very narrow mobile screens (e.g., iPhone SE)
+          return Column(
+            children: [
+              statCards[0],
+              const SizedBox(height: 12),
+              statCards[1],
+              const SizedBox(height: 12),
+              statCards[2],
+            ],
           );
         } else {
           return Column(
@@ -945,7 +957,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: GridView.builder(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 450, 
+              // 🚀 HCI Layout Improvement: Ensures tablets show at least 2 columns
+              maxCrossAxisExtent: 380, 
               mainAxisExtent: 140,
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
@@ -989,8 +1002,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, bool isDark, bool isDesktop) {
-    if (isDesktop) {
+  Widget _buildActionButtons(BuildContext context, bool isDark, double maxWidth) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+    if (maxWidth >= 850) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1244,11 +1259,12 @@ class _DashboardScreenState extends State<DashboardScreen>
               
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth >= 800;
+              final maxWidth = constraints.maxWidth;
+              final isDesktop = maxWidth >= 850;
               
               final sidebar = _buildSidebarContent(context, isDark);
-              final overview = _buildOverviewWidgets(context, isDark, isDesktop);
-              final actions = _buildActionButtons(context, isDark, isDesktop);
+              final overview = _buildOverviewWidgets(context, isDark, maxWidth);
+              final actions = _buildActionButtons(context, isDark, maxWidth);
               
               final deckList = _isLoading 
                   ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B4EFF))) 

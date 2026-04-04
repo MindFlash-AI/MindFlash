@@ -115,15 +115,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
         // 2. Wipe Study Pad Notes
         final notes = await firestore.collection('users').doc(uid).collection('notes').get();
-        for (var note in notes.docs) {
-          await note.reference.delete();
-        }
+        await Future.wait(notes.docs.map((note) => note.reference.delete()));
 
         // 3. Wipe Chat History & Energy Stats
         final chats = await firestore.collection('users').doc(uid).collection('chat').get();
-        for (var chat in chats.docs) {
-          await chat.reference.delete();
-        }
+        await Future.wait(chats.docs.map((chat) => chat.reference.delete()));
         await firestore.collection('users').doc(uid).collection('stats').doc('energy').delete();
 
         // 4. Delete the main User Document

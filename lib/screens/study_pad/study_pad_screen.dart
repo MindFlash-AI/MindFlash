@@ -1,250 +1,316 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:async'; 
-import 'package:flutter/foundation.dart' show kIsWeb; 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:flutter_quill/flutter_quill.dart'; 
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 
-import '../../constants.dart';
-import '../../widgets/create_deck_ai_dialog.dart';
-import '../../services/ai_service.dart';
-import '../../services/ad_helper.dart'; 
-import '../../services/note_storage_service.dart'; 
 import '../../models/note_model.dart';
-import 'widgets/saved_notes_sheet.dart';
-
-import 'study_pad_web.dart';
+import '../../services/note_storage_service.dart';
+import '../../services/digital_ink_service.dart';
+import '../../services/ai_service.dart';
+import '../../widgets/create_deck_ai_dialog.dart';
 import 'study_pad_mobile.dart';
-
-enum SaveStatus { saved, saving, unsaved }
+import 'study_pad_web.dart';
+import 'widgets/drawing_overlay.dart';
 
 class StudyPadScreen extends StatefulWidget {
-  final Function() onDeckCreated;
-
-  const StudyPadScreen({super.key, required this.onDeckCreated});
+  final Note? initialNote;
+  const StudyPadScreen({super.key, this.initialNote});
 
   @override
   State<StudyPadScreen> createState() => _StudyPadScreenState();
 }
 
 class _StudyPadScreenState extends State<StudyPadScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final TextEditingController _titleController = TextEditingController();
-  QuillController _quillController = QuillController.basic();
-  final FocusNode _contentFocusNode = FocusNode();
-  final ScrollController _scrollController = ScrollController(); 
+  late quill.QuillController _controller;
+  final FocusNode _focusNode = FocusNode();
   
-  final NoteStorageService _noteStorage = NoteStorageService();
-  String? _currentNoteId; 
+  // FIX 1: Shared Scroll Controller to synchronize Text and Drawing layers
+  final ScrollController _scrollController = ScrollController(); 
+  final TextEditingController _titleController = TextEditingController();
+  final NoteStorageService _noteService = NoteStorageService();
   
   Timer? _debounceTimer;
-  StreamSubscription? _docSubscription;
-  bool _hasUnsavedChanges = false;
-  bool _ignoreChanges = false; 
-  SaveStatus _saveStatus = SaveStatus.saved;
+  bool _isDrawingMode = false;
+  String _saveStatus = "Saved";
+  late String _noteId;
 
-  int _wordCount = 0;
-  bool _isReadOnly = false;
-
-  BannerAd? _bannerAd;
-  bool _isAdLoaded = false;
+  // Drawing State
+  List<DrawingStroke> _strokes = [];
+  DrawingStroke? _currentStroke;
+  final ValueNotifier<int> _drawingNotifier = ValueNotifier(0);
+  final DigitalInkService _inkService = DigitalInkService();
+  bool _isRecognizing = false;
 
   @override
   void initState() {
     super.initState();
-    _loadBannerAd();
-    _setupListeners();
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted && !_isReadOnly) _contentFocusNode.requestFocus();
+    _noteId = widget.initialNote?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    _titleController.text = widget.initialNote?.title ?? "Untitled Note";
+
+    // Safely load Quill Document
+    if (widget.initialNote != null && widget.initialNote!.content.isNotEmpty) {
+      try {
+        final doc = quill.Document.fromJson(jsonDecode(widget.initialNote!.content));
+        _controller = quill.QuillController(document: doc, selection: const TextSelection.collapsed(offset: 0));
+      } catch (e) {
+        _controller = quill.QuillController.basic();
+      }
+    } else {
+      _controller = quill.QuillController.basic();
+    }
+    
+    // Safely load Drawings
+    if (widget.initialNote != null && widget.initialNote!.drawingData.isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(widget.initialNote!.drawingData);
+        _strokes = decoded.map((s) => DrawingStroke.fromJson(Map<String, dynamic>.from(s))).toList();
+      } catch (e) {
+        _strokes = [];
+      }
+    }
+
+    // Attach Debounced Auto-Save Listeners
+    _controller.document.changes.listen((_) => _triggerAutoSave());
+    _titleController.addListener(_triggerAutoSave);
+  }
+
+  void _triggerAutoSave() {
+    if (!mounted) return;
+    setState(() => _saveStatus = "Saving...");
+    
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), _saveNote);
+  }
+
+  Future<void> _saveNote() async {
+    if (!mounted) return;
+    try {
+      final contentJson = jsonEncode(_controller.document.toDelta().toJson());
+      final drawingJson = jsonEncode(_strokes.map((s) => s.toJson()).toList());
+      final note = Note(
+        id: _noteId,
+        title: _titleController.text.trim().isEmpty ? "Untitled Note" : _titleController.text.trim(),
+        content: contentJson,
+        drawingData: drawingJson,
+        updatedAt: DateTime.now(),
+      );
+
+      await _noteService.saveNote(note);
+      if (mounted) setState(() => _saveStatus = "Saved");
+    } catch (e) {
+      if (mounted) setState(() => _saveStatus = "Error Saving");
+    }
+  }
+
+  void _toggleDrawingMode() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isDrawingMode = !_isDrawingMode;
+      _controller.readOnly = _isDrawingMode; // Lock/Unlock text editing directly via controller
+
+      if (_isDrawingMode) {
+        // FIX 2: Explicitly drop keyboard to maximize drawing canvas
+        _focusNode.unfocus(); 
+      }
     });
+  }
+
+  void _clearDrawing() {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _strokes.clear();
+      _currentStroke = null;
+    });
+    _drawingNotifier.value++;
+    _triggerAutoSave();
+  }
+
+  Future<void> _recognizeHandwriting() async {
+    if (_strokes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draw something first!')));
+      return;
+    }
+
+    setState(() => _isRecognizing = true);
+    
+    try {
+      final text = await _inkService.recognizeText(
+        _strokes,
+        onDownloading: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Downloading handwriting recognition model (first time only)...')),
+          );
+        },
+      );
+      
+      if (text.isNotEmpty) {
+        // Append the recognized text to the end of the document
+        final index = _controller.document.length - 1;
+        _controller.document.insert(index, '\n$text\n');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Handwriting converted!')));
+          _clearDrawing(); // Clean canvas once converted
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No text could be recognized. Try writing clearer.')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception:', '').trim()}')));
+    } finally {
+      if (mounted) setState(() => _isRecognizing = false);
+    }
+  }
+
+  // --- Seamless Background AI Generation ---
+  Future<void> _generateDeckWithAI() async {
+    if (_controller.document.toPlainText().trim().isEmpty && _strokes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Write or draw something first!')));
+      return;
+    }
+
+    setState(() => _isRecognizing = true);
+    
+    try {
+      // 1. Extract Typed Text
+      String documentText = _controller.document.toPlainText().trim();
+
+      // 2. Silently Background Convert Handwritten Strokes
+      String handwrittenText = "";
+      if (_strokes.isNotEmpty) {
+        handwrittenText = await _inkService.recognizeText(
+          _strokes,
+          onDownloading: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Downloading ML model... Please wait.')),
+          ),
+        );
+      }
+
+      // 3. Combine Typed and Handwritten Text together
+      String combinedText = documentText;
+      if (handwrittenText.isNotEmpty) {
+        combinedText += "\n\n--- Handwritten Notes ---\n$handwrittenText";
+      }
+
+      if (!mounted) return;
+      setState(() => _isRecognizing = false);
+
+      // 4. Open AI Dialog and Pipeline the Combined Text directly to Gemini
+      final successMessage = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (modalContext) => CreateDeckAIDialog(
+          onGenerate: (topic, dialogFileText, dialogFileName) async {
+            String finalCombinedText = combinedText;
+            if (dialogFileText != null && dialogFileText.isNotEmpty) {
+                finalCombinedText += "\n\n--- Attached Document ---\n$dialogFileText";
+            }
+            
+            final aiService = AIService();
+            final response = await aiService.processInput(
+              text: topic,
+              fileText: finalCombinedText,
+              fileName: _titleController.text.trim().isEmpty ? "Study Pad Notes" : _titleController.text.trim(),
+            );
+            return response.message;
+          },
+        ),
+      );
+
+      if (successMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isRecognizing = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception:', '').trim()}')));
+      }
+    }
+  }
+
+  // --- Drawing Handlers ---
+  void _onStrokeStart(Offset localPosition) {
+    _currentStroke = DrawingStroke(
+      points: [localPosition],
+      color: Theme.of(context).brightness == Brightness.dark ? Colors.yellowAccent : const Color(0xFF8B4EFF),
+    );
+    _strokes.add(_currentStroke!);
+    _drawingNotifier.value++;
+  }
+
+  void _onStrokeUpdate(Offset localPosition) {
+    _currentStroke?.points.add(localPosition);
+    _drawingNotifier.value++;
+  }
+
+  void _onStrokeEnd() {
+    _currentStroke = null;
+    _triggerAutoSave();
   }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
-    _docSubscription?.cancel();
+    // FIX 3: Prevent memory leaks and background crashes
+    _debounceTimer?.cancel(); 
+    _controller.dispose();
+    _inkService.dispose();
+    _focusNode.dispose();
+    _scrollController.dispose();
     _titleController.dispose();
-    _quillController.dispose();
-    _contentFocusNode.dispose();
-    _scrollController.dispose(); 
-    _bannerAd?.dispose();
+    _drawingNotifier.dispose();
     super.dispose();
-  }
-
-  void _loadBannerAd() {
-    if (kIsWeb) return;
-    _bannerAd = BannerAd(
-      adUnitId: AdHelper.bannerAdUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(onAdLoaded: (ad) => setState(() => _isAdLoaded = true)),
-    )..load();
-  }
-
-  void _setupListeners() {
-    _titleController.addListener(_onContentChanged);
-    _docSubscription?.cancel();
-    _docSubscription = _quillController.document.changes.listen((_) => _onContentChanged());
-  }
-
-  void _onContentChanged() {
-    if (_ignoreChanges || _isReadOnly) return;
-    final text = _quillController.document.toPlainText().trim();
-    if (mounted) {
-      setState(() {
-        _wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
-        _hasUnsavedChanges = true;
-        _saveStatus = SaveStatus.unsaved;
-      });
-    }
-
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(seconds: 2), () {
-      if (_hasUnsavedChanges) _saveNote(isAutoSave: true);
-    });
-  }
-
-  Future<void> _saveNote({bool isAutoSave = false}) async {
-    if (_ignoreChanges || _isReadOnly) return;
-    final plainText = _quillController.document.toPlainText().trim();
-    String title = _titleController.text.trim();
-    if (plainText.isEmpty && title.isEmpty) return;
-
-    if (title.isEmpty) title = "Untitled Note";
-
-    setState(() => _saveStatus = SaveStatus.saving);
-    _currentNoteId ??= DateTime.now().millisecondsSinceEpoch.toString();
-    
-    final note = Note(
-      id: _currentNoteId!,
-      title: title,
-      content: jsonEncode(_quillController.document.toDelta().toJson()),
-      updatedAt: DateTime.now(),
-    );
-
-    await _noteStorage.saveNote(note);
-    if (mounted) {
-      setState(() {
-        _hasUnsavedChanges = false;
-        _saveStatus = SaveStatus.saved;
-      });
-    }
-  }
-
-  void _openSavedNotes() async {
-    if (kIsWeb) {
-      _scaffoldKey.currentState?.openEndDrawer();
-    } else {
-      final selectedNote = await showModalBottomSheet<Note>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => const SavedNotesSheet(),
-      );
-      if (selectedNote != null) _loadNote(selectedNote);
-    }
-  }
-
-  void _loadNote(Note note) {
-    _ignoreChanges = true;
-    setState(() {
-      _currentNoteId = note.id;
-      _titleController.text = note.title == "Untitled Note" ? "" : note.title;
-      _isReadOnly = true;
-      try {
-        _quillController = QuillController(document: Document.fromJson(jsonDecode(note.content)), selection: const TextSelection.collapsed(offset: 0));
-      } catch (_) {
-        _quillController = QuillController(document: Document()..insert(0, note.content), selection: const TextSelection.collapsed(offset: 0));
-      }
-    });
-    _setupListeners();
-    _ignoreChanges = false;
-  }
-
-  void _startNewNote() {
-    setState(() {
-      _quillController = QuillController.basic();
-      _titleController.clear();
-      _currentNoteId = null;
-      _isReadOnly = false;
-    });
-    _setupListeners();
-  }
-
-  Future<void> _handleGenerate() async {
-    if (!_isReadOnly) await _saveNote();
-    showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CreateDeckAIDialog(
-        onGenerate: (topic, _, __) => AIService().processInput(
-          text: topic,
-          fileText: _quillController.document.toPlainText(),
-          fileName: _titleController.text,
-        ).then((res) => res.message),
-      ),
-    ).then((success) {
-      if (success != null) {
-        widget.onDeckCreated();
-        Navigator.pop(context);
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return LayoutBuilder(builder: (context, constraints) {
-      final isDesktop = constraints.maxWidth >= 900;
-
-      final saveStatusWidget = AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: Text(
-          _saveStatus == SaveStatus.saving ? "Saving..." : _saveStatus == SaveStatus.saved ? "Saved ☁️" : "Unsaved",
-          key: ValueKey(_saveStatus),
-          style: TextStyle(color: _saveStatus == SaveStatus.saved ? Colors.green : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-        ),
-      );
-
-      final wordCountWidget = Text("$_wordCount words", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey));
-
-      if (isDesktop) {
-        return StudyPadWeb(
-          scaffoldKey: _scaffoldKey,
-          titleController: _titleController,
-          quillController: _quillController,
-          scrollController: _scrollController,
-          contentFocusNode: _contentFocusNode,
-          saveStatusWidget: saveStatusWidget,
-          wordCountWidget: wordCountWidget,
-          savedNotesSidebar: SavedNotesSheet(onNoteSelected: (note) {
-            _loadNote(note);
-            Navigator.pop(context);
-          }),
-          onNewNote: _startNewNote,
-          onSave: _saveNote,
-          onOpenNotes: _openSavedNotes,
-          onGenerate: _handleGenerate,
-          isReadOnly: _isReadOnly,
-        );
-      } else {
-        return StudyPadMobile(
-          titleController: _titleController,
-          quillController: _quillController,
-          scrollController: _scrollController,
-          contentFocusNode: _contentFocusNode,
-          saveStatusWidget: saveStatusWidget,
-          wordCountWidget: wordCountWidget,
-          onNewNote: _startNewNote,
-          onOpenNotes: _openSavedNotes,
-          onGenerate: _handleGenerate,
-          isReadOnly: _isReadOnly,
-          adWidget: _isAdLoaded ? AdWidget(ad: _bannerAd!) : null,
-        );
-      }
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 850;
+        
+        if (isDesktop) {
+          return StudyPadWeb(
+            controller: _controller,
+            focusNode: _focusNode,
+            scrollController: _scrollController,
+            titleController: _titleController,
+            isDrawingMode: _isDrawingMode,
+            saveStatus: _saveStatus,
+            strokes: _strokes,
+            drawingNotifier: _drawingNotifier,
+            onToggleDrawing: _toggleDrawingMode,
+            onClearDrawing: _clearDrawing,
+            onStrokeStart: _onStrokeStart,
+            onStrokeUpdate: _onStrokeUpdate,
+            onStrokeEnd: _onStrokeEnd,
+            isRecognizing: _isRecognizing,
+            onRecognizeText: _recognizeHandwriting,
+            onGenerateWithAI: _generateDeckWithAI,
+            onBack: () => Navigator.pop(context),
+          );
+        } else {
+          return StudyPadMobile(
+            controller: _controller,
+            focusNode: _focusNode,
+            scrollController: _scrollController,
+            titleController: _titleController,
+            isDrawingMode: _isDrawingMode,
+            saveStatus: _saveStatus,
+            strokes: _strokes,
+            drawingNotifier: _drawingNotifier,
+            onToggleDrawing: _toggleDrawingMode,
+            onClearDrawing: _clearDrawing,
+            onStrokeStart: _onStrokeStart,
+            onStrokeUpdate: _onStrokeUpdate,
+            onStrokeEnd: _onStrokeEnd,
+            isRecognizing: _isRecognizing,
+            onRecognizeText: _recognizeHandwriting,
+            onGenerateWithAI: _generateDeckWithAI,
+            onBack: () => Navigator.pop(context),
+          );
+        }
+      },
+    );
   }
 }

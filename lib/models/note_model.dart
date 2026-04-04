@@ -4,12 +4,14 @@ class Note {
   final String id;
   final String title;
   final String content;
+  final String drawingData;
   final DateTime updatedAt;
 
   Note({
     required this.id,
     required this.title,
     required this.content,
+    this.drawingData = '',
     required this.updatedAt,
   });
 
@@ -18,6 +20,7 @@ class Note {
       'id': id,
       'title': title,
       'content': content,
+      'drawingData': drawingData,
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
@@ -27,6 +30,7 @@ class Note {
       id: documentId,
       title: map['title'] ?? 'Untitled Note',
       content: map['content'] ?? '',
+      drawingData: map['drawingData'] ?? '',
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

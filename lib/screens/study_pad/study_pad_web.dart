@@ -1,36 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'widgets/drawing_overlay.dart';
 
 class StudyPadWeb extends StatelessWidget {
-  final GlobalKey<ScaffoldState> scaffoldKey;
-  final TextEditingController titleController;
-  final QuillController quillController;
+  final quill.QuillController controller;
+  final FocusNode focusNode;
   final ScrollController scrollController;
-  final FocusNode contentFocusNode;
-  final Widget saveStatusWidget;
-  final Widget wordCountWidget;
-  final Widget savedNotesSidebar;
-  final VoidCallback onNewNote;
-  final VoidCallback onSave;
-  final VoidCallback onOpenNotes;
-  final VoidCallback onGenerate;
-  final bool isReadOnly;
+  final TextEditingController titleController;
+  final bool isDrawingMode;
+  final String saveStatus;
+  
+  final List<DrawingStroke> strokes;
+  final ValueNotifier<int> drawingNotifier;
+  final VoidCallback onToggleDrawing;
+  final VoidCallback onClearDrawing;
+  final Function(Offset) onStrokeStart;
+  final Function(Offset) onStrokeUpdate;
+  final VoidCallback onStrokeEnd;
+  final bool isRecognizing;
+  final VoidCallback onRecognizeText;
+  final VoidCallback onGenerateWithAI;
+  final VoidCallback onBack;
 
   const StudyPadWeb({
     super.key,
-    required this.scaffoldKey,
-    required this.titleController,
-    required this.quillController,
+    required this.controller,
+    required this.focusNode,
     required this.scrollController,
-    required this.contentFocusNode,
-    required this.saveStatusWidget,
-    required this.wordCountWidget,
-    required this.savedNotesSidebar,
-    required this.onNewNote,
-    required this.onSave,
-    required this.onOpenNotes,
-    required this.onGenerate,
-    required this.isReadOnly,
+    required this.titleController,
+    required this.isDrawingMode,
+    required this.saveStatus,
+    required this.strokes,
+    required this.drawingNotifier,
+    required this.onToggleDrawing,
+    required this.onClearDrawing,
+    required this.onStrokeStart,
+    required this.onStrokeUpdate,
+    required this.onStrokeEnd,
+    required this.isRecognizing,
+    required this.onRecognizeText,
+    required this.onGenerateWithAI,
+    required this.onBack,
   });
 
   @override
@@ -38,106 +48,160 @@ class StudyPadWeb extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      key: scaffoldKey,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      endDrawer: Drawer(width: 400, child: savedNotesSidebar),
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        centerTitle: false,
-        title: Row(
-          children: [
-            const Icon(Icons.edit_note_rounded, color: Color(0xFF8B4EFF), size: 28),
-            const SizedBox(width: 12),
-            const Text("Study Pad", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
-            const SizedBox(width: 20),
-            saveStatusWidget,
-          ],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).textTheme.bodyLarge?.color),
+          onPressed: onBack,
+        ),
+        title: TextField(
+          controller: titleController,
+          decoration: const InputDecoration(border: InputBorder.none, hintText: "Note Title..."),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Theme.of(context).textTheme.bodyLarge?.color),
         ),
         actions: [
-          IconButton(onPressed: onNewNote, icon: const Icon(Icons.add_rounded), tooltip: "New Note"),
-          IconButton(onPressed: onOpenNotes, icon: const Icon(Icons.history_rounded), tooltip: "Saved Notes"),
-          const SizedBox(width: 12),
-          Padding(
-            padding: const EdgeInsets.only(right: 20.0),
-            child: ElevatedButton.icon(
-              onPressed: onGenerate,
-              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-              label: const Text("Generate Flashcards", style: TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B4EFF),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: saveStatus == "Saved" ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                saveStatus,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: saveStatus == "Saved" ? Colors.green : Colors.orange),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            icon: isRecognizing 
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.auto_awesome, size: 18),
+            label: const Text("Generate AI Deck", style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B4EFF),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: isRecognizing ? null : onGenerateWithAI,
+          ),
+          const SizedBox(width: 24),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Desktop Toolbar
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            color: Theme.of(context).cardColor,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 850),
+                child: quill.QuillSimpleToolbar(
+                  controller: controller,
+                  config: const quill.QuillSimpleToolbarConfig(),
+                ),
+              ),
+            ),
+          ),
+          Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
+
+          // Main Editor Constrainted for Ergonomic Reading
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 850),
+                child: Stack(
+                  children: [
+                    IgnorePointer(
+                      ignoring: isDrawingMode,
+                      child: quill.QuillEditor.basic(
+                        controller: controller,
+                        config: quill.QuillEditorConfig(
+                          padding: const EdgeInsets.all(40),
+                          autoFocus: true,
+                          expands: true,
+                        ),
+                        focusNode: focusNode,
+                        scrollController: scrollController,
+                      ),
+                    ),
+                    
+                    if (isDrawingMode)
+                      AnimatedBuilder(
+                        animation: scrollController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, -scrollController.offset),
+                            child: child,
+                          );
+                        },
+                        child: GestureDetector(
+                          onPanStart: (details) => onStrokeStart(details.localPosition),
+                          onPanUpdate: (details) => onStrokeUpdate(details.localPosition),
+                          onPanEnd: (_) => onStrokeEnd(),
+                          child: Container(
+                            color: Colors.transparent,
+                            width: double.infinity,
+                            height: 8000, 
+                            child: AnimatedBuilder(
+                              animation: drawingNotifier,
+                              builder: (context, _) {
+                                return CustomPaint(
+                                  painter: DrawingPainter(strokes: strokes),
+                                  size: Size.infinite,
+                                );
+                              }
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 900),
-          margin: const EdgeInsets.fromLTRB(40, 0, 40, 40),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 40, offset: const Offset(0, 10))
-            ],
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (isDrawingMode) ...[
+            FloatingActionButton.extended(
+              heroTag: "recognize_btn_web",
+              backgroundColor: Colors.blueAccent,
+              onPressed: isRecognizing ? null : onRecognizeText,
+              icon: isRecognizing 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.text_fields_rounded, color: Colors.white),
+              label: Text(isRecognizing ? "Recognizing..." : "Convert to Text", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton.extended(
+              heroTag: "clear_btn_web",
+              backgroundColor: Colors.redAccent,
+              onPressed: onClearDrawing,
+              icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white),
+              label: const Text("Clear Drawings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 16),
+          ],
+          FloatingActionButton.extended(
+            heroTag: "draw_btn_web",
+            backgroundColor: isDrawingMode ? const Color(0xFF8B4EFF) : Theme.of(context).cardColor,
+            onPressed: onToggleDrawing,
+            icon: Icon(
+              isDrawingMode ? Icons.edit_off_rounded : Icons.brush_rounded,
+              color: isDrawingMode ? Colors.white : const Color(0xFF8B4EFF),
+            ),
+            label: Text(
+              isDrawingMode ? "Exit Drawing Mode" : "Draw over Text",
+              style: TextStyle(color: isDrawingMode ? Colors.white : const Color(0xFF8B4EFF), fontWeight: FontWeight.bold),
+            ),
           ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
-                child: TextField(
-                  controller: titleController,
-                  readOnly: isReadOnly,
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
-                  decoration: const InputDecoration(hintText: "Untitled Note", border: InputBorder.none),
-                ),
-              ),
-              if (!isReadOnly)
-                Container(
-                  color: isDark ? Colors.white.withOpacity(0.02) : Colors.grey.shade50,
-                  child: QuillSimpleToolbar(
-                    controller: quillController,
-                    config: const QuillSimpleToolbarConfig(
-                      multiRowsDisplay: false,
-                      showSearchButton: false,
-                      showFontFamily: false,
-                      showFontSize: false,
-                      // 🛡️ SECURITY FIX: Explicitly disable media links/quotes that can 
-                      // be hijacked to inject Base64 images directly into the Quill delta.
-                      showLink: false,
-                      showQuote: false, 
-                    ),
-                  ),
-                ),
-              const Divider(height: 1),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: QuillEditor.basic(
-                    controller: quillController,
-                    focusNode: contentFocusNode,
-                    scrollController: scrollController,
-                    config: const QuillEditorConfig(
-                      placeholder: "Start typing...", 
-                      expands: true,
-                      // 🛡️ Pre-empts any drag-and-drop file hijacks
-                      enableInteractiveSelection: true,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [wordCountWidget]),
-              )
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
