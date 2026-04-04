@@ -8,6 +8,7 @@ import '../services/energy_service.dart';
 import '../services/pro_service.dart'; // Added to check Pro status
 import '../screens/settings/manage_subscription_screen.dart'; // For the Pro Upgrade routing
 import 'pro_paywall_sheet.dart'; // The Universal Paywall Widget
+import 'package:flutter/services.dart';
 
 class UpdateDeckAIDialog extends StatefulWidget {
   final List<Deck> decks;
