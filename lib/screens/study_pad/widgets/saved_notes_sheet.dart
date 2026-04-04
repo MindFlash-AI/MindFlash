@@ -158,6 +158,36 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
                       ],
                     ),
                   ),
+                  
+                  if (!_isLoading) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Storage Quota", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+                              Text("${_notes.length} / 50 Notes", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _notes.length >= 45 ? Colors.redAccent : const Color(0xFF8B4EFF))),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: (_notes.length / 50.0).clamp(0.0, 1.0),
+                              minHeight: 6,
+                              backgroundColor: isDark ? Colors.white12 : Colors.grey.shade200,
+                              valueColor: AlwaysStoppedAnimation<Color>(_notes.length >= 45 ? Colors.redAccent : const Color(0xFF8B4EFF)),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+                  ],
+                  
                   Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
                   Expanded(
                     child: _isLoading

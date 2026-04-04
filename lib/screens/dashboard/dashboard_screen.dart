@@ -7,6 +7,7 @@ import '../../services/deck_storage_service.dart';
 import '../../services/card_storage_service.dart'; // 🛡️ Added Card Storage import
 import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
+import '../../services/note_storage_service.dart';
 
 import '../../widgets/stat_card.dart';
 import '../../widgets/deck_list_item.dart';
@@ -122,11 +123,27 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  void _navigateToStudyPad() {
+  void _navigateToStudyPad() async {
     if (_scaffoldKey.currentState?.isDrawerOpen == true) {
       Navigator.pop(context);
     }
     
+    // 🛡️ SECURITY FIX: Enforce Maximum 50 Notes per User
+    try {
+      final notes = await NoteStorageService().getNotes();
+      if (notes.length >= 50) {
+        if (mounted) {
+          HapticFeedback.heavyImpact();
+          _showFeedbackModal(context, false, "You have reached the generous limit of 50 Study Pad notes. Please delete some older notes to create new ones! 🛑");
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint("Error checking notes limit: $e");
+    }
+
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -784,38 +801,61 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "My Decks (${_decks.length})",
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              PopupMenuButton<SortOption>(
-                icon: Icon(
-                  Icons.sort_rounded,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                  size: 24,
-                ),
-                color: Theme.of(context).cardColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                onSelected: (SortOption option) {
-                  HapticFeedback.selectionClick();
-                  setState(() {
-                    _currentSort = option;
-                    _applySort();
-                  });
-                },
-                itemBuilder: (context) => [
-                  _buildSortMenuItem(SortOption.nameAsc, "Name (A to Z)", Icons.sort_by_alpha, isDark),
-                  _buildSortMenuItem(SortOption.nameDesc, "Name (Z to A)", Icons.sort_by_alpha, isDark),
-                  _buildSortMenuItem(SortOption.countDesc, "Cards (High to Low)", Icons.format_list_numbered, isDark),
-                  _buildSortMenuItem(SortOption.countAsc, "Cards (Low to High)", Icons.format_list_numbered_rtl, isDark),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "My Decks",
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  PopupMenuButton<SortOption>(
+                    icon: Icon(
+                      Icons.sort_rounded,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      size: 24,
+                    ),
+                    color: Theme.of(context).cardColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    onSelected: (SortOption option) {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _currentSort = option;
+                        _applySort();
+                      });
+                    },
+                    itemBuilder: (context) => [
+                      _buildSortMenuItem(SortOption.nameAsc, "Name (A to Z)", Icons.sort_by_alpha, isDark),
+                      _buildSortMenuItem(SortOption.nameDesc, "Name (Z to A)", Icons.sort_by_alpha, isDark),
+                      _buildSortMenuItem(SortOption.countDesc, "Cards (High to Low)", Icons.format_list_numbered, isDark),
+                      _buildSortMenuItem(SortOption.countAsc, "Cards (Low to High)", Icons.format_list_numbered_rtl, isDark),
+                    ],
+                  ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Storage Quota", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+                  Text("${_decks.length} / 20 Decks", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _decks.length >= 18 ? Colors.redAccent : const Color(0xFF8B4EFF))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (_decks.length / 20.0).clamp(0.0, 1.0),
+                  minHeight: 6,
+                  backgroundColor: isDark ? Colors.white12 : Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(_decks.length >= 18 ? Colors.redAccent : const Color(0xFF8B4EFF)),
+                ),
               ),
             ],
           ),
