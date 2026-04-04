@@ -84,107 +84,173 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      // 🛡️ UX: When used as an endDrawer on Web, we remove the fixed height constraint
-      height: widget.onNoteSelected != null ? double.infinity : MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: widget.onNoteSelected != null 
-            ? BorderRadius.zero 
-            : const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          // Only show the "grabber" handle if it's a bottom sheet (Mobile)
-          if (widget.onNoteSelected == null)
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white24 : Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 650),
+          child: Container(
+            height: widget.onNoteSelected != null ? double.infinity : MediaQuery.of(context).size.height * 0.8,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: widget.onNoteSelected != null 
+                  ? BorderRadius.zero 
+                  : const BorderRadius.vertical(top: Radius.circular(32)),
+            ),
+            child: ClipRRect(
+              borderRadius: widget.onNoteSelected != null 
+                  ? BorderRadius.zero 
+                  : const BorderRadius.vertical(top: Radius.circular(32)),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  if (widget.onNoteSelected == null)
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 5,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.folder_copy_rounded, color: Color(0xFF8B4EFF), size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              "My Notes",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.pop(context);
+                          },
+                          icon: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.grey.shade100, shape: BoxShape.circle),
+                            child: Icon(Icons.close_rounded, color: isDark ? Colors.white54 : Colors.black54, size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B4EFF)))
+                        : _notes.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.edit_note_rounded, size: 64, color: isDark ? Colors.white24 : Colors.grey.shade300),
+                                    const SizedBox(height: 16),
+                                    Text("No notes yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                                    const SizedBox(height: 8),
+                                    Text("Your saved study pad notes will appear here.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600)),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(24),
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: _notes.length,
+                                itemBuilder: (context, index) {
+                                  final note = _notes[index];
+                                  final noteTitle = note.title.isEmpty ? "Untitled Note" : note.title;
+                                  
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).cardColor,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                                    ),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(16),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: InkWell(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          if (widget.onNoteSelected != null) {
+                                            widget.onNoteSelected!(note);
+                                          } else {
+                                            Navigator.pop(context, note);
+                                          }
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(color: const Color(0xFF8B4EFF).withOpacity(0.1), shape: BoxShape.circle),
+                                                child: const Icon(Icons.edit_document, color: Color(0xFF8B4EFF)),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      noteTitle,
+                                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      DateFormat('MMM d, y • h:mm a').format(note.updatedAt),
+                                                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                                onPressed: () => _confirmDelete(context, note.id, noteTitle),
+                                                tooltip: "Delete Note",
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Saved Notes",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.black54),
-                ),
-              ],
-            ),
           ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B4EFF)))
-                : _notes.isEmpty
-                    ? Center(
-                        child: Text(
-                          "No saved notes yet.",
-                          style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: _notes.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final note = _notes[index];
-                          final noteTitle = note.title.isEmpty ? "Untitled Note" : note.title;
-                          
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                              ),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              title: Text(
-                                noteTitle,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Text(
-                                DateFormat('MMM d, y • h:mm a').format(note.updatedAt),
-                                style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                onPressed: () => _confirmDelete(context, note.id, noteTitle),
-                              ),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                // 🛡️ FIX: If a callback is provided (Web), use it. 
-                                // Otherwise, pop the result (Mobile).
-                                if (widget.onNoteSelected != null) {
-                                  widget.onNoteSelected!(note);
-                                } else {
-                                  Navigator.pop(context, note);
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-          ),
-        ],
+        ),
       ),
     );
   }

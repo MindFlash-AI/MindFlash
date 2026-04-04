@@ -35,6 +35,7 @@ class StudyPadWeb extends StatelessWidget {
   final bool isRecognizing;
   final VoidCallback onRecognizeText;
   final VoidCallback onGenerateWithAI;
+  final VoidCallback onOpenNotes;
   final VoidCallback onBack;
 
   const StudyPadWeb({
@@ -70,6 +71,7 @@ class StudyPadWeb extends StatelessWidget {
     required this.isRecognizing,
     required this.onRecognizeText,
     required this.onGenerateWithAI,
+    required this.onOpenNotes,
     required this.onBack,
   });
 
@@ -121,6 +123,13 @@ class StudyPadWeb extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
+          TextButton.icon(
+            icon: const Icon(Icons.folder_copy_rounded, size: 18),
+            label: const Text("My Notes", style: TextStyle(fontWeight: FontWeight.bold)),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF8B4EFF)),
+            onPressed: onOpenNotes,
+          ),
+          const SizedBox(width: 12),
           ElevatedButton.icon(
             icon: isRecognizing 
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))

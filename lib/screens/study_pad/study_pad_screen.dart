@@ -12,6 +12,7 @@ import '../../widgets/create_deck_ai_dialog.dart';
 import 'study_pad_mobile.dart';
 import 'study_pad_web.dart';
 import 'widgets/drawing_overlay.dart';
+import 'widgets/saved_notes_sheet.dart';
 
 class StudyPadScreen extends StatefulWidget {
   final Note? initialNote;
@@ -126,6 +127,25 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
         _focusNode.unfocus(); 
       }
     });
+  }
+
+  void _openSavedNotes() async {
+    HapticFeedback.lightImpact();
+    _triggerAutoSave(); // Ensure current progress is saved before switching
+    
+    final selectedNote = await showModalBottomSheet<Note>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const SavedNotesSheet(),
+    );
+
+    if (selectedNote != null && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => StudyPadScreen(initialNote: selectedNote)),
+      );
+    }
   }
 
   void _toggleEraserMode() {
@@ -411,6 +431,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             isRecognizing: _isRecognizing,
             onRecognizeText: _recognizeHandwriting,
             onGenerateWithAI: _generateDeckWithAI,
+            onOpenNotes: _openSavedNotes,
             selectedColor: _selectedColor,
             onColorSelected: (color) => setState(() => _selectedColor = color),
             selectedWidth: _selectedWidth,
@@ -446,6 +467,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             isRecognizing: _isRecognizing,
             onRecognizeText: _recognizeHandwriting,
             onGenerateWithAI: _generateDeckWithAI,
+            onOpenNotes: _openSavedNotes,
             selectedColor: _selectedColor,
             onColorSelected: (color) => setState(() => _selectedColor = color),
             selectedWidth: _selectedWidth,

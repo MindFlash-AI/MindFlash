@@ -35,6 +35,7 @@ class StudyPadMobile extends StatelessWidget {
   final bool isRecognizing;
   final VoidCallback onRecognizeText;
   final VoidCallback onGenerateWithAI;
+  final VoidCallback onOpenNotes;
   final VoidCallback onBack;
 
   const StudyPadMobile({
@@ -70,6 +71,7 @@ class StudyPadMobile extends StatelessWidget {
     required this.isRecognizing,
     required this.onRecognizeText,
     required this.onGenerateWithAI,
+    required this.onOpenNotes,
     required this.onBack,
   });
 
@@ -114,6 +116,11 @@ class StudyPadMobile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.folder_copy_rounded, color: Color(0xFF8B4EFF)),
+            onPressed: onOpenNotes,
+            tooltip: "My Notes",
+          ),
           IconButton(
             icon: isRecognizing 
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B4EFF)))
