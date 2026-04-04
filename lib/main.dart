@@ -11,7 +11,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 
 import 'firebase_options.dart';
 import 'screens/loading_screen/loading_screen.dart';
-import 'constants.dart';
+import 'constants/constants.dart';
 import 'services/notification_service.dart';
 import 'services/pro_service.dart';
 

@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 🛡️ Added for HapticFeedback
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../constants.dart'; // 🛡️ Added to access themeNotifier
+import '../../../constants/constants.dart'; // 🛡️ Added to access themeNotifier
 import '../pages/about_us_screen.dart'; 
 import '../pages/features_screen.dart';
 import '../pages/how_it_works_screen.dart';

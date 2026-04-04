@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../web_landing_screen.dart'; // Imported to access the HoverScale widget
+import '../../../constants/legal_texts.dart';
+import '../../settings/dialogs/legal_document_dialog.dart';
 
 class WebFooter extends StatelessWidget {
   const WebFooter({super.key});
@@ -23,7 +26,7 @@ class WebFooter extends StatelessWidget {
                   children: [
                     _buildFooterLogo(context),
                     const SizedBox(height: 24),
-                    _buildFooterLinks(isDark),
+                    _buildFooterLinks(context, isDark),
                     const SizedBox(height: 24),
                     Text(
                       "© ${DateTime.now().year} MindFlash. All rights reserved.",
@@ -45,7 +48,7 @@ class WebFooter extends StatelessWidget {
                         ),
                       ],
                     ),
-                    _buildFooterLinks(isDark),
+                    _buildFooterLinks(context, isDark),
                   ],
                 ),
         ),
@@ -72,15 +75,28 @@ class WebFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildFooterLinks(bool isDark) {
+  Widget _buildFooterLinks(BuildContext context, bool isDark) {
     return Wrap(
       spacing: 24,
       runSpacing: 12,
       alignment: WrapAlignment.center,
       children: [
-        // No onTap means these automatically get the basic (non-clickable) mouse cursor
-        HoverScale(child: _buildFooterLink("Privacy Policy", isDark), scaleFactor: 1.05),
-        HoverScale(child: _buildFooterLink("Terms of Service", isDark), scaleFactor: 1.05),
+        HoverScale(
+          scaleFactor: 1.05,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            LegalDocumentDialog.show(context, "Privacy Policy", LegalTexts.privacyPolicy);
+          },
+          child: _buildFooterLink("Privacy Policy", isDark),
+        ),
+        HoverScale(
+          scaleFactor: 1.05,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            LegalDocumentDialog.show(context, "Terms of Service", LegalTexts.termsOfService);
+          },
+          child: _buildFooterLink("Terms of Service", isDark),
+        ),
         HoverScale(child: _buildFooterLink("Contact Support", isDark), scaleFactor: 1.05),
       ],
     );

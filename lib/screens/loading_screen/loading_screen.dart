@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../login/login_screen.dart'; 
 import '../web_landing/web_landing_screen.dart'; // Added Web Landing Screen
-import '../../constants.dart';
+import '../../constants/constants.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});

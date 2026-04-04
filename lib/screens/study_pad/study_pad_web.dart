@@ -8,7 +8,7 @@ class StudyPadWeb extends StatelessWidget {
   final ScrollController scrollController;
   final TextEditingController titleController;
   final bool isDrawingMode;
-  final String saveStatus;
+  final ValueNotifier<String> saveNotifier;
   
   final List<DrawingStroke> strokes;
   final ValueNotifier<int> drawingNotifier;
@@ -29,7 +29,7 @@ class StudyPadWeb extends StatelessWidget {
     required this.scrollController,
     required this.titleController,
     required this.isDrawingMode,
-    required this.saveStatus,
+    required this.saveNotifier,
     required this.strokes,
     required this.drawingNotifier,
     required this.onToggleDrawing,
@@ -63,16 +63,21 @@ class StudyPadWeb extends StatelessWidget {
         ),
         actions: [
           Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: saveStatus == "Saved" ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                saveStatus,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: saveStatus == "Saved" ? Colors.green : Colors.orange),
-              ),
+            child: ValueListenableBuilder<String>(
+              valueListenable: saveNotifier,
+              builder: (context, status, _) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: status == "Saved" ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    status,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: status == "Saved" ? Colors.green : Colors.orange),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(width: 16),
@@ -149,10 +154,12 @@ class StudyPadWeb extends StatelessWidget {
                             child: AnimatedBuilder(
                               animation: drawingNotifier,
                               builder: (context, _) {
-                                return CustomPaint(
-                                  painter: DrawingPainter(strokes: strokes),
-                                  size: Size.infinite,
-                                );
+                                  return RepaintBoundary(
+                                    child: CustomPaint(
+                                      painter: DrawingPainter(strokes: strokes),
+                                      size: Size.infinite,
+                                    ),
+                                  );
                               }
                             ),
                           ),

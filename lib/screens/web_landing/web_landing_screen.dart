@@ -10,7 +10,7 @@ import '../dashboard/dashboard_screen.dart';
 import '../../widgets/web_pro_gate.dart'; 
 import 'widgets/web_navigation_bar.dart'; 
 import 'widgets/web_footer.dart'; 
-import '../../constants.dart'; 
+import '../../constants/constants.dart'; 
 
 class WebLandingScreen extends StatelessWidget {
   const WebLandingScreen({super.key});

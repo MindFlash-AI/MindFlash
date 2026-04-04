@@ -51,6 +51,13 @@ class AIService {
     String? fileName,
     String? targetDeckId, // 🛡️ NEW: Pass the target deck ID if we are updating!
   }) async {
+    // 💰 COST & BANDWIDTH OPTIMIZATION: Truncate massive payloads client-side
+    // Prevents uploading massive 10MB+ strings just for the server to truncate them, saving network egress costs.
+    if (text != null && text.length > 2000) text = '${text.substring(0, 2000)}...[TRUNCATED]';
+    if (fileText != null && !fileText.startsWith('data:image/') && fileText.length > 35000) {
+      fileText = '${fileText.substring(0, 35000)}...[TRUNCATED]';
+    }
+
     final decks = await _deckStorage.getDecks();
     
     // 🛡️ FIX: If we are updating a deck, we MUST fetch its existing cards

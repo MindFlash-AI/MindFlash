@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../../widgets/web_pro_gate.dart';
 import '../../dashboard/dashboard_screen.dart';
-import '../../../constants.dart';
+import '../../../constants/constants.dart';
 import '../../web_landing/web_landing_screen.dart';
 
 class WebLoginScreen extends StatefulWidget {

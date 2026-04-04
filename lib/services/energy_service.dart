@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'pro_service.dart';
-import '../constants.dart';
+import '../constants/constants.dart';
 
 class EnergyService {
   static final EnergyService _instance = EnergyService._internal();

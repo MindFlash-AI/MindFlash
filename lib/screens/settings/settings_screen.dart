@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../constants.dart';
+import '../../constants/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/pro_service.dart';

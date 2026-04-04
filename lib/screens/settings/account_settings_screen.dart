@@ -12,6 +12,9 @@ import 'manage_subscription_screen.dart';
 import 'dialogs/edit_profile_dialog.dart';
 import 'dialogs/legal_document_dialog.dart';
 import 'dialogs/delete_account_dialog.dart';
+import 'account_settings_mobile.dart';
+import 'account_settings_web.dart';
+import '../../constants/legal_texts.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -23,7 +26,7 @@ class AccountSettingsScreen extends StatefulWidget {
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isLoading = false;
   final TextEditingController _nameController = TextEditingController();
-
+  
   @override
   void dispose() {
     _nameController.dispose();
@@ -113,14 +116,23 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           await deck.reference.delete();
         }
 
-        // 2. Wipe Study Pad Notes
+        // 2 & 3. Wipe Study Pad Notes, Chat History & Energy Stats
         final notes = await firestore.collection('users').doc(uid).collection('notes').get();
-        await Future.wait(notes.docs.map((note) => note.reference.delete()));
-
-        // 3. Wipe Chat History & Energy Stats
         final chats = await firestore.collection('users').doc(uid).collection('chat').get();
-        await Future.wait(chats.docs.map((chat) => chat.reference.delete()));
-        await firestore.collection('users').doc(uid).collection('stats').doc('energy').delete();
+
+        // 🚀 PERFORMANCE FIX: Use chunked WriteBatches instead of concurrent Future.wait network requests
+        final allRefs = [
+          ...notes.docs.map((d) => d.reference),
+          ...chats.docs.map((d) => d.reference),
+          firestore.collection('users').doc(uid).collection('stats').doc('energy'),
+        ];
+        
+        // Firestore limits batches to 500 operations, chunking by 400 ensures safety
+        for (var i = 0; i < allRefs.length; i += 400) {
+          WriteBatch batch = firestore.batch();
+          for (var ref in allRefs.skip(i).take(400)) { batch.delete(ref); }
+          await batch.commit();
+        }
 
         // 4. Delete the main User Document
         await firestore.collection('users').doc(uid).delete();
@@ -388,7 +400,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         LegalDocumentDialog.show(
                           context,
                           "Privacy Policy",
-                          '''Last Updated: March 2026\n\nWelcome to MindFlash. Your privacy is critically important to us.\n\n1. Information We Collect\n• Account Data: When you sign in using Google, we collect your email address, display name, and profile picture.\n• App Usage Data: We store the flashcards, decks, and chat history you create to sync them across your devices.\n• Uploaded Documents: Documents you upload are temporarily processed by our servers to generate flashcards but are not permanently stored or used to train global AI models.\n• Device Data: We may collect anonymized device information and crash reports to improve app stability.\n\n2. Third-Party Services We Use\nWe use trusted third-party services that may collect data in accordance with their own privacy policies:\n• Google Cloud & Firebase (for database storage and secure authentication)\n• Google AdMob (to display advertisements to free users)\n• Google Gemini API (to generate AI flashcards and power the AI Tutor)\n• RevenueCat (to process and manage MindFlash Pro subscriptions)\n\n3. How We Use Your Data\nWe use your data solely to provide, maintain, and improve the MindFlash service. We do NOT sell your personal information to third parties.\n\n4. Your Rights & Data Deletion\nYou own your study materials. You can permanently delete your account, flashcards, and all associated data at any time using the "Delete Account" button in this app's settings.\n\n5. Children's Privacy\nMindFlash is intended for students and learners. We do not knowingly collect personal information from children under the age of 13 without parental consent.\n\nIf you have any questions about this Privacy Policy, please contact us via the Help & Support menu.''',
+                          LegalTexts.privacyPolicy,
                         );
                       },
                       title: Text(
@@ -415,7 +427,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         LegalDocumentDialog.show(
                           context,
                           "Terms of Service",
-                          '''Last Updated: March 2026\n\nPlease read these Terms of Service carefully before using MindFlash.\n\n1. Acceptance of Terms\nBy accessing or using MindFlash, you agree to be bound by these Terms. If you disagree with any part of the terms, you do not have permission to access the service.\n\n2. AI Generation Disclaimer (Crucial)\nMindFlash uses artificial intelligence (Google Gemini) to generate study materials, answer questions, and summarize documents. \n• AI can make mistakes (hallucinations). \n• MindFlash does NOT guarantee the 100% accuracy, completeness, or reliability of generated content. \n• You are solely responsible for verifying the facts before relying on them for exams, medical, legal, or professional purposes. MindFlash is not liable for academic outcomes.\n\n3. User Content & Conduct\nYou are responsible for the documents and text you upload. You agree NOT to upload:\n• Copyrighted material you do not have the right to use.\n• Highly sensitive personal data (e.g., social security numbers, medical records).\n• Illegal, explicit, or harmful content.\n\n4. Subscriptions (MindFlash Pro)\nMindFlash offers auto-renewing subscriptions ("MindFlash Pro") that unlock premium features and remove ads. \n• Payment will be charged to your Apple or Google account at confirmation of purchase.\n• Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.\n• You can manage or cancel your subscription directly in your device's App Store / Play Store settings.\n\n5. Termination\nWe reserve the right to terminate or suspend your account immediately, without prior notice, if you breach these Terms (e.g., attempting to hack the AI energy system or API).\n\n6. Changes to Terms\nWe reserve the right to modify these terms at any time. We will notify users of significant changes.''',
+                          LegalTexts.termsOfService,
                         );
                       },
                       title: Text(

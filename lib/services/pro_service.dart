@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../constants.dart';
+import '../constants/constants.dart';
 
 /// A Singleton service that manages the RevenueCat integration for MindFlash Pro.
 class ProService extends ChangeNotifier {

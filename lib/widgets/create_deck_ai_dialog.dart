@@ -509,458 +509,467 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          child: Stack(
-            children: [
-              // Main Form Layer
-              SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 40,
-                              height: 5,
-                              margin: const EdgeInsets.only(bottom: 24),
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.white24 : Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      // 🚀 HCI OPTIMIZATION: Constrain width on Web/Desktop so bottom sheets aren't excessively wide
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 650),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              child: Stack(
+                children: [
+                  // Main Form Layer
+                  SafeArea(
+                    top: false,
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF8B4EFF).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(
-                                        Icons.auto_awesome_rounded,
-                                        color: Color(0xFF8B4EFF),
-                                        size: 22,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Flexible(
-                                      child: Text(
-                                        "AI Generation",
-                                        style: TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w900,
-                                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                                          letterSpacing: -0.5,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () {
-                                  if (!_isSubmitting) {
-                                    HapticFeedback.selectionClick();
-                                    Navigator.of(context).pop();
-                                  }
-                                },
-                                icon: Container(
-                                  padding: const EdgeInsets.all(4),
+                              Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 5,
+                                  margin: const EdgeInsets.only(bottom: 24),
                                   decoration: BoxDecoration(
-                                    color: isDark ? Colors.white12 : Colors.grey.shade100,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.close_rounded,
-                                    color: isDark ? Colors.white54 : Colors.black54,
-                                    size: 20,
+                                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            "Let MindFlash build a complete flashcard deck for you in seconds. Tell us what you want to learn or attach your notes.",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? Colors.white70 : Colors.grey[600],
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-
-                          _buildInputLabel("Deck Name", Icons.style_rounded),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _deckNameController,
-                            focusNode: _nameFocus,
-                            enabled: !_isSubmitting,
-                            textCapitalization: TextCapitalization.words,
-                            textInputAction: TextInputAction.next,
-                            onFieldSubmitted: (_) =>
-                                FocusScope.of(context).requestFocus(_topicFocus),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a deck name';
-                              }
-                              return null;
-                            },
-                            decoration: _buildInputDecoration(
-                              "e.g., CMSC 156 Midterms",
-                              _deckNameController,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildInputLabel("Topic", Icons.bookmark_border_rounded),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _topicController,
-                            focusNode: _topicFocus,
-                            enabled: !_isSubmitting,
-                            textCapitalization: TextCapitalization.words,
-                            textInputAction: TextInputAction.next,
-                            onFieldSubmitted: (_) =>
-                                FocusScope.of(context).requestFocus(_promptFocus),
-                            validator: (value) {
-                              if ((value == null || value.trim().isEmpty) &&
-                                  _selectedFileName == null) {
-                                return 'Please enter a topic or attach a file';
-                              }
-                              return null;
-                            },
-                            decoration: _buildInputDecoration(
-                              "e.g., Core Flutter Skills...",
-                              _topicController,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildInputLabel(
-                            "Attach File or Photo (Optional)",
-                            Icons.attach_file_rounded,
-                          ),
-                          const SizedBox(height: 8),
-
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _isSubmitting || _isFileProcessing
-                                  ? null
-                                  : _handleFileUpload,
-                              borderRadius: BorderRadius.circular(16),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 16,
+    
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: const Icon(
+                                            Icons.auto_awesome_rounded,
+                                            color: Color(0xFF8B4EFF),
+                                            size: 22,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                          child: Text(
+                                            "AI Generation",
+                                            style: TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.w900,
+                                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                                              letterSpacing: -0.5,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      if (!_isSubmitting) {
+                                        HapticFeedback.selectionClick();
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
+                                    icon: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? Colors.white12 : Colors.grey.shade100,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        color: isDark ? Colors.white54 : Colors.black54,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                "Let MindFlash build a complete flashcard deck for you in seconds. Tell us what you want to learn or attach your notes.",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white70 : Colors.grey[600],
+                                  height: 1.4,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: _isFileProcessing
-                                      ? const Color(0xFF8B4EFF).withOpacity(0.08)
-                                      : (_selectedFileName != null
-                                          ? const Color(0xFF8B4EFF).withOpacity(0.05)
-                                          : (isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA))),
+                              ),
+                              const SizedBox(height: 28),
+    
+                              _buildInputLabel("Deck Name", Icons.style_rounded),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _deckNameController,
+                                maxLength: 60,
+                                focusNode: _nameFocus,
+                                enabled: !_isSubmitting,
+                                textCapitalization: TextCapitalization.words,
+                                textInputAction: TextInputAction.next,
+                                onFieldSubmitted: (_) =>
+                                    FocusScope.of(context).requestFocus(_topicFocus),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter a deck name';
+                                  }
+                                  return null;
+                                },
+                                decoration: _buildInputDecoration(
+                                  "e.g., CMSC 156 Midterms",
+                                  _deckNameController,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+    
+                              _buildInputLabel("Topic", Icons.bookmark_border_rounded),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _topicController,
+                                maxLength: 200,
+                                focusNode: _topicFocus,
+                                enabled: !_isSubmitting,
+                                textCapitalization: TextCapitalization.words,
+                                textInputAction: TextInputAction.next,
+                                onFieldSubmitted: (_) =>
+                                    FocusScope.of(context).requestFocus(_promptFocus),
+                                validator: (value) {
+                                  if ((value == null || value.trim().isEmpty) &&
+                                      _selectedFileName == null) {
+                                    return 'Please enter a topic or attach a file';
+                                  }
+                                  return null;
+                                },
+                                decoration: _buildInputDecoration(
+                                  "e.g., Core Flutter Skills...",
+                                  _topicController,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+    
+                              _buildInputLabel(
+                                "Attach File or Photo (Optional)",
+                                Icons.attach_file_rounded,
+                              ),
+                              const SizedBox(height: 8),
+    
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: _isSubmitting || _isFileProcessing
+                                      ? null
+                                      : _handleFileUpload,
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: _isFileProcessing
-                                        ? const Color(0xFF8B4EFF).withOpacity(0.4)
-                                        : (_selectedFileName != null
-                                            ? const Color(0xFF8B4EFF)
-                                            : Colors.transparent),
-                                    width: 2,
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 16,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _isFileProcessing
+                                          ? const Color(0xFF8B4EFF).withOpacity(0.08)
+                                          : (_selectedFileName != null
+                                              ? const Color(0xFF8B4EFF).withOpacity(0.05)
+                                              : (isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA))),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: _isFileProcessing
+                                            ? const Color(0xFF8B4EFF).withOpacity(0.4)
+                                            : (_selectedFileName != null
+                                                ? const Color(0xFF8B4EFF)
+                                                : Colors.transparent),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 200),
+                                      child: _isFileProcessing
+                                          ? Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              key: const ValueKey("processing"),
+                                              children: [
+                                                const SizedBox(
+                                                  width: 18,
+                                                  height: 18,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2.5,
+                                                    color: Color(0xFF8B4EFF),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Shimmer.fromColors(
+                                                  baseColor: const Color(0xFF8B4EFF),
+                                                  highlightColor: const Color(0xFFE841A1),
+                                                  child: const Text(
+                                                    "Reading file contents...",
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          : Row(
+                                              key: const ValueKey("idle"),
+                                              children: [
+                                                Icon(
+                                                  _getFileIcon(),
+                                                  color: _selectedFileName != null
+                                                      ? const Color(0xFF8B4EFF)
+                                                      : Colors.grey.shade500,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Text(
+                                                    _selectedFileName ??
+                                                        "Upload PDF, TXT, or Image",
+                                                    style: TextStyle(
+                                                      color: _selectedFileName != null
+                                                          ? Theme.of(context).textTheme.bodyLarge?.color
+                                                          : Colors.grey.shade500,
+                                                      fontSize: 15,
+                                                      fontWeight:
+                                                          _selectedFileName != null
+                                                          ? FontWeight.w600
+                                                          : FontWeight.normal,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (_selectedFileName != null &&
+                                                    !_isSubmitting)
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(
+                                                        Icons.check_circle_rounded,
+                                                        color: Colors.green,
+                                                        size: 20,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.cancel,
+                                                          color: Colors.grey,
+                                                          size: 20,
+                                                        ),
+                                                        onPressed: () {
+                                                          HapticFeedback.selectionClick();
+                                                          setState(() {
+                                                            _selectedFileName = null;
+                                                            _extractedFileText = null;
+                                                          });
+                                                        },
+                                                        padding: EdgeInsets.zero,
+                                                        constraints:
+                                                            const BoxConstraints(),
+                                                      ),
+                                                    ],
+                                                  ),
+                                              ],
+                                            ),
+                                    ),
                                   ),
                                 ),
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  child: _isFileProcessing
-                                      ? Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          key: const ValueKey("processing"),
-                                          children: [
-                                            const SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.5,
-                                                color: Color(0xFF8B4EFF),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Shimmer.fromColors(
-                                              baseColor: const Color(0xFF8B4EFF),
-                                              highlightColor: const Color(0xFFE841A1),
-                                              child: const Text(
-                                                "Reading file contents...",
-                                                style: TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
+                              ),
+                              const SizedBox(height: 20),
+    
+                              _buildInputLabel(
+                                "Specific Instructions (Optional)",
+                                Icons.tune_rounded,
+                              ),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _promptController,
+                                maxLength: 500,
+                                focusNode: _promptFocus,
+                                enabled: !_isSubmitting,
+                                textCapitalization: TextCapitalization.sentences,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) => _submitTopic(),
+                                decoration: _buildInputDecoration(
+                                  "e.g., Focus only on definitions...",
+                                  _promptController,
+                                ),
+                                maxLines: 2,
+                                minLines: 1,
+                              ),
+                              const SizedBox(height: 28),
+    
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: _buildInputLabel(
+                                      "Number of Cards",
+                                      Icons.layers_rounded,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      "${_numCards.toInt()} Cards",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF8B4EFF),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 6.0,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 12.0,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 24.0,
+                                  ),
+                                  activeTickMarkColor: Colors.transparent,
+                                  inactiveTickMarkColor: Colors.transparent,
+                                ),
+                                child: Slider(
+                                  value: _numCards,
+                                  min: 5,
+                                  max: 50,
+                                  divisions: 9,
+                                  activeColor: const Color(0xFF8B4EFF),
+                                  inactiveColor: const Color(0xFF8B4EFF).withOpacity(0.2),
+                                  onChanged: _isSubmitting
+                                      ? null
+                                      : (value) {
+                                          if (value != _numCards) {
+                                            HapticFeedback.selectionClick();
+                                          }
+                                          setState(() {
+                                            _numCards = value;
+                                          });
+                                        },
+                                ),
+                              ),
+    
+                              const SizedBox(height: 32),
+    
+                              Container(
+                                width: double.infinity,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  gradient: _isSubmitting
+                                      ? LinearGradient(
+                                          colors: [
+                                            Colors.grey.shade400,
+                                            Colors.grey.shade400,
                                           ],
                                         )
-                                      : Row(
-                                          key: const ValueKey("idle"),
-                                          children: [
-                                            Icon(
-                                              _getFileIcon(),
-                                              color: _selectedFileName != null
-                                                  ? const Color(0xFF8B4EFF)
-                                                  : Colors.grey.shade500,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                _selectedFileName ??
-                                                    "Upload PDF, TXT, or Image",
-                                                style: TextStyle(
-                                                  color: _selectedFileName != null
-                                                      ? Theme.of(context).textTheme.bodyLarge?.color
-                                                      : Colors.grey.shade500,
-                                                  fontSize: 15,
-                                                  fontWeight:
-                                                      _selectedFileName != null
-                                                      ? FontWeight.w600
-                                                      : FontWeight.normal,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            if (_selectedFileName != null &&
-                                                !_isSubmitting)
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.check_circle_rounded,
-                                                    color: Colors.green,
-                                                    size: 20,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  IconButton(
-                                                    icon: const Icon(
-                                                      Icons.cancel,
-                                                      color: Colors.grey,
-                                                      size: 20,
-                                                    ),
-                                                    onPressed: () {
-                                                      HapticFeedback.selectionClick();
-                                                      setState(() {
-                                                        _selectedFileName = null;
-                                                        _extractedFileText = null;
-                                                      });
-                                                    },
-                                                    padding: EdgeInsets.zero,
-                                                    constraints:
-                                                        const BoxConstraints(),
-                                                  ),
-                                                ],
-                                              ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildInputLabel(
-                            "Specific Instructions (Optional)",
-                            Icons.tune_rounded,
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _promptController,
-                            focusNode: _promptFocus,
-                            enabled: !_isSubmitting,
-                            textCapitalization: TextCapitalization.sentences,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _submitTopic(),
-                            decoration: _buildInputDecoration(
-                              "e.g., Focus only on definitions...",
-                              _promptController,
-                            ),
-                            maxLines: 2,
-                            minLines: 1,
-                          ),
-                          const SizedBox(height: 28),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: _buildInputLabel(
-                                  "Number of Cards",
-                                  Icons.layers_rounded,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF8B4EFF).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  "${_numCards.toInt()} Cards",
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF8B4EFF),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              trackHeight: 6.0,
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 12.0,
-                              ),
-                              overlayShape: const RoundSliderOverlayShape(
-                                overlayRadius: 24.0,
-                              ),
-                              activeTickMarkColor: Colors.transparent,
-                              inactiveTickMarkColor: Colors.transparent,
-                            ),
-                            child: Slider(
-                              value: _numCards,
-                              min: 5,
-                              max: 50,
-                              divisions: 9,
-                              activeColor: const Color(0xFF8B4EFF),
-                              inactiveColor: const Color(0xFF8B4EFF).withOpacity(0.2),
-                              onChanged: _isSubmitting
-                                  ? null
-                                  : (value) {
-                                      if (value != _numCards) {
-                                        HapticFeedback.selectionClick();
-                                      }
-                                      setState(() {
-                                        _numCards = value;
-                                      });
-                                    },
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          Container(
-                            width: double.infinity,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              gradient: _isSubmitting
-                                  ? LinearGradient(
-                                      colors: [
-                                        Colors.grey.shade400,
-                                        Colors.grey.shade400,
-                                      ],
-                                    )
-                                  : _brandGradient,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: _isSubmitting
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: const Color(0xFF8B4EFF).withOpacity(0.3),
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              clipBehavior: Clip.antiAlias,
-                              borderRadius: BorderRadius.circular(16),
-                              child: InkWell(
-                                onTap: _isSubmitting ? null : _submitTopic,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: _isSubmitting
-                                      ? const [
-                                          SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2.5,
-                                            ),
-                                          ),
-                                          SizedBox(width: 12),
-                                          Flexible(
-                                            child: Text(
-                                              "Generating...",
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                                letterSpacing: 0.5,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ]
-                                      : const [
-                                          Icon(
-                                            Icons.auto_awesome_rounded,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Flexible(
-                                            child: Text(
-                                              "Start Generating",
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                                letterSpacing: 0.5,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
+                                      : _brandGradient,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: _isSubmitting
+                                      ? null
+                                      : [
+                                          BoxShadow(
+                                            color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                                            blurRadius: 15,
+                                            offset: const Offset(0, 6),
                                           ),
                                         ],
                                 ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  clipBehavior: Clip.antiAlias,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    onTap: _isSubmitting ? null : _submitTopic,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: _isSubmitting
+                                          ? const [
+                                              SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2.5,
+                                                ),
+                                              ),
+                                              SizedBox(width: 12),
+                                              Flexible(
+                                                child: Text(
+                                                  "Generating...",
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ]
+                                          : const [
+                                              Icon(
+                                                Icons.auto_awesome_rounded,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Flexible(
+                                                child: Text(
+                                                  "Start Generating",
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/pro_service.dart';
-import '../constants.dart';
+import '../constants/constants.dart';
 
 class ProPaywallSheet extends StatefulWidget {
   final String? customTitle;

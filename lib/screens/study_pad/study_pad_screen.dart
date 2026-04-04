@@ -32,7 +32,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   
   Timer? _debounceTimer;
   bool _isDrawingMode = false;
-  String _saveStatus = "Saved";
+  final ValueNotifier<String> _saveNotifier = ValueNotifier("Saved");
   late String _noteId;
 
   // Drawing State
@@ -77,7 +77,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
 
   void _triggerAutoSave() {
     if (!mounted) return;
-    setState(() => _saveStatus = "Saving...");
+    _saveNotifier.value = "Saving...";
     
     if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
     _debounceTimer = Timer(const Duration(seconds: 2), _saveNote);
@@ -97,9 +97,9 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
       );
 
       await _noteService.saveNote(note);
-      if (mounted) setState(() => _saveStatus = "Saved");
+      if (mounted) _saveNotifier.value = "Saved";
     } catch (e) {
-      if (mounted) setState(() => _saveStatus = "Error Saving");
+      if (mounted) _saveNotifier.value = "Error Saving";
     }
   }
 
@@ -260,6 +260,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     _scrollController.dispose();
     _titleController.dispose();
     _drawingNotifier.dispose();
+    _saveNotifier.dispose();
     super.dispose();
   }
 
@@ -276,7 +277,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             scrollController: _scrollController,
             titleController: _titleController,
             isDrawingMode: _isDrawingMode,
-            saveStatus: _saveStatus,
+            saveNotifier: _saveNotifier,
             strokes: _strokes,
             drawingNotifier: _drawingNotifier,
             onToggleDrawing: _toggleDrawingMode,
@@ -296,7 +297,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             scrollController: _scrollController,
             titleController: _titleController,
             isDrawingMode: _isDrawingMode,
-            saveStatus: _saveStatus,
+            saveNotifier: _saveNotifier,
             strokes: _strokes,
             drawingNotifier: _drawingNotifier,
             onToggleDrawing: _toggleDrawingMode,

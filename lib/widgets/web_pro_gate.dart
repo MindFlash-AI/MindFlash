@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/pro_service.dart';
 import '../services/auth_service.dart';
 import '../screens/web_landing/web_landing_screen.dart'; // 🛡️ Changed import
-import '../constants.dart';
+import '../constants/constants.dart';
 
 /// A wrapper widget that blocks non-Pro users from accessing the Web version of the app.
 class WebProGate extends StatelessWidget {

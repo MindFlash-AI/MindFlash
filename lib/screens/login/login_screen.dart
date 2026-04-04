@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../constants.dart';
+import '../../constants/constants.dart';
 import '../../services/auth_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import 'widgets/login_logo.dart';

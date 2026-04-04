@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../constants.dart';
+import '../../../constants/constants.dart';
 import '../../../widgets/how_it_works_dialog.dart';
 import '../../settings/settings_screen.dart';
 
