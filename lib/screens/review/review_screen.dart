@@ -19,12 +19,14 @@ class ReviewScreen extends StatefulWidget {
   final Deck deck;
   final List<Flashcard> cards;
   final bool isShuffleOn;
+  final Function(Flashcard)? onCardUpdated; // 🚀 OPTIMIZATION: Syncs state locally
 
   const ReviewScreen({
     super.key,
     required this.deck,
     required this.cards,
     required this.isShuffleOn,
+    this.onCardUpdated,
   });
 
   @override
@@ -51,6 +53,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
   bool _isFinishing = false;
   String _overlayTitle = "Saving Progress...";
   String _overlaySubtitle = "Saving your mastery progress...\nShowing an ad in the meantime ☕";
+  
+  // 🚀 OPTIMIZATION: Holds modified cards in memory to batch-write them later
+  final Map<String, Flashcard> _pendingUpdates = {};
 
   @override
   void initState() {
@@ -144,13 +149,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
+  Future<void> _savePendingUpdates() async {
+    if (_pendingUpdates.isNotEmpty) {
+      await _cardStorageService.updateCards(_pendingUpdates.values.toList());
+      _pendingUpdates.clear();
+    }
+  }
+
   void _handleAnswer(bool wasCorrect) {
-    // Grab the card BEFORE it gets updated by the SRS math
     Flashcard originalCard = _reviewCards[_currentIndex];
 
-    // --- ORIGINAL STATS LOGIC ---
-    // We update the session stats *first* based on the old card state 
-    // to ensure the UI updates perfectly in real-time!
     setState(() {
       if (wasCorrect) {
         if (!originalCard.isMastered) _correctCount++;
@@ -161,18 +169,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
       }
     });
 
-    // --- NEW SRS LOGIC ---
-    // Map boolean to SRS quality score quietly in the background
     int quality = wasCorrect ? 4 : 0;
     
-    // Process the card through the math engine (this sets isMastered/isFlagged internally)
     Flashcard updatedCard = SRSService.calculateNextReview(originalCard, quality);
     
-    // Update local list to sync UI
     _reviewCards[_currentIndex] = updatedCard;
 
-    // Save to local storage and move to next card
-    _cardStorageService.updateCard(updatedCard);
+    // 🚀 OPTIMIZATION: Save to memory instead of burning a Firestore write, and sync to parent
+    _pendingUpdates[updatedCard.id] = updatedCard;
+    widget.onCardUpdated?.call(updatedCard);
+
     _nextCard();
   }
 
@@ -215,11 +221,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
-  void _finishReview() {
+  void _finishReview() async {
     setState(() {
       _overlayTitle = "Saving Progress...";
       _overlaySubtitle = "Saving your mastery progress...\nShowing an ad in the meantime ☕";
     });
+    await _savePendingUpdates(); // 🚀 Batch write all progress at once
     _showInterstitialAdAndNavigate(_navigateToCompletion);
   }
 
@@ -315,98 +322,111 @@ class _ReviewScreenState extends State<ReviewScreen> {
       ) : SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth >= 850;
-
-              if (isDesktop) {
-                return ReviewScreenWeb(
-                  deck: widget.deck,
-                  reviewCards: _reviewCards,
-                  currentIndex: _currentIndex,
-                  pageController: _pageController,
-                  correctCount: _correctCount,
-                  incorrectCount: _incorrectCount,
-                  onExit: () => Navigator.pop(context),
-                  onShuffle: _handleShuffle,
-                  onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
-                  onFlip: (isFront) => setState(() => _showAnswer = !isFront),
-                  onCorrect: () => _handleAnswer(true),
-                  onIncorrect: () => _handleAnswer(false),
-                  onExplainRequested: _handleExplainRequested,
-                );
-              } else {
-                return ReviewScreenMobile(
-                  deck: widget.deck,
-                  reviewCards: _reviewCards,
-                  currentIndex: _currentIndex,
-                  pageController: _pageController,
-                  correctCount: _correctCount,
-                  incorrectCount: _incorrectCount,
-                  isBannerAdLoaded: _isBannerAdLoaded,
-                  bannerAd: _bannerAd,
-                  onExit: () => Navigator.pop(context),
-                  onShuffle: _handleShuffle,
-                  onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
-                  onFlip: (isFront) => setState(() => _showAnswer = !isFront),
-                  onCorrect: () => _handleAnswer(true),
-                  onIncorrect: () => _handleAnswer(false),
-                  onExplainRequested: _handleExplainRequested,
-                );
-              }
-            },
-          ),
-          if (_isFinishing)
-            Positioned.fill(
-              child: Material(
-                color: Colors.transparent,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                    child: Container(
-                      color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 60,
-                            height: 60,
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF8B4EFF),
-                              strokeWidth: 4,
+      child: PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, _) {
+          // 🚀 Catch system back button to ensure we don't lose progress
+          _savePendingUpdates(); 
+        },
+        child: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth >= 850;
+  
+                if (isDesktop) {
+                  return ReviewScreenWeb(
+                    deck: widget.deck,
+                    reviewCards: _reviewCards,
+                    currentIndex: _currentIndex,
+                    pageController: _pageController,
+                    correctCount: _correctCount,
+                    incorrectCount: _incorrectCount,
+                    onExit: () {
+                      _savePendingUpdates();
+                      Navigator.pop(context);
+                    },
+                    onShuffle: _handleShuffle,
+                    onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
+                    onFlip: (isFront) => setState(() => _showAnswer = !isFront),
+                    onCorrect: () => _handleAnswer(true),
+                    onIncorrect: () => _handleAnswer(false),
+                    onExplainRequested: _handleExplainRequested,
+                  );
+                } else {
+                  return ReviewScreenMobile(
+                    deck: widget.deck,
+                    reviewCards: _reviewCards,
+                    currentIndex: _currentIndex,
+                    pageController: _pageController,
+                    correctCount: _correctCount,
+                    incorrectCount: _incorrectCount,
+                    isBannerAdLoaded: _isBannerAdLoaded,
+                    bannerAd: _bannerAd,
+                    onExit: () {
+                      _savePendingUpdates();
+                      Navigator.pop(context);
+                    },
+                    onShuffle: _handleShuffle,
+                    onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
+                    onFlip: (isFront) => setState(() => _showAnswer = !isFront),
+                    onCorrect: () => _handleAnswer(true),
+                    onIncorrect: () => _handleAnswer(false),
+                    onExplainRequested: _handleExplainRequested,
+                  );
+                }
+              },
+            ),
+            if (_isFinishing)
+              Positioned.fill(
+                child: Material(
+                  color: Colors.transparent,
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF8B4EFF),
+                                strokeWidth: 4,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            _overlayTitle,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
-                              letterSpacing: -0.5,
+                            const SizedBox(height: 24),
+                            Text(
+                              _overlayTitle,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                letterSpacing: -0.5,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _overlaySubtitle,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: isDark ? Colors.white70 : Colors.grey.shade700,
-                              height: 1.4,
-                              fontWeight: FontWeight.w500,
+                            const SizedBox(height: 12),
+                            Text(
+                              _overlaySubtitle,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                height: 1.4,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

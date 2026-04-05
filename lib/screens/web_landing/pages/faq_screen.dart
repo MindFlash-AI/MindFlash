@@ -34,6 +34,32 @@ class FAQScreen extends StatelessWidget {
         ),
         child: Stack(
           children: [
+            // --- Premium Ambient Background Glows ---
+            Positioned(
+              top: 100,
+              right: -100,
+              child: Container(
+                width: 600, height: 600,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05),
+                  boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 150)],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -100,
+              left: -100,
+              child: Container(
+                width: 500, height: 500,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE841A1).withValues(alpha: isDark ? 0.1 : 0.03),
+                  boxShadow: [BoxShadow(color: const Color(0xFFE841A1).withValues(alpha: isDark ? 0.1 : 0.03), blurRadius: 150)],
+                ),
+              ),
+            ),
+
             Positioned.fill(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -104,31 +130,31 @@ class FAQScreen extends StatelessWidget {
                               _AnimatedFAQItem(
                                 isDark: isDark, 
                                 question: "What is AI Energy?", 
-                                answer: "Energy is used to generate flashcards and chat with the AI. Free users get 15 energy daily, and Pro users get 30. Generating a deck costs 3 energy, and your balance completely resets every 24 hours!"
+                                answer: "Energy powers our AI engine. Free users receive 15 daily energy credits, and Pro users receive 30. Generating a deck costs 3 energy, while chatting costs 1. Your balance completely resets every 24 hours at midnight! If you run out, you can always watch a quick ad to refill it instantly."
                               ),
                               const SizedBox(height: 20),
                               _AnimatedFAQItem(
                                 isDark: isDark, 
-                                question: "How do I access the Web App?", 
-                                answer: "The web app is an exclusive feature for our Pro subscribers. Once you upgrade via the mobile app, you can log in on any desktop browser to create and study cards with a full keyboard and large monitor."
+                                question: "What is the difference between Free and Pro?", 
+                                answer: "MindFlash Pro completely removes all advertisements, doubles your daily AI energy to 30, and unlocks this Desktop Web version for heavy-duty study sessions. It costs just \$1.00/month!"
                               ),
                               const SizedBox(height: 20),
                               _AnimatedFAQItem(
                                 isDark: isDark, 
                                 question: "Can I import my own notes or lectures?", 
-                                answer: "Yes! You can paste raw text, write a custom prompt, or upload PDF and image files directly into MindFlash. Our AI will automatically scan your documents and extract the key concepts into perfect flashcards."
+                                answer: "Yes! You can paste raw text, write a custom prompt, or upload PDF, TXT, and Image (OCR) files directly into MindFlash. Our AI will automatically scan your documents and extract the key concepts."
                               ),
                               const SizedBox(height: 20),
                               _AnimatedFAQItem(
                                 isDark: isDark, 
-                                question: "Is there a limit to how many flashcards I can generate?", 
-                                answer: "When creating a deck, you can use the slider to tell the AI exactly how many cards to generate (from 5 up to 50 cards per prompt). You can also use the 'Update Deck' feature to add even more cards to an existing deck later."
+                                question: "Is the AI Tutor always accurate?", 
+                                answer: "While our Gemini-powered AI is incredibly advanced, it can occasionally make mistakes or 'hallucinate'. We highly recommend doing a quick review of your AI-generated flashcards against your source material before relying on them for major exams."
                               ),
                               const SizedBox(height: 20),
                               _AnimatedFAQItem(
                                 isDark: isDark, 
                                 question: "Do I need an internet connection to study?", 
-                                answer: "You can review flashcards offline on the mobile app once they are generated. However, creating new AI flashcards, chatting with the AI Tutor, syncing across devices, and accessing the web app requires an active internet connection."
+                                answer: "You can review your existing flashcards and decks completely offline on the mobile app! However, creating new AI flashcards, chatting with the AI Tutor, syncing across devices, and accessing the web app requires an active internet connection."
                               ),
                               const SizedBox(height: 20),
                               _AnimatedFAQItem(

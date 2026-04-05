@@ -42,6 +42,7 @@ class StudyPadWeb extends StatelessWidget {
   final VoidCallback onGenerateWithAI;
   final VoidCallback onOpenNotes;
   final VoidCallback onBack;
+  final VoidCallback? onDeleteNote;
 
   const StudyPadWeb({
     super.key,
@@ -82,6 +83,7 @@ class StudyPadWeb extends StatelessWidget {
     required this.onGenerateWithAI,
     required this.onOpenNotes,
     required this.onBack,
+    this.onDeleteNote,
   });
 
   @override
@@ -145,6 +147,14 @@ class StudyPadWeb extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
+          if (onDeleteNote != null) ...[
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              onPressed: onDeleteNote,
+              tooltip: "Move to Trash",
+            ),
+            const SizedBox(width: 8),
+          ],
           TextButton.icon(
             icon: const Icon(Icons.folder_copy_rounded, size: 18),
             label: const Text("My Notes", style: TextStyle(fontWeight: FontWeight.bold)),

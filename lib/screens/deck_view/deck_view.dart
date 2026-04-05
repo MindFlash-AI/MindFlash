@@ -107,6 +107,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     _loadCards();
   }
 
+  void _syncUpdatedCard(Flashcard updatedCard) {
+    final index = _cards.indexWhere((c) => c.id == updatedCard.id);
+    if (index != -1) {
+      setState(() => _cards[index] = updatedCard);
+    }
+  }
+
   void _openDeckSettings() async {
     HapticFeedback.selectionClick();
     final didChange = await Navigator.push(
@@ -213,7 +220,6 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
         _selectedCards.clear();
       });
       await _deckStorageService.updateDeck(_currentDeck);
-      _loadCards();
     }
   }
 
@@ -221,13 +227,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     await _cardStorageService.addCard(card);
     if (!mounted) return;
     setState(() {
+      _cards.add(card); // 🚀 OPTIMIZATION: Mutate local list instead of re-fetching from DB
       _currentDeck.cardCount += 1;
       if (!_currentDeck.cardOrder.contains(card.id)) {
         _currentDeck.cardOrder.add(card.id);
       }
     });
     await _deckStorageService.updateDeck(_currentDeck);
-    _loadCards();
   }
 
   Future<void> _confirmDeleteCard(String cardId) async {
@@ -278,11 +284,11 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       await _cardStorageService.deleteCard(cardId);
       if (!mounted) return;
       setState(() {
+        _cards.removeWhere((c) => c.id == cardId); // 🚀 OPTIMIZATION: Update UI immediately locally
         if (_currentDeck.cardCount > 0) _currentDeck.cardCount -= 1;
         _currentDeck.cardOrder.remove(cardId);
       });
       await _deckStorageService.updateDeck(_currentDeck);
-      _loadCards();
     }
   }
 
@@ -292,10 +298,9 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            ReviewScreen(deck: _currentDeck, cards: _cards, isShuffleOn: false),
+            ReviewScreen(deck: _currentDeck, cards: _cards, isShuffleOn: false, onCardUpdated: _syncUpdatedCard),
       ),
     );
-    _loadCards();
   }
 
   void _startFlaggedReview() async {
@@ -308,10 +313,10 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
           deck: _currentDeck,
           cards: flaggedCards,
           isShuffleOn: false,
+          onCardUpdated: _syncUpdatedCard,
         ),
       ),
     );
-    _loadCards();
   }
 
   void _startQuiz() {
@@ -371,7 +376,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
         card: card,
         onCardUpdated: (updatedCard) async {
           await _cardStorageService.updateCard(updatedCard);
-          _loadCards();
+          _syncUpdatedCard(updatedCard); // 🚀 OPTIMIZATION: Update locally
         },
       ),
     );

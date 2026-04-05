@@ -43,10 +43,16 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   bool _isSidebarVisible = true; // 🛡️ Sidebar minimization state
   bool _isEraserMode = false;
   bool _isHighlighterMode = false;
+  bool _isDeleted = false; // Flag to prevent auto-save on deletion
   final ValueNotifier<String> _saveNotifier = ValueNotifier("Saved");
   Color _selectedColor = const Color(0xFF8B4EFF);
   double _selectedWidth = 4.0;
   late String _noteId;
+  
+  // 🚀 COST OPTIMIZATION: Track the last saved states to avoid redundant DB writes
+  String _lastSavedTitle = "";
+  String _lastSavedContent = "";
+  String _lastSavedDrawing = "";
 
   // AdMob Banner variables
   BannerAd? _bannerAd;
@@ -67,6 +73,10 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     super.initState();
     _noteId = widget.initialNote?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
     _titleController.text = widget.initialNote?.title ?? "Untitled Note";
+
+    _lastSavedTitle = _titleController.text;
+    _lastSavedContent = widget.initialNote?.content ?? "";
+    _lastSavedDrawing = widget.initialNote?.drawingData ?? "";
 
     // Safely load Quill Document
     if (widget.initialNote != null && widget.initialNote!.content.isNotEmpty) {
@@ -125,7 +135,6 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   }
 
   Future<void> _saveNote() async {
-    if (!mounted) return;
     try {
       // 🚀 PERFORMANCE FIX: Offload expensive JSON serialization to a background isolate
       // This prevents the UI thread from freezing (jank) when auto-saving massive notes
@@ -133,10 +142,21 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
       final strokeList = _strokes.map((s) => s.toJson()).toList();
       final contentJson = await compute(jsonEncode, deltaList);
       final drawingJson = await compute(jsonEncode, strokeList);
+      final title = _titleController.text.trim().isEmpty ? "Untitled Note" : _titleController.text.trim();
+
+      // 🚀 COST OPTIMIZATION: Skip Firestore write if the content hasn't actually changed
+      if (title == _lastSavedTitle && contentJson == _lastSavedContent && drawingJson == _lastSavedDrawing) {
+        if (mounted) _saveNotifier.value = "Saved";
+        return; 
+      }
+
+      _lastSavedTitle = title;
+      _lastSavedContent = contentJson;
+      _lastSavedDrawing = drawingJson;
 
       final note = Note(
         id: _noteId,
-        title: _titleController.text.trim().isEmpty ? "Untitled Note" : _titleController.text.trim(),
+        title: title,
         content: contentJson,
         drawingData: drawingJson,
         updatedAt: DateTime.now(),
@@ -187,19 +207,8 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     HapticFeedback.lightImpact();
     _triggerAutoSave(); // Ensure current progress is saved before switching
     
-    final selectedNote = await showModalBottomSheet<Note>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const SavedNotesSheet(),
-    );
-
-    if (selectedNote != null && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => StudyPadScreen(initialNote: selectedNote)),
-      );
-    }
+    // 🚀 Slide seamlessly back to the Google Docs-style Notes Dashboard
+    if (mounted) Navigator.pop(context);
   }
 
   void _toggleEraserMode() {
@@ -438,8 +447,88 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     _triggerAutoSave();
   }
 
+  void _confirmDeleteNote() async {
+    HapticFeedback.heavyImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        title: Row(
+          children: [
+            const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+            const SizedBox(width: 8),
+            Text(
+              "Move to Trash?",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          "This note will be moved to your trash bin. You can restore it later from your dashboard.",
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50,
+              foregroundColor: Colors.redAccent,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Move to Trash", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _debounceTimer?.cancel();
+      _isDeleted = true; // Block dispose() from saving it again
+      
+      try {
+        // 🗑️ SOFT DELETION: Move to trash instead of permanent deletion
+        // NOTE: You'll need to add a `moveToTrash` function in NoteStorageService
+        await _noteService.moveToTrash(_noteId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Note moved to trash."),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          Navigator.pop(context); // Exit the pad
+        }
+      } catch (e) {
+        _isDeleted = false; // Revert flag if it failed
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to move note: ${e.toString()}")),
+          );
+        }
+      }
+    }
+  }
+
   @override
   void dispose() {
+    // 🛡️ BUG FIX: Prevent Data Loss. If a save was pending when the user hits back, 
+    // execute it immediately before the controller is torn down!
+    if (!_isDeleted && (_saveNotifier.value == "Saving..." || (_debounceTimer?.isActive ?? false))) {
+      _debounceTimer?.cancel();
+      _saveNote(); 
+    }
+
     // FIX 3: Prevent memory leaks and background crashes
     _docChangeSubscription?.cancel();
     _titleController.removeListener(_triggerAutoSave);
@@ -501,6 +590,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             onUndo: _undo,
             onRedo: _redo,
             onBack: () => Navigator.pop(context),
+            onDeleteNote: _confirmDeleteNote,
           );
         } else {
           return StudyPadMobile(
@@ -539,6 +629,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             onBack: () => Navigator.pop(context),
             bannerAd: _bannerAd,
             isBannerAdLoaded: _isBannerAdLoaded,
+            onDeleteNote: _confirmDeleteNote,
           );
         }
       },

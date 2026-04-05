@@ -74,6 +74,27 @@ class CardStorageService {
     }
   }
 
+  // 🚀 OPTIMIZATION: Batched Updates
+  // Allows saving an entire review session's progress in a single Firestore network call
+  // instead of triggering a separate write for every single card swipe.
+  Future<void> updateCards(List<Flashcard> cards) async {
+    try {
+      if (_uid == null || cards.isEmpty) return;
+      
+      const int chunkSize = 450;
+      for (var i = 0; i < cards.length; i += chunkSize) {
+        final batch = _firestore.batch();
+        final chunk = cards.skip(i).take(chunkSize);
+        for (var card in chunk) {
+          batch.update(_cardsRef.doc(card.id), card.toMap());
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      print("Error updating multiple cards: $e");
+    }
+  }
+
   Future<void> deleteCard(String cardId) async {
     try {
       if (_uid == null) return;

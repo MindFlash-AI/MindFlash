@@ -33,6 +33,32 @@ class FeaturesScreen extends StatelessWidget {
         ),
         child: Stack(
           children: [
+            // --- Premium Ambient Background Glows ---
+            Positioned(
+              top: -100,
+              left: -100,
+              child: Container(
+                width: 600, height: 600,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE841A1).withValues(alpha: isDark ? 0.1 : 0.03),
+                  boxShadow: [BoxShadow(color: const Color(0xFFE841A1).withValues(alpha: isDark ? 0.1 : 0.03), blurRadius: 150)],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 100,
+              right: -100,
+              child: Container(
+                width: 500, height: 500,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05),
+                  boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 150)],
+                ),
+              ),
+            ),
+
             Positioned.fill(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -60,13 +86,13 @@ class FeaturesScreen extends StatelessWidget {
                                   border: Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3)),
                                 ),
                                 child: const Text(
-                                  "SUPERCHARGE YOUR STUDYING",
+                                  "THE MINDFLASH ARSENAL",
                                   style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold, letterSpacing: 0.5),
                                 ),
                               ),
                               const SizedBox(height: 24),
                               Text(
-                                "Powerful Features",
+                                "Study at the speed of thought.",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: isMobile ? 42 : 64,
@@ -103,12 +129,12 @@ class FeaturesScreen extends StatelessWidget {
                             runSpacing: 32,
                             alignment: WrapAlignment.center,
                             children: [
-                              HoverLift(child: _buildFeatureCard(context, isDark, "AI Generation", "Upload PDFs, text, or enter a prompt to instantly generate comprehensive flashcard decks.", Icons.auto_awesome_rounded)),
-                              HoverLift(child: _buildFeatureCard(context, isDark, "Spaced Repetition", "Our algorithm automatically schedules your reviews right when you're about to forget, maximizing retention.", Icons.sync_rounded)),
-                              HoverLift(child: _buildFeatureCard(context, isDark, "AI Tutor Chat", "Stuck on a tricky concept? Chat directly with our AI Tutor to get simplified explanations and examples.", Icons.chat_bubble_outline_rounded)),
-                              HoverLift(child: _buildFeatureCard(context, isDark, "Interactive Study Pad", "A beautifully designed, distraction-free rich-text editor for your notes that connects seamlessly to your decks.", Icons.edit_note_rounded)),
-                              HoverLift(child: _buildFeatureCard(context, isDark, "Cross-Platform Sync", "Start studying on your phone during your commute, and finish building your deck on your desktop.", Icons.devices_rounded)),
-                              HoverLift(child: _buildFeatureCard(context, isDark, "Rich Formatting", "Full support for bold text, italics, lists, and code blocks. Make your flashcards look exactly the way you learn best.", Icons.format_paint_rounded)),
+                              HoverLift(child: _buildFeatureCard(context, isDark, "AI Generation", "Upload PDFs, text, or enter a prompt. Our Gemini-powered engine instantly extracts definitions, formulas, and concepts into comprehensive flashcard decks.", Icons.auto_awesome_rounded)),
+                              HoverLift(child: _buildFeatureCard(context, isDark, "Spaced Repetition", "Stop wasting time reviewing things you already know. Our algorithm schedules reviews at the optimal cognitive interval, maximizing long-term retention.", Icons.sync_rounded)),
+                              HoverLift(child: _buildFeatureCard(context, isDark, "AI Tutor Chat", "It's like having a professor in your pocket. Chat directly with our AI Tutor to get simplified explanations, analogies, and examples for any tricky flashcard.", Icons.chat_bubble_outline_rounded)),
+                              HoverLift(child: _buildFeatureCard(context, isDark, "Interactive Study Pad", "A beautifully designed, distraction-free rich-text editor for your notes. Supports infinite canvas drawing, handwriting recognition, and seamless AI generation.", Icons.edit_note_rounded)),
+                              HoverLift(child: _buildFeatureCard(context, isDark, "Cross-Platform Sync", "Your brain doesn't stop, and neither do we. Start studying on your phone during your commute, and finish building your deck on your desktop Web app.", Icons.devices_rounded)),
+                              HoverLift(child: _buildFeatureCard(context, isDark, "Rich Formatting & Math", "Full support for bold text, italics, lists, code blocks, and LaTeX math equations. Make your flashcards look exactly the way you learn best.", Icons.format_paint_rounded)),
                             ],
                           ),
                         ),

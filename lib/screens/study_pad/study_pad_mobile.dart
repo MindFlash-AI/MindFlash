@@ -42,6 +42,7 @@ class StudyPadMobile extends StatelessWidget {
   final VoidCallback onBack;
   final BannerAd? bannerAd;
   final bool isBannerAdLoaded;
+  final VoidCallback? onDeleteNote;
 
   const StudyPadMobile({
     super.key,
@@ -80,6 +81,7 @@ class StudyPadMobile extends StatelessWidget {
     required this.onBack,
     required this.bannerAd,
     required this.isBannerAdLoaded,
+    this.onDeleteNote,
   });
 
   @override
@@ -123,6 +125,12 @@ class StudyPadMobile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+      if (onDeleteNote != null)
+        IconButton(
+          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+          onPressed: onDeleteNote,
+          tooltip: "Move to Trash",
+        ),
           IconButton(
             icon: const Icon(Icons.folder_copy_rounded, color: Color(0xFF8B4EFF)),
             onPressed: onOpenNotes,

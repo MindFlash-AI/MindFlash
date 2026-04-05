@@ -9,6 +9,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart'; 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../constants/constants.dart';
 import '../../models/deck_model.dart';
@@ -32,6 +33,7 @@ import '../../widgets/universal_sidebar.dart';
 import '../deck_view/deck_view.dart';
 import '../../widgets/web_pro_gate.dart';
 import '../study_pad/study_pad_screen.dart';
+import '../study_pad/widgets/saved_notes_sheet.dart';
 import '../web_landing/web_landing_screen.dart'; 
 
 import 'dashboard_web.dart';
@@ -206,19 +208,21 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _onDeckCreated(Deck deck) async {
+    setState(() {
+      _decks.add(deck);
+      _applySort();
+    });
     await _storageService.addDeck(deck);
-    _loadDecks(); 
   }
 
   void _deleteDeck(String id) async {
     setState(() {
       _decks.removeWhere((deck) => deck.id == id);
+      _totalCards = _decks.fold(0, (sum, d) => sum + d.cardCount);
     });
     
     await _storageService.deleteDeck(id);
     await _cardStorageService.deleteCardsByDeck(id); 
-    
-    _loadDecks();
   }
 
   void _showManualDeckModal() {
@@ -241,25 +245,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       Navigator.pop(context);
     }
     
-    try {
-      final notes = await NoteStorageService().getNotes();
-      if (notes.length >= 50) {
-        if (mounted) {
-          HapticFeedback.heavyImpact();
-          _showFeedbackModal(context, false, "You have reached the generous limit of 50 Study Pad notes. Please delete some older notes to create new ones! 🛑");
-        }
-        return;
-      }
-    } catch (e) {
-      debugPrint("Error checking notes limit: $e");
-    }
-
     if (!mounted) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const StudyPadScreen(),
+        builder: (context) => const SavedNotesSheet(),
       ),
     );
   }
@@ -370,45 +361,47 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
     
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png'],
-        withData: true,
+      final ImagePicker picker = ImagePicker();
+      // 📸 Launch the camera directly as a "Document Scanner"
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80, // Compress slightly for faster uploads and to stay safely under 5MB
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        final platformFile = result.files.first;
-        String extension = platformFile.extension?.toLowerCase() ?? 'jpg';
-        Uint8List? fileBytes = platformFile.bytes;
+      if (photo != null) {
+        final Uint8List fileBytes = await photo.readAsBytes();
         
-        if (fileBytes == null && !kIsWeb && platformFile.path != null) {
-          fileBytes = await File(platformFile.path!).readAsBytes();
-        }
-        if (fileBytes == null) return;
-        
-        if (platformFile.size > 5 * 1024 * 1024) {
+        if (fileBytes.length > 5 * 1024 * 1024) {
            _showFeedbackModal(context, false, "Image is too large. Please select an image under 5MB.");
            return;
         }
 
+        String extension = photo.name.split('.').last.toLowerCase();
+        if (extension.isEmpty) extension = 'jpg';
         String fileContent = "data:image/$extension;base64,${base64Encode(fileBytes)}";
         
         if (mounted) {
-          AILoadingOverlay.show(context, title: "Scanning Image...", subtitle: "Extracting text and generating flashcards ☕");
-          try {
-            final responseMsg = await _processAIGeneration(
-              context, 
-              "Create a comprehensive flashcard deck from the notes in this image.",
-              fileText: fileContent,
-              fileName: platformFile.name,
-            );
-            if (mounted) {
-              AILoadingOverlay.close(context);
-              HapticFeedback.mediumImpact();
-              _showFeedbackModal(context, true, responseMsg);
-            }
-          } catch (e) {
-            if (mounted) AILoadingOverlay.close(context);
+          // Directly open the AI creation dialog with the captured photo pre-attached
+          final successMessage = await showModalBottomSheet<String>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => CreateDeckAIDialog(
+              initialFileName: "Scanned Document.$extension",
+              initialFileText: fileContent,
+              onGenerate: (topic, fileText, fileName) =>
+                  _processAIGeneration(
+                    context, 
+                    topic, 
+                    fileText: fileText, 
+                    fileName: fileName
+                  ),
+            ),
+          );
+          
+          if (successMessage != null && mounted) {
+            HapticFeedback.mediumImpact();
+            _showFeedbackModal(context, true, successMessage);
           }
         }
       }
@@ -1064,7 +1057,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                         builder: (context) => DeckView(deck: deck),
                       ),
                     );
-                    _loadDecks();
+                    
+                    // 🚀 OPTIMIZATION: The Deck was modified locally by reference inside DeckView.
+                    // We just need to trigger a rebuild to show the updated card counts/names instead of hitting Firestore!
+                    setState(() {
+                      _totalCards = _decks.fold(0, (sum, d) => sum + d.cardCount);
+                      _applySort();
+                    });
                   },
                 ),
               );

@@ -35,6 +35,32 @@ class WebLandingScreen extends StatelessWidget {
         ),
         child: Stack(
           children: [
+            // --- Premium Ambient Background Glows ---
+            Positioned(
+              top: -150,
+              right: -100,
+              child: Container(
+                width: 600, height: 600,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05),
+                  boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 150)],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 200,
+              left: -150,
+              child: Container(
+                width: 500, height: 500,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE841A1).withValues(alpha: isDark ? 0.1 : 0.03),
+                  boxShadow: [BoxShadow(color: const Color(0xFFE841A1).withValues(alpha: isDark ? 0.1 : 0.03), blurRadius: 150)],
+                ),
+              ),
+            ),
+
             // --- Main Content (Scrollable) ---
             Positioned.fill(
               child: SingleChildScrollView(
@@ -137,10 +163,10 @@ class WebLandingScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          "Master any subject\nwith AI Flashcards.",
+          "Learn Faster.\nMaster Anything.",
           textAlign: isMobile ? TextAlign.center : TextAlign.left,
           style: TextStyle(
-            fontSize: isMobile ? 42 : 64,
+            fontSize: isMobile ? 46 : 72,
             fontWeight: FontWeight.w900,
             height: 1.1,
             letterSpacing: -1.5,
@@ -149,7 +175,7 @@ class WebLandingScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          "Upload your notes and let MindFlash generate perfect study decks in seconds. Study smarter with active recall and spaced repetition.",
+          "Upload your PDFs, slides, and notes. MindFlash's advanced AI instantly extracts key concepts into perfect flashcard decks. Stop formatting, start learning.",
           textAlign: isMobile ? TextAlign.center : TextAlign.left,
           style: TextStyle(
             fontSize: isMobile ? 18 : 20,
@@ -465,7 +491,7 @@ class WebLandingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                "Everything you need to learn faster and retain information longer.",
+                "We combined scientifically-backed learning methods with cutting-edge AI.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -478,9 +504,10 @@ class WebLandingScreen extends StatelessWidget {
                 runSpacing: 32,
                 alignment: WrapAlignment.center,
                 children: [
-                  HoverLift(child: _buildFeatureCard(context, isDark, "AI Generation", "Paste your notes or lectures and our AI will instantly extract key concepts into question-answer pairs.", Icons.auto_awesome_rounded)),
-                  HoverLift(child: _buildFeatureCard(context, isDark, "Spaced Repetition", "Our smart algorithm perfectly times your reviews so you study exactly what you are about to forget.", Icons.sync_rounded)),
-                  HoverLift(child: _buildFeatureCard(context, isDark, "Study Pad", "A beautifully designed WYSIWYG rich-text editor for you to organize, highlight, and format your thoughts.", Icons.edit_note_rounded)),
+                  HoverLift(child: _buildFeatureCard(context, isDark, "Instant AI Generation", "Turn 100-page PDFs into targeted study decks in under 10 seconds. We extract the signal from the noise.", Icons.auto_awesome_rounded)),
+                  HoverLift(child: _buildFeatureCard(context, isDark, "Spaced Repetition", "Our algorithm tracks your mastery and tests you right before you forget, maximizing long-term retention.", Icons.sync_rounded)),
+                  HoverLift(child: _buildFeatureCard(context, isDark, "Interactive AI Tutor", "Stuck on a tricky concept? Ask the MindFlash Tutor to explain flashcards in simple, digestible terms.", Icons.chat_bubble_outline_rounded)),
+                  HoverLift(child: _buildFeatureCard(context, isDark, "Rich-Text Study Pad", "A beautiful, distraction-free environment to organize your thoughts and draw handwritten diagrams.", Icons.edit_note_rounded)),
                 ],
               ),
             ],
@@ -492,7 +519,7 @@ class WebLandingScreen extends StatelessWidget {
 
   Widget _buildFeatureCard(BuildContext context, bool isDark, String title, String description, IconData icon) {
     return Container(
-      width: 320,
+      width: 340, // Slightly wider to balance a 2x2 grid nicely
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,

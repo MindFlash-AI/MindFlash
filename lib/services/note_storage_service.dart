@@ -27,6 +27,19 @@ class NoteStorageService {
     }
   }
 
+  // 🚀 COST OPTIMIZATION: Count aggregation
+  // Calculates the number of notes purely on the server. Costs exactly 1 document read
+  // instead of downloading all 50 notes to the client device just to check a limit!
+  Future<int> getNotesCount() async {
+    if (currentUserId == null) return 0;
+    try {
+      final snapshot = await _notesCollection.count().get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   Future<void> saveNote(Note note) async {
     if (currentUserId == null) return;
     await _notesCollection.doc(note.id).set(note.toMap());

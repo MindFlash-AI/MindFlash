@@ -36,6 +36,8 @@ Future<String> _extractFileContentInBackground(
 }
 
 class CreateDeckAIDialog extends StatefulWidget {
+  final String? initialFileName;
+  final String? initialFileText;
   final Future<String> Function(
     String topic,
     String? fileText,
@@ -43,7 +45,12 @@ class CreateDeckAIDialog extends StatefulWidget {
   )
   onGenerate;
 
-  const CreateDeckAIDialog({super.key, required this.onGenerate});
+  const CreateDeckAIDialog({
+    super.key, 
+    this.initialFileName,
+    this.initialFileText,
+    required this.onGenerate,
+  });
 
   @override
   State<CreateDeckAIDialog> createState() => _CreateDeckAIDialogState();
@@ -79,6 +86,8 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
   @override
   void initState() {
     super.initState();
+    _selectedFileName = widget.initialFileName;
+    _extractedFileText = widget.initialFileText;
     _loadRewardedAd();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _nameFocus.requestFocus();
