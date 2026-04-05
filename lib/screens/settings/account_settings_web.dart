@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'widgets/settings_action_tile.dart';
 
 class AccountSettingsWeb extends StatelessWidget {
   final User? user;
@@ -90,78 +91,57 @@ class AccountSettingsWeb extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text("PROFILE SETTINGS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white38 : Colors.grey.shade500, letterSpacing: 1.2)),
                       ),
-                      _buildCard(
-                        context, isDark,
-                        child: ListTile(
-                          onTap: onEditProfile,
-                          title: Text("Edit Display Name", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                          subtitle: Text("Change how your name appears", style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600)),
-                          leading: _buildIconBox(Icons.edit_rounded, const Color(0xFF2979FF)),
-                          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                        ),
+                      SettingsActionTile(
+                        title: "Edit Display Name",
+                        subtitle: "Change how your name appears",
+                        icon: Icons.edit_rounded,
+                        iconColor: const Color(0xFF2979FF),
+                        onTap: onEditProfile,
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 18),
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text("SUBSCRIPTION", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white38 : Colors.grey.shade500, letterSpacing: 1.2)),
                       ),
-                      _buildCard(
-                        context, isDark,
-                        child: ListTile(
-                          onTap: onManageSubscription,
-                          title: Text("Manage Subscription", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                          subtitle: Text("View or change your current plan", style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600)),
-                          leading: _buildIconBox(Icons.star_rounded, const Color(0xFF8B4EFF)),
-                          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                        ),
+                      SettingsActionTile(
+                        title: "Manage Subscription",
+                        subtitle: "View or change your current plan",
+                        icon: Icons.star_rounded,
+                        iconColor: const Color(0xFF8B4EFF),
+                        onTap: onManageSubscription,
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 18),
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text("LEGAL", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white38 : Colors.grey.shade500, letterSpacing: 1.2)),
                       ),
-                      _buildCard(
-                        context, isDark,
-                        child: Column(
-                          children: [
-                            ListTile(
-                              onTap: onPrivacyPolicy,
-                              title: Text("Privacy Policy", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                              leading: _buildIconBox(Icons.privacy_tip_rounded, const Color(0xFF00C853)),
-                              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                            ),
-                            Divider(height: 1, indent: 60, color: isDark ? Colors.white12 : Colors.grey.shade200),
-                            ListTile(
-                              onTap: onTermsOfService,
-                              title: Text("Terms of Service", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                              leading: _buildIconBox(Icons.description_rounded, const Color(0xFFFF9100)),
-                              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                            ),
-                          ],
-                        ),
+                      SettingsActionTile(
+                        title: "Privacy Policy",
+                        icon: Icons.privacy_tip_rounded,
+                        iconColor: const Color(0xFF00C853),
+                        onTap: onPrivacyPolicy,
+                      ),
+                      SettingsActionTile(
+                        title: "Terms of Service",
+                        icon: Icons.description_rounded,
+                        iconColor: const Color(0xFFFF9100),
+                        onTap: onTermsOfService,
                       ),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 18),
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text("DANGER ZONE", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent.withValues(alpha: 0.8), letterSpacing: 1.2)),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3), width: 1),
-                          boxShadow: [BoxShadow(color: Colors.redAccent.withValues(alpha: isDark ? 0.1 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-                        ),
-                        child: ListTile(
-                          onTap: onDeleteAccount,
-                          title: const Text("Delete Account", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.redAccent)),
-                          subtitle: Text("Permanently erase all your data", style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600)),
-                          leading: _buildIconBox(Icons.delete_forever_rounded, Colors.redAccent),
-                          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                        ),
+                      SettingsActionTile(
+                        title: "Delete Account",
+                        subtitle: "Permanently erase all your data",
+                        icon: Icons.delete_forever_rounded,
+                        iconColor: Colors.redAccent,
+                        onTap: onDeleteAccount,
+                        isDestructive: true,
                       ),
                     ],
                   ),
@@ -171,26 +151,6 @@ class AccountSettingsWeb extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildCard(BuildContext context, bool isDark, {required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: child,
-    );
-  }
-
-  Widget _buildIconBox(IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-      child: Icon(icon, color: color),
     );
   }
 }

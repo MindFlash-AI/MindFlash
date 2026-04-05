@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../web_landing_screen.dart'; // Imported to access the HoverScale widget
 import '../../../constants/legal_texts.dart';
-import '../../settings/dialogs/legal_document_dialog.dart';
+import '../../settings/widgets/dialogs/legal_document_dialog.dart';
 
 class WebFooter extends StatelessWidget {
   const WebFooter({super.key});

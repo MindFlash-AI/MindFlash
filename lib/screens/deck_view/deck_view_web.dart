@@ -11,6 +11,13 @@ class DeckViewWeb extends StatelessWidget {
   final VoidCallback onAddCard;
   final Function(Flashcard) onEditCard;
   final Function(String) onDeleteCard;
+  final void Function(int, int) onReorderCards;
+  final bool isSelectionMode;
+  final Set<String> selectedCards;
+  final VoidCallback onToggleSelectionMode;
+  final Function(String) onToggleCardSelection;
+  final VoidCallback onClearSelection;
+  final VoidCallback onDeleteSelected;
   final VoidCallback onReview;
   final VoidCallback onFlaggedReview;
   final VoidCallback onQuiz;
@@ -26,6 +33,13 @@ class DeckViewWeb extends StatelessWidget {
     required this.onAddCard,
     required this.onEditCard,
     required this.onDeleteCard,
+    required this.onReorderCards,
+    required this.isSelectionMode,
+    required this.selectedCards,
+    required this.onToggleSelectionMode,
+    required this.onToggleCardSelection,
+    required this.onClearSelection,
+    required this.onDeleteSelected,
     required this.onReview,
     required this.onFlaggedReview,
     required this.onQuiz,
@@ -273,21 +287,52 @@ class DeckViewWeb extends StatelessWidget {
                                   ),
                                 ),
                                 const Spacer(),
-                                ElevatedButton.icon(
-                                  onPressed: onAddCard,
-                                  icon: const Icon(Icons.add_rounded, size: 20),
-                                  label: const Text("Add Card", style: TextStyle(fontWeight: FontWeight.w600)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isDark ? Colors.white12 : Colors.white,
-                                    foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
-                                    ),
+                            if (isSelectionMode) ...[
+                              Text(
+                                "${selectedCards.length} Selected",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+                              ),
+                              const SizedBox(width: 16),
+                              ElevatedButton.icon(
+                                onPressed: onDeleteSelected,
+                                icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+                                label: const Text("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                onPressed: onClearSelection,
+                                child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                              ),
+                            ] else ...[
+                              if (cards.isNotEmpty)
+                                OutlinedButton.icon(
+                                  onPressed: onToggleSelectionMode,
+                                  icon: const Icon(Icons.checklist_rounded, size: 18),
+                                  label: const Text("Select", style: TextStyle(fontWeight: FontWeight.bold)),
+                                  style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                                ),
+                              const SizedBox(width: 12),
+                              ElevatedButton.icon(
+                                onPressed: onAddCard,
+                                icon: const Icon(Icons.add_rounded, size: 20),
+                                label: const Text("Add Card", style: TextStyle(fontWeight: FontWeight.w600)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isDark ? Colors.white12 : Colors.white,
+                                  foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
                                   ),
                                 ),
+                              ),
+                            ]
                               ],
                             ),
                           ),

@@ -6,6 +6,7 @@ class Deck {
   String name;
   String subject;
   int cardCount;
+  List<String> cardOrder;
   final DateTime createdAt;
 
   Deck({
@@ -13,6 +14,7 @@ class Deck {
     required this.name,
     required this.subject,
     this.cardCount = 0,
+    this.cardOrder = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -22,6 +24,7 @@ class Deck {
       'name': name,
       'subject': subject,
       'cardCount': cardCount,
+      'cardOrder': cardOrder,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -48,6 +51,7 @@ class Deck {
 
       // 🛡️ WEB FIX: Safe Int Parsing
       cardCount: (map['cardCount'] as num?)?.toInt() ?? 0,
+      cardOrder: map['cardOrder'] != null ? List<String>.from(map['cardOrder']) : [],
 
       createdAt: parsedDate,
     );
@@ -58,6 +62,7 @@ class Deck {
     'name': name,
     'subject': subject,
     'cardCount': cardCount,
+    'cardOrder': cardOrder,
     'createdAt': createdAt.toIso8601String(),
   });
 
@@ -70,6 +75,7 @@ class Deck {
     String? name,
     String? subject,
     int? cardCount,
+    List<String>? cardOrder,
     DateTime? createdAt,
   }) {
     return Deck(
@@ -77,6 +83,7 @@ class Deck {
       name: name ?? this.name,
       subject: subject ?? this.subject,
       cardCount: cardCount ?? this.cardCount,
+      cardOrder: cardOrder ?? this.cardOrder,
       createdAt: createdAt ?? this.createdAt,
     );
   }

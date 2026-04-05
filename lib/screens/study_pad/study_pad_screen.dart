@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 import '../../models/note_model.dart';
@@ -98,8 +99,13 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   Future<void> _saveNote() async {
     if (!mounted) return;
     try {
-      final contentJson = jsonEncode(_controller.document.toDelta().toJson());
-      final drawingJson = jsonEncode(_strokes.map((s) => s.toJson()).toList());
+      // 🚀 PERFORMANCE FIX: Offload expensive JSON serialization to a background isolate
+      // This prevents the UI thread from freezing (jank) when auto-saving massive notes
+      final deltaList = _controller.document.toDelta().toJson();
+      final strokeList = _strokes.map((s) => s.toJson()).toList();
+      final contentJson = await compute(jsonEncode, deltaList);
+      final drawingJson = await compute(jsonEncode, strokeList);
+
       final note = Note(
         id: _noteId,
         title: _titleController.text.trim().isEmpty ? "Untitled Note" : _titleController.text.trim(),
@@ -330,14 +336,15 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
 
   void _eraseAt(Offset position) {
     final double eraserRadius = 25.0; // The radius size of the eraser
+    final double eraserRadiusSq = eraserRadius * eraserRadius;
     bool removed = false;
     
     _strokes.removeWhere((stroke) {
       for (final point in stroke.points) {
-        // Quick bounding box check for performance before expensive math
+        // 🚀 PERFORMANCE FIX: Quick bounding box check, and avoid expensive square root math using distanceSquared
         if ((point.dx - position.dx).abs() <= eraserRadius && 
             (point.dy - position.dy).abs() <= eraserRadius) {
-          if ((point - position).distance <= eraserRadius) {
+          if ((point - position).distanceSquared <= eraserRadiusSq) {
             removed = true;
             return true; // 🗑️ Object Eraser: Delete the entire continuous stroke
           }

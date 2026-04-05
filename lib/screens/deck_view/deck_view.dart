@@ -38,6 +38,8 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
   late Deck _currentDeck; // NEW: Tracks local deck state changes
   List<Flashcard> _cards = [];
   bool _isLoading = true;
+  bool _isSelectionMode = false;
+  Set<String> _selectedCards = {};
 
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -77,6 +79,17 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
 
   Future<void> _loadCards() async {
     final cards = await _cardStorageService.getCardsForDeck(_currentDeck.id);
+
+    if (_currentDeck.cardOrder.isNotEmpty) {
+      cards.sort((a, b) {
+        int indexA = _currentDeck.cardOrder.indexOf(a.id);
+        int indexB = _currentDeck.cardOrder.indexOf(b.id);
+        if (indexA == -1) indexA = 999999; 
+        if (indexB == -1) indexB = 999999;
+        return indexA.compareTo(indexB);
+      });
+    }
+
     if (!mounted) return;
     setState(() {
       _cards = cards;
@@ -109,11 +122,109 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     }
   }
 
+  void _onReorderCards(int oldIndex, int newIndex) async {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (oldIndex < newIndex) {
+        newIndex -= 1;
+      }
+      final Flashcard item = _cards.removeAt(oldIndex);
+      _cards.insert(newIndex, item);
+      
+      _currentDeck.cardOrder = _cards.map((c) => c.id).toList();
+    });
+    
+    // Save the new order to Firestore in the background
+    await _deckStorageService.updateDeck(_currentDeck);
+  }
+
+  void _toggleSelectionMode() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      _selectedCards.clear();
+    });
+  }
+
+  void _toggleCardSelection(String cardId) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (_selectedCards.contains(cardId)) {
+        _selectedCards.remove(cardId);
+      } else {
+        _selectedCards.add(cardId);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedCards.clear();
+    });
+  }
+
+  Future<void> _confirmDeleteSelected() async {
+    if (_selectedCards.isEmpty) {
+      _toggleSelectionMode();
+      return;
+    }
+    
+    HapticFeedback.heavyImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        title: Text(
+          "Delete ${_selectedCards.length} Cards?",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
+        content: Text(
+          "Are you sure? This action cannot be undone.",
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50, foregroundColor: isDark ? Colors.redAccent : Colors.red, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            child: const Text("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final List<String> toDelete = _selectedCards.toList();
+      await _cardStorageService.deleteCards(toDelete);
+      
+      if (!mounted) return;
+      setState(() {
+        if (_currentDeck.cardCount >= toDelete.length) {
+          _currentDeck.cardCount -= toDelete.length;
+        } else {
+          _currentDeck.cardCount = 0;
+        }
+        _currentDeck.cardOrder.removeWhere((id) => toDelete.contains(id));
+        _isSelectionMode = false;
+        _selectedCards.clear();
+      });
+      await _deckStorageService.updateDeck(_currentDeck);
+      _loadCards();
+    }
+  }
+
   void _onCardCreated(Flashcard card) async {
     await _cardStorageService.addCard(card);
     if (!mounted) return;
     setState(() {
       _currentDeck.cardCount += 1;
+      if (!_currentDeck.cardOrder.contains(card.id)) {
+        _currentDeck.cardOrder.add(card.id);
+      }
     });
     await _deckStorageService.updateDeck(_currentDeck);
     _loadCards();
@@ -168,6 +279,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
       if (!mounted) return;
       setState(() {
         if (_currentDeck.cardCount > 0) _currentDeck.cardCount -= 1;
+        _currentDeck.cardOrder.remove(cardId);
       });
       await _deckStorageService.updateDeck(_currentDeck);
       _loadCards();
@@ -280,6 +392,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
             onAddCard: () => _showAddCardDialog(context),
             onEditCard: _editCard,
             onDeleteCard: _confirmDeleteCard,
+            onReorderCards: _onReorderCards,
+            isSelectionMode: _isSelectionMode,
+            selectedCards: _selectedCards,
+            onToggleSelectionMode: _toggleSelectionMode,
+            onToggleCardSelection: _toggleCardSelection,
+            onClearSelection: _clearSelection,
+            onDeleteSelected: _confirmDeleteSelected,
             onReview: _startReview,
             onFlaggedReview: _startFlaggedReview,
             onQuiz: _startQuiz,
@@ -298,6 +417,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
             onAddCard: () => _showAddCardDialog(context),
             onEditCard: _editCard,
             onDeleteCard: _confirmDeleteCard,
+            onReorderCards: _onReorderCards,
+            isSelectionMode: _isSelectionMode,
+            selectedCards: _selectedCards,
+            onToggleSelectionMode: _toggleSelectionMode,
+            onToggleCardSelection: _toggleCardSelection,
+            onClearSelection: _clearSelection,
+            onDeleteSelected: _confirmDeleteSelected,
             onReview: _startReview,
             onFlaggedReview: _startFlaggedReview,
             onQuiz: _startQuiz,

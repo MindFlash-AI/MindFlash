@@ -83,6 +83,25 @@ class CardStorageService {
     }
   }
 
+  Future<void> deleteCards(List<String> cardIds) async {
+    try {
+      if (_uid == null || cardIds.isEmpty) return;
+
+      const int chunkSize = 450;
+      for (var i = 0; i < cardIds.length; i += chunkSize) {
+        final batch = _firestore.batch();
+        final chunk = cardIds.skip(i).take(chunkSize);
+        
+        for (var id in chunk) {
+          batch.delete(_cardsRef.doc(id));
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      print("Error deleting multiple cards: $e");
+    }
+  }
+
   // 🛡️ SECURITY FIX 1 (Cont): Chunking deletes to prevent orphans
   Future<void> deleteCardsByDeck(String deckId) async {
     try {

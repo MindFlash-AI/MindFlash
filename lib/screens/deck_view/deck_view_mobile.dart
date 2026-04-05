@@ -15,6 +15,13 @@ class DeckViewMobile extends StatelessWidget {
   final VoidCallback onAddCard;
   final Function(Flashcard) onEditCard;
   final Function(String) onDeleteCard;
+  final void Function(int, int) onReorderCards;
+  final bool isSelectionMode;
+  final Set<String> selectedCards;
+  final VoidCallback onToggleSelectionMode;
+  final Function(String) onToggleCardSelection;
+  final VoidCallback onClearSelection;
+  final VoidCallback onDeleteSelected;
   final VoidCallback onReview;
   final VoidCallback onFlaggedReview;
   final VoidCallback onQuiz;
@@ -33,6 +40,13 @@ class DeckViewMobile extends StatelessWidget {
     required this.onAddCard,
     required this.onEditCard,
     required this.onDeleteCard,
+    required this.onReorderCards,
+    required this.isSelectionMode,
+    required this.selectedCards,
+    required this.onToggleSelectionMode,
+    required this.onToggleCardSelection,
+    required this.onClearSelection,
+    required this.onDeleteSelected,
     required this.onReview,
     required this.onFlaggedReview,
     required this.onQuiz,
@@ -63,22 +77,39 @@ class DeckViewMobile extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark.copyWith(
-          statusBarColor: Colors.transparent,
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: BackButton(color: Theme.of(context).appBarTheme.foregroundColor),
-        title: Text(
-          "Deck Details",
-          style: TextStyle(
-            color: Theme.of(context).appBarTheme.foregroundColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-      ),
+      appBar: isSelectionMode
+          ? AppBar(
+              backgroundColor: isDark ? const Color(0xFF2A1B3D) : const Color(0xFFF4F6FF),
+              elevation: 0,
+              leading: IconButton(icon: Icon(Icons.close_rounded, color: Theme.of(context).appBarTheme.foregroundColor), onPressed: onClearSelection),
+              title: Text("${selectedCards.length} Selected", style: TextStyle(color: Theme.of(context).appBarTheme.foregroundColor, fontWeight: FontWeight.bold, fontSize: 16)),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+                  onPressed: onDeleteSelected,
+                ),
+              ],
+            )
+          : AppBar(
+              systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark.copyWith(
+                statusBarColor: Colors.transparent,
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: BackButton(color: Theme.of(context).appBarTheme.foregroundColor),
+              title: Text(
+                "Deck Details",
+                style: TextStyle(color: Theme.of(context).appBarTheme.foregroundColor, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              actions: [
+                if (cards.isNotEmpty)
+                  IconButton(
+                    icon: Icon(Icons.checklist_rounded, color: Theme.of(context).appBarTheme.foregroundColor),
+                    onPressed: onToggleSelectionMode,
+                    tooltip: "Select Cards",
+                  ),
+              ],
+            ),
       body: SafeArea(
         child: Column(
           children: [
@@ -415,100 +446,136 @@ class DeckViewMobile extends StatelessWidget {
   Widget _buildSliverCardsList(BuildContext context, bool isDark) {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
+      sliver: SliverReorderableList(
+        itemCount: cards.length,
+        onReorder: onReorderCards,
+        itemBuilder: (context, index) {
           final card = cards[index];
 
           return TweenAnimationBuilder<double>(
+            key: ValueKey(card.id), // 🔥 Providing a unique key is MANDATORY for reordering to work
             tween: Tween(begin: 0.0, end: 1.0),
             duration: Duration(milliseconds: 400 + (index * 50).clamp(0, 600)),
             curve: Curves.easeOutCubic,
             builder: (context, value, child) {
               return Transform.translate(offset: Offset(0, 30 * (1 - value)), child: Opacity(opacity: value, child: child));
             },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.04), blurRadius: 15, offset: const Offset(0, 5))],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (card.isFlagged)
-                              Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(color: isDark ? Colors.red.withOpacity(0.15) : Colors.red.shade50, shape: BoxShape.circle),
-                                child: Icon(Icons.flag_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 14),
-                              )
-                            else if (card.isMastered)
-                              Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(color: isDark ? Colors.green.withOpacity(0.15) : Colors.green.shade50, shape: BoxShape.circle),
-                                child: Icon(Icons.check_rounded, color: isDark ? Colors.greenAccent.shade400 : Colors.green, size: 14),
-                              ),
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.1) : const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(12)),
-                                child: Text(
-                                  "#${index + 1}",
-                                  style: TextStyle(color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF), fontSize: 11, fontWeight: FontWeight.w900),
-                                  overflow: TextOverflow.ellipsis,
+            child: GestureDetector(
+              onLongPress: () {
+                if (!isSelectionMode) {
+                  onToggleSelectionMode();
+                  onToggleCardSelection(card.id);
+                }
+              },
+              onTap: () {
+                if (isSelectionMode) onToggleCardSelection(card.id);
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: selectedCards.contains(card.id) 
+                      ? (isDark ? Colors.blue.withOpacity(0.15) : Colors.blue.shade50) 
+                      : Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: selectedCards.contains(card.id)
+                      ? Border.all(color: Colors.blueAccent, width: 2)
+                      : (isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.04), blurRadius: 15, offset: const Offset(0, 5))],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (card.isFlagged)
+                                Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(color: isDark ? Colors.red.withOpacity(0.15) : Colors.red.shade50, shape: BoxShape.circle),
+                                  child: Icon(Icons.flag_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 14),
+                                )
+                              else if (card.isMastered)
+                                Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(color: isDark ? Colors.green.withOpacity(0.15) : Colors.green.shade50, shape: BoxShape.circle),
+                                  child: Icon(Icons.check_rounded, color: isDark ? Colors.greenAccent.shade400 : Colors.green, size: 14),
+                                ),
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.1) : const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(12)),
+                                  child: Text(
+                                    "#${index + 1}",
+                                    style: TextStyle(color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF), fontSize: 11, fontWeight: FontWeight.w900),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isSelectionMode)
+                              SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Checkbox(
+                                  value: selectedCards.contains(card.id),
+                                  onChanged: (_) => onToggleCardSelection(card.id),
+                                  activeColor: Colors.blueAccent,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                ),
+                              )
+                            else ...[
+                              IconButton(
+                                onPressed: () => onEditCard(card),
+                                icon: Icon(Icons.edit_rounded, color: isDark ? Colors.white54 : Colors.black45, size: 20),
+                                padding: const EdgeInsets.all(8),
+                                constraints: const BoxConstraints(),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: () => onDeleteCard(card.id),
+                                icon: Icon(Icons.delete_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 20),
+                                padding: const EdgeInsets.all(8),
+                                constraints: const BoxConstraints(),
+                              ),
+                              const SizedBox(width: 4),
+                              ReorderableDragStartListener(
+                                index: index,
+                                child: Icon(Icons.drag_handle_rounded, color: isDark ? Colors.white38 : Colors.black38, size: 20),
+                              ),
+                            ],
                           ],
                         ),
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () => onEditCard(card),
-                            icon: Icon(Icons.edit_rounded, color: isDark ? Colors.white54 : Colors.black45, size: 20),
-                            padding: const EdgeInsets.all(8),
-                            constraints: const BoxConstraints(),
-                          ),
-                          const SizedBox(width: 4),
-                          IconButton(
-                            onPressed: () => onDeleteCard(card.id),
-                            icon: Icon(Icons.delete_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 20),
-                            padding: const EdgeInsets.all(8),
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text("FRONT", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                  const SizedBox(height: 4),
-                  Text(card.question, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 16, fontWeight: FontWeight.w600)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(height: 1, thickness: 1, color: isDark ? Colors.white12 : const Color(0xFFF0F0F0)),
-                  ),
-                  Text("BACK", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                  const SizedBox(height: 4),
-                  Text(card.answer, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 15)),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text("FRONT", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                    const SizedBox(height: 4),
+                    Text(card.question, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 16, fontWeight: FontWeight.w600)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1, thickness: 1, color: isDark ? Colors.white12 : const Color(0xFFF0F0F0)),
+                    ),
+                    Text("BACK", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                    const SizedBox(height: 4),
+                    Text(card.answer, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 15)),
+                  ],
+                ),
               ),
             ),
           );
-        }, childCount: cards.length),
+        },
       ),
     );
   }

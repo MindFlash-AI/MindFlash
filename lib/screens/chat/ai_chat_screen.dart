@@ -15,6 +15,10 @@ import '../../services/ad_helper.dart';
 import '../../services/card_storage_service.dart';
 import '../../services/pro_service.dart'; 
 import '../../widgets/animated_mascot.dart'; 
+import '../dashboard/dashboard_screen.dart';
+import '../web_landing/web_landing_screen.dart';
+import 'ai_chat_mobile.dart';
+import 'ai_chat_web.dart';
 
 class ChatMessage {
   final String text;
@@ -54,6 +58,8 @@ class AIChatScreen extends StatefulWidget {
 class _AIChatScreenState extends State<AIChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+  bool _isSidebarVisible = true;
   final List<ChatMessage> _messages = [];
   
   final AIService _aiService = AIService();
@@ -197,6 +203,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     _bannerAd?.dispose();
     _rewardedAd?.dispose();
     super.dispose();
@@ -439,6 +446,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
     _saveChatHistory();
     _messageController.clear();
+    _focusNode.requestFocus();
     _scrollToBottom();
     HapticFeedback.lightImpact();
 
@@ -461,6 +469,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         _isLoading = false;
       });
       _saveChatHistory();
+      _focusNode.requestFocus();
       _scrollToBottom();
       HapticFeedback.mediumImpact();
     } catch (e, stackTrace) {
@@ -484,6 +493,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
           _isLoading = false;
         });
         _saveChatHistory();
+        _focusNode.requestFocus();
         _scrollToBottom();
       }
     }
@@ -501,334 +511,65 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Column(
-          children: [
-            const Text("AI Tutor", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            Text(
-              widget.deck.name,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white70 : Colors.grey.shade600,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).appBarTheme.foregroundColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.delete_outline_rounded, color: isDark ? Colors.white54 : Colors.black54),
-            onPressed: _clearChat,
-            tooltip: 'Clear Chat',
-          ),
-          
-          StreamBuilder<int>(
-            stream: _energyService.energyStream,
-            initialData: _energyService.currentEnergy,
-            builder: (context, snapshot) {
-              final currentEnergy = snapshot.data ?? 0;
-              return Container(
-                margin: const EdgeInsets.only(right: 16),
-                child: Material(
-                  color: currentEnergy > 0 
-                      ? const Color(0xFF8B4EFF).withOpacity(0.1)
-                      : Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      _showEnergyDialog();
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.bolt,
-                            color: currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            "$currentEnergy",
-                            style: TextStyle(
-                              color: currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (!kIsWeb && !ProService().isPro)
-            SizedBox(
-              height: 50,
-              width: double.infinity,
-              child: (_isBannerAdLoaded && _bannerAd != null)
-                  ? AdWidget(ad: _bannerAd!)
-                  : const SizedBox.shrink(),
-            ),
-            
-          Expanded(
-            child: _isFetchingHistory
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF8B4EFF),
-                    ),
-                  )
-                : _messages.isEmpty 
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const AnimatedMascot(state: MascotState.happy, size: 150),
-                            const SizedBox(height: 24),
-                            Text(
-                              "Ready to study?",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Ask me anything about ${widget.deck.name}!",
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: isDark ? Colors.white54 : Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          return _buildMessageBubble(_messages[index]);
-                        },
-                      ),
-          ),
-
-          if (_isLoading)
-            Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const AnimatedMascot(state: MascotState.thinking, size: 46),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                        bottomLeft: Radius.circular(4), 
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B4EFF)),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Thinking...",
-                          style: TextStyle(
-                            color: isDark ? Colors.white70 : Colors.grey.shade600,
-                            fontStyle: FontStyle.italic,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          Container(
-            padding: EdgeInsets.fromLTRB(
-              16, 12, 16, 
-              MediaQuery.of(context).padding.bottom > 0 
-                  ? MediaQuery.of(context).padding.bottom 
-                  : 16
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                  offset: const Offset(0, -4),
-                  blurRadius: 16,
-                ),
-              ],
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    textCapitalization: TextCapitalization.sentences,
-                    maxLines: 4,
-                    minLines: 1,
-                    textInputAction: TextInputAction.newline,
-                    style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-                    decoration: InputDecoration(
-                      hintText: "Ask a question...",
-                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400),
-                      filled: true,
-                      fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 2),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
-                    onPressed: _isLoading ? null : _sendMessage,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  void _toggleSidebar() {
+    HapticFeedback.lightImpact();
+    setState(() => _isSidebarVisible = !_isSidebarVisible);
   }
 
-  Widget _buildMessageBubble(ChatMessage message) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!message.isUser) ...[
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0), 
-              child: AnimatedMascot(state: MascotState.happy, size: 38),
-            ),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
-              decoration: BoxDecoration(
-                color: message.isUser ? null : Theme.of(context).cardColor,
-                gradient: message.isUser
-                    ? const LinearGradient(
-                        colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(message.isUser ? 20 : 4), 
-                  bottomRight: Radius.circular(message.isUser ? 4 : 20),
-                ),
-                boxShadow: message.isUser
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-              ),
-              child: message.isUser
-                  ? Text(
-                      message.text,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )
-                  : MarkdownBody(
-                      data: message.text,
-                      selectable: true,
-                      styleSheet: MarkdownStyleSheet(
-                        p: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 16, height: 1.5),
-                        strong: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black),
-                        em: TextStyle(fontStyle: FontStyle.italic, color: isDark ? Colors.white70 : Colors.black87),
-                        listBullet: const TextStyle(color: Color(0xFF8B4EFF), fontSize: 16),
-                        h1: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
-                        h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
-                        h3: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
-                        code: TextStyle(
-                          backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                          color: const Color(0xFFE841A1),
-                          fontFamily: 'monospace',
-                          fontSize: 14,
-                        ),
-                        codeblockDecoration: BoxDecoration(
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
-                        ),
-                        blockquoteDecoration: BoxDecoration(
-                          border: const Border(left: BorderSide(color: Color(0xFF8B4EFF), width: 4)),
-                          color: const Color(0xFF8B4EFF).withOpacity(0.05),
-                        ),
-                        blockquotePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      ),
-                    ),
-            ),
-          ),
-          if (message.isUser) const SizedBox(width: 24),
-        ],
-      ),
+  void _navigateToDashboard() {
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const DashboardScreen()), (route) => false);
+  }
+
+  void _navigateToWebsite() {
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const WebLandingScreen()), (route) => false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 850;
+        
+        if (isDesktop) {
+          return AIChatWeb(
+            deck: widget.deck,
+            messages: _messages,
+            isLoading: _isLoading,
+            isFetchingHistory: _isFetchingHistory,
+            messageController: _messageController,
+            scrollController: _scrollController,
+            focusNode: _focusNode,
+            energyStream: _energyService.energyStream,
+            currentEnergy: _energyService.currentEnergy,
+            isSidebarVisible: _isSidebarVisible,
+            onSendMessage: _sendMessage,
+            onClearChat: _clearChat,
+            onEnergyTap: _showEnergyDialog,
+            onBack: () => Navigator.pop(context),
+            onToggleSidebar: _toggleSidebar,
+            onDashboardTap: _navigateToDashboard,
+            onWebsiteTap: _navigateToWebsite,
+          );
+        } else {
+          return AIChatMobile(
+            deck: widget.deck,
+            messages: _messages,
+            isLoading: _isLoading,
+            isFetchingHistory: _isFetchingHistory,
+            messageController: _messageController,
+            scrollController: _scrollController,
+            focusNode: _focusNode,
+            energyStream: _energyService.energyStream,
+            currentEnergy: _energyService.currentEnergy,
+            bannerAd: _bannerAd,
+            isBannerAdLoaded: _isBannerAdLoaded,
+            onSendMessage: _sendMessage,
+            onClearChat: _clearChat,
+            onEnergyTap: _showEnergyDialog,
+            onBack: () => Navigator.pop(context),
+          );
+        }
+      }
     );
   }
 }

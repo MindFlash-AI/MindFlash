@@ -137,20 +137,23 @@ class AIService {
       sb.writeln("- Q: '${c.question}' -> A: '${c.answer}'");
     }
     
-    String deckContext = "The user is studying the deck '${deck.name}' (Subject: ${deck.subject}).\n"
-        "Here is a sample of the flashcards in this deck to give you context:\n" + sb.toString();
-
+    // 🚀 PERFORMANCE FIX: Use StringBuffer to prevent excessive memory allocations during string concatenations
+    final contextBuffer = StringBuffer();
+    contextBuffer.writeln("The user is studying the deck '${deck.name}' (Subject: ${deck.subject}).");
+    contextBuffer.writeln("Here is a sample of the flashcards in this deck to give you context:");
+    contextBuffer.write(sb.toString());
+    
     if (chatHistory.isNotEmpty) {
-      deckContext += "\n\n--- RECENT CHAT HISTORY ---\n";
+      contextBuffer.writeln("\n--- RECENT CHAT HISTORY ---");
       for (var msg in chatHistory) {
         final isUser = msg['isUser'] == true;
         String msgText = msg['text']?.toString() ?? '';
         
         if (msgText.length > 500) {
-          msgText = msgText.substring(0, 500) + '...[TRUNCATED]';
+          msgText = '${msgText.substring(0, 500)}...[TRUNCATED]';
         }
         
-        deckContext += isUser ? "Student: $msgText\n" : "Tutor (You): $msgText\n";
+        contextBuffer.writeln(isUser ? "Student: $msgText" : "Tutor (You): $msgText");
       }
     }
 
@@ -161,7 +164,7 @@ class AIService {
       headers: headers,
       body: jsonEncode({
         'prompt': text, // 🛡️ SECURITY FIX: System instructions must be enforced securely on the backend!
-        'userContext': deckContext,
+        'userContext': contextBuffer.toString(),
         'isChat': true, 
       }),
     );
@@ -232,6 +235,7 @@ class AIService {
     }
 
     newDeck.cardCount = newCards.length; // Ensure accurate count
+    newDeck.cardOrder = newCards.map((c) => c.id).toList(); // Ensure order is retained
 
     await _deckStorage.addDeck(newDeck);
     await _cardStorage.addCards(newCards);
@@ -268,6 +272,7 @@ class AIService {
     }
 
     editedDeck.cardCount += newCards.length;
+    editedDeck.cardOrder.addAll(newCards.map((c) => c.id));
 
     await _cardStorage.addCards(newCards);
     await _deckStorage.updateDeck(editedDeck);

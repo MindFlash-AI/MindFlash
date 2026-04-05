@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../constants/constants.dart';
 import '../../models/deck_model.dart';
@@ -8,6 +12,7 @@ import '../../services/card_storage_service.dart'; // 🛡️ Added Card Storage
 import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/note_storage_service.dart';
+import '../../services/secure_cache_service.dart';
 
 import '../../widgets/stat_card.dart';
 import '../../widgets/deck_list_item.dart';
@@ -80,6 +85,39 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _loadDecks() async {
+    // 🚀 PERFORMANCE: Load instantly from local cache while fetching fresh data
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final cachedData = prefs.getString('dashboard_decks_cache_$uid');
+        if (cachedData != null && _decks.isEmpty) {
+          final decryptedData = SecureCacheService.decrypt(cachedData, uid);
+          if (decryptedData.isNotEmpty) {
+            final List<dynamic> decoded = jsonDecode(decryptedData);
+            final cachedDecks = decoded.map((e) => Deck(
+              id: e['id']?.toString() ?? '',
+              name: e['name']?.toString() ?? '',
+              subject: e['subject']?.toString() ?? '',
+              cardCount: (e['cardCount'] as num?)?.toInt() ?? 0,
+              cardOrder: e['cardOrder'] != null ? List<String>.from(e['cardOrder']) : [],
+            )).toList();
+            
+            if (mounted) {
+              setState(() {
+                _decks = cachedDecks;
+                _totalCards = cachedDecks.fold(0, (sum, deck) => sum + deck.cardCount);
+                _isLoading = false; // Display cached UI immediately
+                _applySort();
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading cached decks: $e");
+    }
+
     final decks = await _storageService.getDecks();
     if (!mounted) return;
     setState(() {
@@ -88,6 +126,25 @@ class _DashboardScreenState extends State<DashboardScreen>
       _isLoading = false;
       _applySort();
     });
+
+    // 🚀 Update cache silently in the background with fresh data
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final String encoded = jsonEncode(decks.map((d) => {
+          'id': d.id,
+          'name': d.name,
+          'subject': d.subject,
+          'cardCount': d.cardCount,
+          'cardOrder': d.cardOrder,
+        }).toList());
+        final encryptedData = SecureCacheService.encrypt(encoded, uid);
+        await prefs.setString('dashboard_decks_cache_$uid', encryptedData);
+      }
+    } catch (e) {
+      debugPrint("Error saving cached decks: $e");
+    }
   }
 
   void _onDeckCreated(Deck deck) async {
@@ -910,6 +967,115 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  Widget _buildDeckListSkeleton(bool isDark) {
+    final baseColor = isDark ? Colors.white10 : Colors.grey.shade300;
+    final highlightColor = isDark ? Colors.white24 : Colors.grey.shade100;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+          decoration: BoxDecoration(
+            color: isDark ? Theme.of(context).cardColor : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
+            border: Border(
+              bottom: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade100, width: 1),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Shimmer.fromColors(
+                    baseColor: baseColor, highlightColor: highlightColor,
+                    child: Container(width: 120, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+                  ),
+                  Shimmer.fromColors(
+                    baseColor: baseColor, highlightColor: highlightColor,
+                    child: Container(width: 24, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Shimmer.fromColors(
+                    baseColor: baseColor, highlightColor: highlightColor,
+                    child: Container(width: 80, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                  ),
+                  Shimmer.fromColors(
+                    baseColor: baseColor, highlightColor: highlightColor,
+                    child: Container(width: 60, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Shimmer.fromColors(
+                baseColor: baseColor, highlightColor: highlightColor,
+                child: Container(width: double.infinity, height: 6, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+              ),
+            ],
+          ),
+        ),
+        
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 380, 
+              mainAxisExtent: 140,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+            ),
+            itemCount: 8, // Shows 8 dummy items to fill the screen nicely
+            itemBuilder: (context, index) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color.fromARGB(255, 224, 224, 224), width: 2),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06), blurRadius: 20, offset: const Offset(0, 16))],
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: 52, height: 52, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)))),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: double.infinity, height: 18, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)))),
+                          const SizedBox(height: 8),
+                          Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: 100, height: 14, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)))),
+                          const SizedBox(height: 12),
+                          Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: 60, height: 20, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)))),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: 24, height: 24, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActionButtons(BuildContext context, bool isDark, double maxWidth) {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
@@ -1184,7 +1350,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               final actions = _buildActionButtons(context, isDark, maxWidth);
               
               final deckList = _isLoading 
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B4EFF))) 
+                  ? _buildDeckListSkeleton(isDark)
                   : _decks.isEmpty 
                       ? _buildEmptyState(isDark) 
                       : _buildDeckList(isDark);

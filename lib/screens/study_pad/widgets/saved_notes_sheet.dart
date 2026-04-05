@@ -1,8 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../../models/note_model.dart';
 import '../../../../../services/note_storage_service.dart';
+import '../../../../../services/secure_cache_service.dart';
 
 class SavedNotesSheet extends StatefulWidget {
   // 🛡️ FIX: Added optional callback to allow the Web Sidebar to talk to the main screen
@@ -26,12 +31,62 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
   }
 
   Future<void> _loadNotes() async {
+    // 🚀 PERFORMANCE: Load instantly from local cache while fetching fresh data
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final cachedData = prefs.getString('study_pad_notes_cache_$uid');
+        if (cachedData != null && _notes.isEmpty) {
+          final decryptedData = SecureCacheService.decrypt(cachedData, uid);
+          if (decryptedData.isNotEmpty) {
+            final List<dynamic> decoded = jsonDecode(decryptedData);
+            final cachedNotes = decoded.map((e) => Note(
+              id: e['id']?.toString() ?? '',
+              title: e['title']?.toString() ?? 'Untitled Note',
+              content: e['content']?.toString() ?? '',
+              drawingData: e['drawingData']?.toString() ?? '',
+              updatedAt: e['updatedAt'] != null ? DateTime.parse(e['updatedAt']) : DateTime.now(),
+            )).toList();
+            
+            if (mounted) {
+              setState(() {
+                _notes = cachedNotes;
+                _isLoading = false; // Display cached UI immediately
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading cached notes: $e");
+    }
+
     final notes = await _noteStorage.getNotes();
     if (mounted) {
       setState(() {
         _notes = notes;
         _isLoading = false;
       });
+    }
+
+    // 🚀 Update cache silently in the background with fresh data
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final String encoded = jsonEncode(notes.map((n) => {
+          'id': n.id,
+          'title': n.title,
+          'content': n.content,
+          'drawingData': n.drawingData,
+          'updatedAt': n.updatedAt.toIso8601String(),
+        }).toList());
+        final encryptedData = SecureCacheService.encrypt(encoded, uid);
+        await prefs.setString('study_pad_notes_cache_$uid', encryptedData);
+      }
+    } catch (e) {
+      debugPrint("Error saving cached notes: $e");
     }
   }
 
@@ -77,6 +132,46 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNotesListSkeleton(bool isDark) {
+    final baseColor = isDark ? Colors.white10 : Colors.grey.shade300;
+    final highlightColor = isDark ? Colors.white24 : Colors.grey.shade100;
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(24),
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+          ),
+          child: Row(
+            children: [
+              Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: 48, height: 48, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: double.infinity, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)))),
+                    const SizedBox(height: 8),
+                    Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: 120, height: 12, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)))),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Shimmer.fromColors(baseColor: baseColor, highlightColor: highlightColor, child: Container(width: 24, height: 24, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -191,7 +286,7 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
                   Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
                   Expanded(
                     child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B4EFF)))
+                        ? _buildNotesListSkeleton(isDark)
                         : _notes.isEmpty
                             ? Center(
                                 child: Column(

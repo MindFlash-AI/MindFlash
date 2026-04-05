@@ -75,18 +75,22 @@ class DrawingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // 🚀 PERFORMANCE FIX: Reuse a single Paint object to prevent allocating hundreds of objects per frame
+    final paint = Paint()
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
     for (var stroke in strokes) {
-      final paint = Paint()
-        ..color = stroke.isHighlighter ? stroke.color.withValues(alpha: 0.4) : stroke.color
-        ..strokeWidth = stroke.width
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke;
+      paint.color = stroke.isHighlighter ? stroke.color.withValues(alpha: 0.4) : stroke.color;
+      paint.strokeWidth = stroke.width;
 
       if (stroke.points.isEmpty) continue;
 
       if (stroke.points.length == 1) {
-        canvas.drawOval(Rect.fromCircle(center: stroke.points.first, radius: stroke.width / 2), paint..style = PaintingStyle.fill);
+        paint.style = PaintingStyle.fill;
+        canvas.drawOval(Rect.fromCircle(center: stroke.points.first, radius: stroke.width / 2), paint);
+        paint.style = PaintingStyle.stroke;
         continue;
       }
 
