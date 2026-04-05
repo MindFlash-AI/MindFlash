@@ -13,6 +13,8 @@ import '../services/energy_service.dart';
 import '../services/pro_service.dart'; 
 import '../screens/settings/manage_subscription_screen.dart'; 
 import 'pro_paywall_sheet.dart'; 
+import 'ai_loading_overlay.dart';
+import 'energy_empty_dialog.dart';
 
 Future<String> _extractFileContentInBackground(
   Map<String, dynamic> data,
@@ -119,82 +121,6 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     );
   }
 
-  void _showLoadingOverlay({bool isRefilling = false}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.transparent,
-      routeSettings: const RouteSettings(name: 'loading_overlay'),
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-            child: Container(
-              color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
-              width: double.infinity,
-              height: double.infinity,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF8B4EFF),
-                      strokeWidth: 4,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    isRefilling ? "Refilling Energy..." : "Crafting Deck...",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    isRefilling 
-                        ? "Please wait a moment ⚡" 
-                        : "Generating your flashcards with AI ☕",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: isDark ? Colors.white70 : Colors.grey.shade700,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _closeLoadingOverlay() {
-    bool foundOverlay = false;
-    Navigator.of(context).popUntil((route) {
-      if (route.settings.name == 'loading_overlay') {
-        foundOverlay = true;
-        return true;
-      }
-      if (route.isFirst) return true; 
-      return false; 
-    });
-    
-    if (foundOverlay) {
-      Navigator.of(context).pop();
-    }
-  }
-
   Future<void> _handleFileUpload() async {
     if (_isSubmitting || _isFileProcessing) return; // 🛡️ Strict lock
     
@@ -294,7 +220,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       setState(() {
         _isSubmitting = true;
       });
-      _showLoadingOverlay();
+      AILoadingOverlay.show(context, title: "Crafting Deck...", subtitle: "Generating your flashcards with AI ☕");
 
       try {
         final successMessage = await widget.onGenerate(
@@ -304,7 +230,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         );
 
         if (mounted) {
-          _closeLoadingOverlay();
+          AILoadingOverlay.close(context);
 
           if (!ProService().isPro) {
             await ProPaywallSheet.show(
@@ -320,14 +246,14 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
         }
       } catch (e) {
         if (mounted) {
-          _closeLoadingOverlay();
+          AILoadingOverlay.close(context);
           setState(() {
             _isSubmitting = false;
           });
 
           final errorStr = e.toString();
           if (errorStr.toLowerCase().contains('energy') || errorStr.contains('INSUFFICIENT_ENERGY')) {
-            _showEnergyAdDialog();
+            EnergyEmptyDialog.show(context, actionText: "Generating a deck", onWatchAd: _showRewardedAd);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -341,89 +267,6 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     } else {
       HapticFeedback.heavyImpact();
     }
-  }
-
-  void _showEnergyAdDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false, 
-      builder: (ctx) => Dialog(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.bolt_rounded, color: Colors.orange, size: 32),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Out of Energy", 
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                "Generating a deck costs 3 energy. Watch a quick ad to refill your energy, or upgrade to MindFlash Pro for double the daily limit and no ads!",
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 28),
-              
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _showRewardedAd();
-                },
-                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                label: const Text("Watch Ad to Refill", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE940A3),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ManageSubscriptionScreen()),
-                  );
-                },
-                icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF8B4EFF)),
-                label: const Text("Upgrade to Pro", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold, fontSize: 15)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontSize: 15)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   void _showRewardedAd() {
@@ -477,7 +320,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
 
   Future<void> _refillAndSubmit() async {
     setState(() => _isSubmitting = true);
-    _showLoadingOverlay(isRefilling: true);
+    AILoadingOverlay.show(context, title: "Refilling Energy...", subtitle: "Please wait a moment ⚡");
 
     try {
       final energyService = EnergyService();
@@ -486,13 +329,13 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
       await Future.delayed(const Duration(milliseconds: 800));
       
       if (mounted) {
-        _closeLoadingOverlay();
+        AILoadingOverlay.close(context);
         setState(() => _isSubmitting = false);
         _submitTopic(); 
       }
     } catch (e) {
       if (mounted) {
-        _closeLoadingOverlay();
+        AILoadingOverlay.close(context);
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Failed to refill energy. Please try again.")),

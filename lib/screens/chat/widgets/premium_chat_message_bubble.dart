@@ -1,40 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
+import '../../../utils/math_markdown.dart';
 import '../ai_chat_screen.dart';
 import '../../../widgets/animated_mascot.dart';
-
-class MathSyntax extends md.InlineSyntax {
-  MathSyntax() : super(r'\$\$(.*?)\$\$|\$(.*?)\$');
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    final isDisplay = match[1] != null;
-    final math = match[1] ?? match[2];
-    final el = md.Element.text('math', math ?? '');
-    el.attributes['display'] = isDisplay.toString();
-    parser.addNode(el);
-    return true;
-  }
-}
-
-class MathBuilder extends MarkdownElementBuilder {
-  @override
-  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final isDisplay = element.attributes['display'] == 'true';
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: isDisplay ? 12.0 : 0.0),
-      child: Math.tex(
-        element.textContent,
-        textStyle: preferredStyle?.copyWith(fontSize: 15),
-        mathStyle: isDisplay ? MathStyle.display : MathStyle.text,
-        onErrorFallback: (err) => Text(element.textContent, style: preferredStyle?.copyWith(color: Colors.redAccent)),
-      ),
-    );
-  }
-}
 
 class PremiumChatMessageBubble extends StatelessWidget {
   final ChatMessage message;
@@ -120,7 +90,7 @@ class PremiumChatMessageBubble extends StatelessWidget {
                       : MarkdownBody(
                           data: message.text,
                           selectable: true,
-                          builders: {'math': MathBuilder()},
+                          builders: {'math': MathBuilder(fontSize: 15, verticalPadding: 12.0)},
                           extensionSet: md.ExtensionSet(md.ExtensionSet.gitHubFlavored.blockSyntaxes, [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, MathSyntax()]),
                           styleSheet: MarkdownStyleSheet(
                             p: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87, fontSize: 16, height: 1.6, letterSpacing: 0.2),

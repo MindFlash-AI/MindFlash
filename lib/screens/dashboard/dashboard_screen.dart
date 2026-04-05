@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,11 +8,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart'; 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
 
 import '../../constants/constants.dart';
 import '../../models/deck_model.dart';
 import '../../services/deck_storage_service.dart';
-import '../../services/card_storage_service.dart'; // 🛡️ Added Card Storage import
+import '../../services/card_storage_service.dart'; 
 import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/note_storage_service.dart';
@@ -23,6 +26,7 @@ import '../../widgets/deck_list_item.dart';
 import '../../widgets/create_deck_dialog.dart';
 import '../../widgets/create_deck_ai_dialog.dart';
 import '../../widgets/update_deck_ai_dialog.dart';
+import '../../widgets/ai_loading_overlay.dart';
 import '../../widgets/universal_sidebar.dart';
 
 import '../deck_view/deck_view.dart';
@@ -45,13 +49,13 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
   final DeckStorageService _storageService = DeckStorageService();
-  final CardStorageService _cardStorageService = CardStorageService(); // 🛡️ Init
+  final CardStorageService _cardStorageService = CardStorageService(); 
   
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
   List<Deck> _decks = [];
   bool _isLoading = true;
-  int _totalCards = 0; // 🚀 OPTIMIZATION: Cache total cards to prevent O(N) recalculations
+  int _totalCards = 0; 
   late AnimationController _pulseController;
   SortOption _currentSort = SortOption.nameAsc;
 
@@ -72,7 +76,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Load the Native ad here so we have access to the active Theme.of(context) to style it
     if (!_isNativeAdLoading && _nativeAd == null) {
       _isNativeAdLoading = true;
       _loadNativeAd();
@@ -105,7 +108,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         },
       ),
       nativeTemplateStyle: NativeTemplateStyle(
-        templateType: TemplateType.small, // Small template perfectly matches your 140px card height!
+        templateType: TemplateType.small, 
         mainBackgroundColor: Theme.of(context).cardColor,
         cornerRadius: 16.0,
         callToActionTextStyle: NativeTemplateTextStyle(
@@ -142,7 +145,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _loadDecks() async {
-    // 🚀 PERFORMANCE: Load instantly from local cache while fetching fresh data
     try {
       final prefs = await SharedPreferences.getInstance();
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -164,7 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               setState(() {
                 _decks = cachedDecks;
                 _totalCards = cachedDecks.fold(0, (sum, deck) => sum + deck.cardCount);
-                _isLoading = false; // Display cached UI immediately
+                _isLoading = false; 
                 _applySort();
               });
             }
@@ -184,7 +186,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       _applySort();
     });
 
-    // 🚀 Update cache silently in the background with fresh data
     try {
       final prefs = await SharedPreferences.getInstance();
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -214,8 +215,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       _decks.removeWhere((deck) => deck.id == id);
     });
     
-    // 🛡️ SECURITY FIX 2: Cascading Deletes
-    // Deleting the deck AND its orphaned flashcards prevents a massive storage leak
     await _storageService.deleteDeck(id);
     await _cardStorageService.deleteCardsByDeck(id); 
     
@@ -242,7 +241,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       Navigator.pop(context);
     }
     
-    // 🛡️ SECURITY FIX: Enforce Maximum 50 Notes per User
     try {
       final notes = await NoteStorageService().getNotes();
       if (notes.length >= 50) {
@@ -363,6 +361,62 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  Future<void> _quickScanImage() async {
+    HapticFeedback.lightImpact();
+    if (_decks.length >= 20) {
+      HapticFeedback.heavyImpact();
+      _showFeedbackModal(context, false, "You have reached the maximum limit of 20 decks. Please delete some to create new ones! 🛑");
+      return;
+    }
+    
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final platformFile = result.files.first;
+        String extension = platformFile.extension?.toLowerCase() ?? 'jpg';
+        Uint8List? fileBytes = platformFile.bytes;
+        
+        if (fileBytes == null && !kIsWeb && platformFile.path != null) {
+          fileBytes = await File(platformFile.path!).readAsBytes();
+        }
+        if (fileBytes == null) return;
+        
+        if (platformFile.size > 5 * 1024 * 1024) {
+           _showFeedbackModal(context, false, "Image is too large. Please select an image under 5MB.");
+           return;
+        }
+
+        String fileContent = "data:image/$extension;base64,${base64Encode(fileBytes)}";
+        
+        if (mounted) {
+          AILoadingOverlay.show(context, title: "Scanning Image...", subtitle: "Extracting text and generating flashcards ☕");
+          try {
+            final responseMsg = await _processAIGeneration(
+              context, 
+              "Create a comprehensive flashcard deck from the notes in this image.",
+              fileText: fileContent,
+              fileName: platformFile.name,
+            );
+            if (mounted) {
+              AILoadingOverlay.close(context);
+              HapticFeedback.mediumImpact();
+              _showFeedbackModal(context, true, responseMsg);
+            }
+          } catch (e) {
+            if (mounted) AILoadingOverlay.close(context);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) _showFeedbackModal(context, false, "Error reading image: $e");
+    }
+  }
+
   Future<String> _processAIGeneration(
     BuildContext context, 
     String prompt, 
@@ -374,7 +428,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         text: prompt,
         fileText: fileText,
         fileName: fileName,
-        targetDeckId: targetDeckId, // 🛡️ BUG FIX: Pass the ID to prevent duplicating cards
+        targetDeckId: targetDeckId, 
       );
 
       await _loadDecks();
@@ -385,7 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         _showFeedbackModal(
           context,
           false,
-          "Failed to generate flashcards. Please check your connection and try again.\n\nError: ${e.toString().replaceAll('Exception:', '').trim()}",
+          "Failed to generate flashcards.\n\nError: ${e.toString().replaceAll('Exception:', '').trim()}",
         );
       }
       rethrow; 
@@ -641,20 +695,18 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           );
         } else {
-          // 📱 HCI Layout Improvement: Horizontally scrollable minimal stat cards.
-          // Drastically reduces vertical screen space taken by the dashboard overview!
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            clipBehavior: Clip.none, // Prevents shadows from clipping
+            clipBehavior: Clip.none, 
             child: Row(
               children: [
-                statCards[2], // AI Energy first since it's highly dynamic
+                statCards[2], 
                 const SizedBox(width: 12),
-                statCards[0], // Decks
+                statCards[0], 
                 const SizedBox(width: 12),
-                statCards[1], // Cards
+                statCards[1], 
               ],
             ),
           );
@@ -703,7 +755,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 AnimatedBuilder(
                   animation: _pulseController,
                   builder: (context, child) {
-                    final scale = 1.0 + (0.05 * (0.5 * (1 + ((_pulseController.value * 2 - 1).abs() - 0.5) * 2)));
+                    // FIX: Rebalanced the parenthesis math equation properly
+                    final scale = 1.0 + 0.05 * (0.5 * (1 + ((_pulseController.value * 2 - 1).abs() - 0.5) * 2));
                     return Transform.scale(scale: scale, child: child);
                   },
                   child: ElevatedButton.icon(
@@ -962,7 +1015,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: GridView.builder(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              // 🚀 HCI Layout Improvement: Ensures tablets show at least 2 columns
               maxCrossAxisExtent: 380, 
               mainAxisExtent: 140,
               crossAxisSpacing: 20,
@@ -970,7 +1022,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             itemCount: _decks.length + (_isNativeAdLoaded ? 1 : 0),
             itemBuilder: (context, index) {
-              // 🛡️ HCI: Place the ad consistently at index 2 (the 3rd item), or at the end if they have fewer than 2 decks.
               final int adIndex = _decks.length >= 2 ? 2 : _decks.length;
 
               if (_isNativeAdLoaded && index == adIndex) {
@@ -986,7 +1037,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 );
               }
 
-              // Shift the deck index down if it appears after the ad
               final int deckIndex = (_isNativeAdLoaded && index > adIndex) ? index - 1 : index;
               final deck = _decks[deckIndex];
               final int delayMultiplier = deckIndex.clamp(0, 10); 
@@ -1095,7 +1145,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
             ),
-            itemCount: 8, // Shows 8 dummy items to fill the screen nicely
+            itemCount: 8, 
             itemBuilder: (context, index) {
               return Container(
                 decoration: BoxDecoration(
@@ -1135,8 +1185,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildActionButtons(BuildContext context, bool isDark, double maxWidth) {
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-
     if (maxWidth >= 850) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -1150,10 +1198,21 @@ class _DashboardScreenState extends State<DashboardScreen>
             isPrimary: false,
           ),
           const SizedBox(width: 12),
+          _buildCompactButton(
+            context,
+            isDark,
+            label: "Quick Scan",
+            icon: Icons.document_scanner_rounded,
+            onTap: _quickScanImage,
+            isPrimary: false,
+            color: const Color(0xFF8B4EFF),
+          ),
+          const SizedBox(width: 12),
           AnimatedBuilder(
             animation: _pulseController,
             builder: (context, child) {
-              final scale = 1.0 + (0.03 * (0.5 * (1 + ((_pulseController.value * 2 - 1).abs() - 0.5) * 2)));
+              // FIX: Rebalanced parenthesis math equation
+              final scale = 1.0 + 0.03 * (0.5 * (1 + ((_pulseController.value * 2 - 1).abs() - 0.5) * 2));
               return Transform.scale(scale: scale, child: child);
             },
             child: _buildCompactButton(
@@ -1174,47 +1233,78 @@ class _DashboardScreenState extends State<DashboardScreen>
           AnimatedBuilder(
             animation: _pulseController,
             builder: (context, child) {
-              final scale = 1.0 + (0.05 * (0.5 * (1 + ((_pulseController.value * 2 - 1).abs() - 0.5) * 2)));
+              // FIX: Rebalanced parenthesis math equation
+              final scale = 1.0 + 0.05 * (0.5 * (1 + ((_pulseController.value * 2 - 1).abs() - 0.5) * 2));
               return Transform.scale(scale: scale, child: child);
             },
-            child: Container(
-              height: 55,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF2C1A8A), Color(0xFF5B4FE6)]),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  )
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _showAIOptionsModal(context);
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.auto_awesome, color: Colors.white),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          "Generate with AI",
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 55,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFF2C1A8A), Color(0xFF5B4FE6)]),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        )
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _showAIOptionsModal(context);
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.auto_awesome, color: Colors.white),
+                            SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                "Generate with AI",
+                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Container(
+                  height: 55,
+                  width: 55,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1) : Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _quickScanImage,
+                      child: const Center(
+                        child: Icon(Icons.document_scanner_rounded, color: Color(0xFF8B4EFF), size: 24),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),

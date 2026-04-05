@@ -1,38 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
+import '../../utils/math_markdown.dart';
 import '../../models/quiz_question_model.dart';
-
-class _MathSyntax extends md.InlineSyntax {
-  _MathSyntax() : super(r'\$\$(.*?)\$\$|\$(.*?)\$');
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    final isDisplay = match[1] != null;
-    final math = match[1] ?? match[2];
-    final el = md.Element.text('math', math ?? '');
-    el.attributes['display'] = isDisplay.toString();
-    parser.addNode(el);
-    return true;
-  }
-}
-
-class _MathBuilder extends MarkdownElementBuilder {
-  @override
-  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final isDisplay = element.attributes['display'] == 'true';
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: isDisplay ? 8.0 : 0.0),
-      child: Math.tex(
-        element.textContent,
-        textStyle: preferredStyle?.copyWith(fontSize: 16),
-        mathStyle: isDisplay ? MathStyle.display : MathStyle.text,
-        onErrorFallback: (err) => Text(element.textContent, style: preferredStyle?.copyWith(color: Colors.redAccent)),
-      ),
-    );
-  }
-}
 
 class QuizWeb extends StatelessWidget {
   final List<QuizQuestion> quiz;
@@ -251,10 +221,10 @@ class QuizWeb extends StatelessWidget {
               MarkdownBody(
                 data: currentQuestion.question,
                 selectable: true,
-                builders: {'math': _MathBuilder()},
+                builders: {'math': MathBuilder()},
                 extensionSet: md.ExtensionSet(
                   md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-                  [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, _MathSyntax()],
+                  [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, MathSyntax()],
                 ),
                 styleSheet: MarkdownStyleSheet(
                   p: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.4, letterSpacing: -0.5),
@@ -333,10 +303,10 @@ class QuizWeb extends StatelessWidget {
                   Expanded(
                     child: MarkdownBody(
                       data: option,
-                      builders: {'math': _MathBuilder()},
+                      builders: {'math': MathBuilder()},
                       extensionSet: md.ExtensionSet(
                         md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-                        [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, _MathSyntax()],
+                        [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, MathSyntax()],
                       ),
                       styleSheet: MarkdownStyleSheet(
                         p: TextStyle(fontSize: 16, color: textColor, fontWeight: hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent) ? FontWeight.bold : FontWeight.w600),
