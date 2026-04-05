@@ -18,7 +18,9 @@ class NoteStorageService {
     if (currentUserId == null) return [];
     
     try {
-      final snapshot = await _notesCollection.orderBy('updatedAt', descending: true).get();
+      // 🚀 PERFORMANCE FIX: Cap the maximum number of documents fetched to prevent
+      // massive payloads. The UI restricts creation at 50, but capping safeguards memory.
+      final snapshot = await _notesCollection.orderBy('updatedAt', descending: true).limit(100).get();
       return snapshot.docs
           .map((doc) => Note.fromMap(doc.data() as Map<String, dynamic>, doc.id))
           .toList();

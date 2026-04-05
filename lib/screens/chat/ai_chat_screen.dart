@@ -464,8 +464,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
     HapticFeedback.lightImpact();
 
     try {
-      final List<Flashcard> cards = await _cardStorage.getCardsForDeck(widget.deck.id);
-
       final recentHistory = _messages.length > 8 
           ? _messages.sublist(_messages.length - 8) 
           : _messages;
@@ -473,7 +471,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
       final response = await _aiService.processTutorChat(
         text: text,
         deck: widget.deck,
-        cards: cards,
+        cards: _deckCards,
         chatHistory: recentHistory.map((m) => m.toJson()).toList(), 
       );
       
@@ -563,6 +561,29 @@ class _AIChatScreenState extends State<AIChatScreen> {
             onDashboardTap: _navigateToDashboard,
             onWebsiteTap: _navigateToWebsite,
           );
+        } else {
+          return AIChatMobile(
+            deck: widget.deck,
+            messages: _messages,
+            isLoading: _isLoading,
+            isFetchingHistory: _isFetchingHistory,
+            messageController: _messageController,
+            scrollController: _scrollController,
+            focusNode: _focusNode,
+            energyStream: _energyService.energyStream,
+            currentEnergy: _energyService.currentEnergy,
+            bannerAd: _bannerAd,
+            isBannerAdLoaded: _isBannerAdLoaded,
+            onSendMessage: _sendMessage,
+            onClearChat: _clearChat,
+            onEnergyTap: _showEnergyDialog,
+            onBack: () => Navigator.pop(context),
+          );
+        }
+      }
+    );
+  }
+};
         } else {
           return AIChatMobile(
             deck: widget.deck,

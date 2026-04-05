@@ -18,10 +18,11 @@ class Note {
   });
 
   Map<String, dynamic> toMap() {
+    final safeContent = content.length > 99999 ? content.substring(0, 99999) : content;
     return {
       'id': id,
       'title': title,
-      'content': content,
+      'content': safeContent,
       'drawingData': drawingData,
       'updatedAt': Timestamp.fromDate(updatedAt),
       'isTrashed': isTrashed,

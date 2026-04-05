@@ -7,16 +7,15 @@ import '../../services/card_storage_service.dart';
 import '../../services/deck_storage_service.dart';
 
 import '../../widgets/create_card_dialog.dart';
-import '../../widgets/edit_card_dialog.dart';
-
+import '../../services/quiz_creator.dart';
+import '../../widgets/dialogs/confirmation_dialog.dart';
+import 'components/deck_settings_screen.dart';
 import '../review/review_screen.dart';
 import '../quiz/quiz_screen.dart';
-import '../chat/ai_chat_screen.dart';
-import '../../services/quiz_creator.dart';
-import 'components/deck_settings_screen.dart'; // NEW: Deck Settings Import
-
+import '../chat/ai_chat_screen.dart'; 
 import 'deck_view_mobile.dart';
 import 'deck_view_web.dart';
+import '../../widgets/edit_card_dialog.dart';
 
 class DeckView extends StatefulWidget {
   final Deck deck;
@@ -81,11 +80,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     final cards = await _cardStorageService.getCardsForDeck(_currentDeck.id);
 
     if (_currentDeck.cardOrder.isNotEmpty) {
+      final orderMap = {
+        for (int i = 0; i < _currentDeck.cardOrder.length; i++)
+          _currentDeck.cardOrder[i]: i
+      };
       cards.sort((a, b) {
-        int indexA = _currentDeck.cardOrder.indexOf(a.id);
-        int indexB = _currentDeck.cardOrder.indexOf(b.id);
-        if (indexA == -1) indexA = 999999; 
-        if (indexB == -1) indexB = 999999;
+        final indexA = orderMap[a.id] ?? 999999;
+        final indexB = orderMap[b.id] ?? 999999;
         return indexA.compareTo(indexB);
       });
     }
@@ -178,30 +179,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
     }
     
     HapticFeedback.heavyImpact();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        title: Text(
-          "Delete ${_selectedCards.length} Cards?",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
-        ),
-        content: Text(
-          "Are you sure? This action cannot be undone.",
-          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50, foregroundColor: isDark ? Colors.redAccent : Colors.red, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+    final bool? confirm = await ConfirmationDialog.show(
+      context,
+      title: "Delete ${_selectedCards.length} Cards?",
+      content: "Are you sure? This action cannot be undone.",
+      confirmLabel: "Delete",
+      isDangerous: true,
     );
 
     if (confirm == true) {
@@ -238,46 +222,13 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
 
   Future<void> _confirmDeleteCard(String cardId) async {
     HapticFeedback.heavyImpact();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        title: Text(
-          "Delete Card?",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-        content: Text(
-          "Are you sure? This action cannot be undone.",
-          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50,
-              foregroundColor: isDark ? Colors.redAccent : Colors.red,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              "Delete",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+    final bool? confirm = await ConfirmationDialog.show(
+      context,
+      title: "Delete Card?",
+      content: "Are you sure? This action cannot be undone.",
+      confirmLabel: "Delete",
+      isDangerous: true,
     );
 
     if (confirm == true) {

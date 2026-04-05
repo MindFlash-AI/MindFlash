@@ -159,8 +159,8 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
     if (rawPrompt.length > MAX_PROMPT_CHARS) rawPrompt = rawPrompt.substring(0, MAX_PROMPT_CHARS) + "...[TRUNCATED]";
     if (userContext.length > 50000) userContext = userContext.substring(0, 50000) + "...[TRUNCATED]";
 
-    // 🛡️ SECURITY FIX: Sanitize XML tags to prevent Prompt Injection breakouts
-    const sanitizeTags = (str) => typeof str === 'string' ? str.replace(/<\/?(user_input|document_text)>/g, "") : str;
+    // 🛡️ SECURITY FIX: Sanitize XML tags securely with wildcard spacing to prevent bypasses like < user_input >
+    const sanitizeTags = (str) => typeof str === 'string' ? str.replace(/<\/?\s*(user_input|document_text)\s*>/gi, "") : str;
     rawPrompt = sanitizeTags(rawPrompt);
     rawFileText = sanitizeTags(rawFileText);
     fileName = sanitizeTags(fileName);

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui'; // Required for ImageFilter (BackdropFilter)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
@@ -29,10 +28,7 @@ class _QuizScreenState extends State<QuizScreen> {
   int _currentIndex = 0;
   late List<String?> _answers;
 
-  // Debounce timer — instead of writing to SharedPreferences on every
-  // answer and every navigation tap (up to 40 writes for a 20-question quiz),
-  // we schedule a write 800 ms after the last state change. If the user taps
-  // quickly through questions, intermediate states are skipped entirely.
+  // Debounce timer
   Timer? _saveDebounce;
 
   // AdMob Interstitial variables
@@ -51,12 +47,6 @@ class _QuizScreenState extends State<QuizScreen> {
   String _overlayTitle = "Calculating Score...";
   String _overlaySubtitle = "Wrapping up your quiz results.\nShowing an ad in the meantime ☕";
 
-  final LinearGradient _brandGradient = const LinearGradient(
-    colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-  );
-
   @override
   void initState() {
     super.initState();
@@ -68,21 +58,19 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   void dispose() {
-    // Flush any pending debounced save immediately on dispose so progress
-    // is never lost when the user backgrounds the app mid-quiz.
     _saveDebounce?.cancel();
     if (!_canPop) {
       _flushSave();
     }
-    _interstitialAd?.dispose(); // Clean up AdMob resources
-    _bannerAd?.dispose(); // Clean up Banner Ad resources
-    _audioPlayer.dispose(); // Clean up Audio Player
+    _interstitialAd?.dispose();
+    _bannerAd?.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   void _loadBannerAd() {
     if (kIsWeb) return;
-    if (ProService().isPro) return; // Pro users do not get banners
+    if (ProService().isPro) return;
 
     final adUnitId = AdHelper.bannerAdUnitId;
     if (adUnitId.isEmpty) return;
@@ -106,7 +94,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _loadInterstitialAd() {
-    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+    if (kIsWeb) return;
 
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialAdUnitId,
@@ -148,8 +136,6 @@ class _QuizScreenState extends State<QuizScreen> {
   int get _remainingCount =>
       widget.quiz.length - _answers.where((a) => a != null).length;
 
-  // Schedules a debounced save. Only the final state within the 800 ms
-  // window is persisted, collapsing many rapid taps into a single write.
   void _scheduleSave() {
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 800), _flushSave);
@@ -177,7 +163,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _clearProgress() async {
-    _saveDebounce?.cancel(); // discard any pending debounced save
+    _saveDebounce?.cancel();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('quiz_answers_${widget.deckId}');
     await prefs.remove('quiz_index_${widget.deckId}');
@@ -191,7 +177,6 @@ class _QuizScreenState extends State<QuizScreen> {
       _answers[_currentIndex] = answer;
     });
 
-    // Play engaging sound effects
     try {
       final isCorrect = answer == widget.quiz[_currentIndex].correctAnswer;
       if (isCorrect) {
@@ -203,13 +188,13 @@ class _QuizScreenState extends State<QuizScreen> {
       debugPrint("Audio playback error: $e");
     }
 
-    _scheduleSave(); // debounced, not immediate
+    _scheduleSave();
   }
 
   void _nextQuestion() {
     if (_currentIndex < widget.quiz.length - 1) {
       setState(() => _currentIndex++);
-      _scheduleSave(); // debounced
+      _scheduleSave();
     } else {
       _showResults();
     }
@@ -218,7 +203,7 @@ class _QuizScreenState extends State<QuizScreen> {
   void _previousQuestion() {
     if (_currentIndex > 0) {
       setState(() => _currentIndex--);
-      _scheduleSave(); // debounced
+      _scheduleSave();
     }
   }
 
@@ -237,7 +222,7 @@ class _QuizScreenState extends State<QuizScreen> {
           ad.dispose();
           _isAdLoaded = false;
           _interstitialAd = null;
-          _loadInterstitialAd(); // Pre-load the next ad
+          _loadInterstitialAd();
           if (mounted) {
             setState(() => _isFinishing = false);
             onComplete();
@@ -263,7 +248,6 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _handleExplainRequested(QuizQuestion question, String? selectedAnswer) async {
     HapticFeedback.lightImpact();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     final proceed = await showDialog<bool>(
       context: context,
@@ -301,7 +285,6 @@ class _QuizScreenState extends State<QuizScreen> {
     if (proceed != true) return;
 
     try {
-      // We need to fetch the full Deck object to pass to the Chat screen
       final decks = await DeckStorageService().getDecks();
       final deck = decks.firstWhere((d) => d.id == widget.deckId);
       
@@ -334,7 +317,6 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    // Flush immediately so progress is saved before the screen is popped.
     _saveDebounce?.cancel();
     if (!_canPop) {
       await _flushSave();
@@ -422,6 +404,12 @@ class _QuizScreenState extends State<QuizScreen> {
     if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    final LinearGradient brandGradient = const LinearGradient(
+      colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    );
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -437,7 +425,7 @@ class _QuizScreenState extends State<QuizScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: _brandGradient,
+                  gradient: brandGradient,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))
@@ -491,269 +479,6 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStatBadge(IconData icon, Color color, String text) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProgressBar(double progress, bool isDark) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: progress),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, _) => Container(
-        height: 6,
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white12 : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(3),
-        ),
-        alignment: Alignment.centerLeft,
-        child: FractionallySizedBox(
-          widthFactor: value,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: _brandGradient,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsRow(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildStatBadge(
-            Icons.check_circle_rounded,
-            isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
-            '$_correctCount',
-          ),
-          _buildStatBadge(
-            Icons.cancel_rounded,
-            isDark ? Colors.redAccent.shade200 : Colors.red.shade500,
-            '$_incorrectCount',
-          ),
-          _buildStatBadge(
-            Icons.help_outline_rounded,
-            isDark ? Colors.white54 : Colors.grey.shade500,
-            '$_remainingCount',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuestionCard(QuizQuestion currentQuestion, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1B142D) : Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.3) : Colors.grey.shade200, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Center(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.help_outline_rounded, color: const Color(0xFF8B4EFF).withValues(alpha: 0.5), size: 40),
-              const SizedBox(height: 16),
-              Text(
-                currentQuestion.question,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                  height: 1.4,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionsList(QuizQuestion currentQuestion, bool isDark) {
-    final letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      itemCount: currentQuestion.options.length,
-      itemBuilder: (context, index) {
-        final option = currentQuestion.options[index];
-        final letter = letters[index % letters.length];
-        Color buttonColor = Theme.of(context).cardColor;
-        Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87;
-        Color borderColor = Colors.transparent;
-        IconData? feedbackIcon;
-        Color iconColor = Colors.transparent;
-
-        if (_hasAnsweredCurrent) {
-          if (option == currentQuestion.correctAnswer) {
-            buttonColor = isDark ? Colors.green.withValues(alpha: 0.2) : Colors.green.shade50;
-            borderColor = isDark ? Colors.greenAccent : Colors.green.shade400;
-            textColor = isDark ? Colors.greenAccent : Colors.green.shade800;
-            feedbackIcon = Icons.check_circle_rounded;
-            iconColor = isDark ? Colors.greenAccent : Colors.green.shade500;
-          } else if (option == _selectedAnswerCurrent) {
-            buttonColor = isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50;
-            borderColor = isDark ? Colors.redAccent : Colors.red.shade400;
-            textColor = isDark ? Colors.redAccent : Colors.red.shade800;
-            feedbackIcon = Icons.cancel_rounded;
-            iconColor = isDark ? Colors.redAccent : Colors.red.shade500;
-          }
-        }
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: InkWell(
-            onTap: () => _checkAnswer(option),
-            borderRadius: BorderRadius.circular(20),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              decoration: BoxDecoration(
-                color: buttonColor,
-                border: Border.all(
-                  color: borderColor == Colors.transparent ? (isDark ? Colors.white12 : Colors.grey.shade200) : borderColor, 
-                  width: borderColor == Colors.transparent ? 1.5 : 2
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  if (_hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == _selectedAnswerCurrent))
-                    BoxShadow(color: iconColor.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))
-                  else
-                    BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 8, offset: const Offset(0, 4)),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: _hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == _selectedAnswerCurrent)
-                          ? iconColor.withValues(alpha: 0.2)
-                          : (isDark ? Colors.white12 : Colors.grey.shade100),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        letter,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: _hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == _selectedAnswerCurrent)
-                              ? iconColor
-                              : (isDark ? Colors.white54 : Colors.black54),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      option,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: textColor,
-                        fontWeight: _hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == _selectedAnswerCurrent) ? FontWeight.bold : FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  if (feedbackIcon != null)
-                    Icon(feedbackIcon, color: iconColor, size: 24),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildNavigationButtons(bool isDark) {
-    return Row(
-      children: [
-        if (_currentIndex > 0)
-          Expanded(
-            flex: 1,
-            child: OutlinedButton(
-              onPressed: _previousQuestion,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300, width: 2),
-              ),
-              child: Text(
-                'Previous',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: isDark ? Colors.white70 : Colors.grey.shade700,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        if (_currentIndex > 0 && _hasAnsweredCurrent) const SizedBox(width: 12),
-        if (_hasAnsweredCurrent)
-          Expanded(
-            flex: 2,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: _brandGradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 6)),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: _nextQuestion,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: Text(
-                  _currentIndex < widget.quiz.length - 1 ? 'Next Question' : 'Finish Quiz',
-                  style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 

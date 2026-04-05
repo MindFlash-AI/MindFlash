@@ -19,9 +19,10 @@ class Deck {
   }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
+    final safeName = name.length > 499 ? name.substring(0, 499) : name;
     return {
       'id': id,
-      'name': name,
+      'name': safeName,
       'subject': subject,
       'cardCount': cardCount,
       'cardOrder': cardOrder,

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/deck_model.dart';
 import '../../models/card_model.dart';
+import 'widgets/deck_info_card.dart';
+import 'widgets/deck_action_buttons.dart';
+import 'widgets/flashcard_list_item.dart';
 
 class DeckViewMobile extends StatelessWidget {
   final Deck deck;
@@ -64,10 +67,6 @@ class DeckViewMobile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    String firstLetter = deck.name.isNotEmpty
-        ? deck.name[0].toUpperCase()
-        : "?";
-
     final bool canReview = cards.isNotEmpty;
     final bool canQuiz = cards.length >= 4;
     final int flaggedCount = cards.where((c) => c.isFlagged).length;
@@ -113,111 +112,10 @@ class DeckViewMobile extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            Container(
-              margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isDark ? Colors.white12 : const Color(0xFF8B4EFF).withValues(alpha: 0.25),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark ? Colors.black45 : const Color(0xFF8B4EFF).withValues(alpha: 0.12),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      gradient: _brandGradient,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        firstLetter,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 28,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          deck.name,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                            letterSpacing: -0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          deck.subject,
-                          style: TextStyle(
-                            color: isDark ? Colors.white70 : Colors.grey.shade600,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.15) : const Color(0xFFF4F6FF),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            "${deck.cardCount} card${deck.cardCount == 1 ? '' : 's'}",
-                            style: TextStyle(
-                              color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: onSettings,
-                    icon: Icon(
-                      Icons.settings_rounded, 
-                      color: isDark ? Colors.white38 : Colors.grey.shade400,
-                      size: 26,
-                    ),
-                    tooltip: 'Deck Settings',
-                  ),
-                ],
-              ),
+            DeckInfoCard(
+              deck: deck,
+              onSettings: onSettings,
+              brandGradient: _brandGradient,
             ),
 
             Expanded(
@@ -234,7 +132,18 @@ class DeckViewMobile extends StatelessWidget {
                           actionsHeight: actionsHeight,
                           expandProgress: expandAnimation.value,
                           cardCount: cards.length,
-                          actionButtons: _buildActionButtons(context, canReview, canQuiz, hasFlagged, flaggedCount),
+                          actionButtons: DeckActionButtons(
+                            canReview: canReview,
+                            canQuiz: canQuiz,
+                            hasFlagged: hasFlagged,
+                            flaggedCount: flaggedCount,
+                            onReview: onReview,
+                            onFlaggedReview: onFlaggedReview,
+                            onQuiz: onQuiz,
+                            onAITutor: onAITutor,
+                            onDisabledAction: onDisabledAction,
+                            brandGradient: _brandGradient,
+                          ),
                           onExpand: () {
                             if (!actionsExpandController.isAnimating && !actionsExpandController.isCompleted) {
                               HapticFeedback.selectionClick();
@@ -285,140 +194,6 @@ class DeckViewMobile extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, bool canReview, bool canQuiz, bool hasFlagged, int flaggedCount) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Opacity(
-            opacity: canReview ? 1.0 : 0.5,
-            child: Container(
-              height: 60,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: _brandGradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  if (canReview)
-                    BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8)),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: canReview ? onReview : () => onDisabledAction("Add some cards first to start a review."),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 28),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          "Study Entire Deck",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 0.5),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          if (hasFlagged) ...[
-            const SizedBox(height: 12),
-            Container(
-              height: 52,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.red.withValues(alpha: 0.1) : Colors.red.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? Colors.red.withValues(alpha: 0.3) : Colors.red.shade100, width: 1.5),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onFlaggedReview,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.flag_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 20),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          "Focus Weaknesses ($flaggedCount Card${flaggedCount == 1 ? '' : 's'})",
-                          style: TextStyle(color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, fontWeight: FontWeight.w700, fontSize: 15),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ] else ...[
-            const SizedBox(height: 16),
-          ],
-
-          Row(
-            children: [
-              Expanded(child: _buildToolButton(context, Icons.quiz_rounded, "Quiz", const Color(0xFFFF9100), canQuiz, onQuiz, "You need at least 4 cards to take a quiz.")),
-              const SizedBox(width: 12),
-              Expanded(child: _buildToolButton(context, Icons.auto_awesome_rounded, "AI Tutor", const Color(0xFFE841A1), canReview, onAITutor, "Add cards to chat with the tutor.")),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolButton(BuildContext context, IconData icon, String label, Color color, bool canAct, VoidCallback action, String disabledMsg) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Opacity(
-      opacity: canAct ? 1.0 : 0.5,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: canAct ? action : () => onDisabledAction(disabledMsg),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            height: 76,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade300, width: 1.5),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: color, size: 24),
-                const SizedBox(height: 6),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Text(
-                    label,
-                    style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 12, fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyState(BuildContext context, bool isDark) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -452,128 +227,16 @@ class DeckViewMobile extends StatelessWidget {
         itemBuilder: (context, index) {
           final card = cards[index];
 
-          return TweenAnimationBuilder<double>(
-            key: ValueKey(card.id), // 🔥 Providing a unique key is MANDATORY for reordering to work
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: Duration(milliseconds: 400 + (index * 50).clamp(0, 600)),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Transform.translate(offset: Offset(0, 30 * (1 - value)), child: Opacity(opacity: value, child: child));
-            },
-            child: GestureDetector(
-              onLongPress: () {
-                if (!isSelectionMode) {
-                  onToggleSelectionMode();
-                  onToggleCardSelection(card.id);
-                }
-              },
-              onTap: () {
-                if (isSelectionMode) onToggleCardSelection(card.id);
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: selectedCards.contains(card.id) 
-                      ? (isDark ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50) 
-                      : Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: selectedCards.contains(card.id)
-                      ? Border.all(color: Colors.blueAccent, width: 2)
-                      : (isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1) : null),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04), blurRadius: 15, offset: const Offset(0, 5))],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (card.isFlagged)
-                                Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50, shape: BoxShape.circle),
-                                  child: Icon(Icons.flag_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 14),
-                                )
-                              else if (card.isMastered)
-                                Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(color: isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50, shape: BoxShape.circle),
-                                  child: Icon(Icons.check_rounded, color: isDark ? Colors.greenAccent.shade400 : Colors.green, size: 14),
-                                ),
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.1) : const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(12)),
-                                  child: Text(
-                                    "#${index + 1}",
-                                    style: TextStyle(color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF), fontSize: 11, fontWeight: FontWeight.w900),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (isSelectionMode)
-                              SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: Checkbox(
-                                  value: selectedCards.contains(card.id),
-                                  onChanged: (_) => onToggleCardSelection(card.id),
-                                  activeColor: Colors.blueAccent,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                ),
-                              )
-                            else ...[
-                              IconButton(
-                                onPressed: () => onEditCard(card),
-                                icon: Icon(Icons.edit_rounded, color: isDark ? Colors.white54 : Colors.black45, size: 20),
-                                padding: const EdgeInsets.all(8),
-                                constraints: const BoxConstraints(),
-                              ),
-                              const SizedBox(width: 4),
-                              IconButton(
-                                onPressed: () => onDeleteCard(card.id),
-                                icon: Icon(Icons.delete_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 20),
-                                padding: const EdgeInsets.all(8),
-                                constraints: const BoxConstraints(),
-                              ),
-                              const SizedBox(width: 4),
-                              ReorderableDragStartListener(
-                                index: index,
-                                child: Icon(Icons.drag_handle_rounded, color: isDark ? Colors.white38 : Colors.black38, size: 20),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text("FRONT", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                    const SizedBox(height: 4),
-                    Text(card.question, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 16, fontWeight: FontWeight.w600)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(height: 1, thickness: 1, color: isDark ? Colors.white12 : const Color(0xFFF0F0F0)),
-                    ),
-                    Text("BACK", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                    const SizedBox(height: 4),
-                    Text(card.answer, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 15)),
-                  ],
-                ),
-              ),
-            ),
+          return FlashcardListItem(
+            key: ValueKey(card.id),
+            card: card,
+            index: index,
+            isSelectionMode: isSelectionMode,
+            isSelected: selectedCards.contains(card.id),
+            onEdit: onEditCard,
+            onDelete: onDeleteCard,
+            onToggleSelection: onToggleSelectionMode,
+            onSelect: () => onToggleCardSelection(card.id),
           );
         },
       ),

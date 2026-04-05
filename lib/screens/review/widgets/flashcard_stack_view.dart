@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart'; // 🛡️ WEB FIX: Required for PointerDeviceKind
+import 'package:flutter/foundation.dart'; // 🛡️ Added for kIsWeb
 import 'dart:math';
 import '../../../models/card_model.dart';
 
@@ -68,18 +69,33 @@ class _FlashcardStackViewState extends State<FlashcardStackView> with SingleTick
   Widget build(BuildContext context) {
     if (widget.cards.isEmpty) return const SizedBox.shrink();
     
-    // 🛡️ WEB FIX: ScrollConfiguration allows mouse clicking & dragging on Flutter Web
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(
-        dragDevices: {
-          PointerDeviceKind.touch,
-          PointerDeviceKind.mouse, // Explicitly enables mouse swiping!
-          PointerDeviceKind.trackpad,
-        },
-      ),
+    // 🛡️ UX FIX: Use Focus for Desktop Keyboard Shortcuts and force grading by disabling swipe
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.space) {
+            if (_isFront) {
+              _flipCard();
+            } else {
+              widget.onCorrect(); // Space acts as 'Got It' when flipped
+            }
+            return KeyEventResult.handled;
+          } else if (!_isFront) {
+            if (event.logicalKey == LogicalKeyboardKey.digit1 || event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              widget.onIncorrect();
+              return KeyEventResult.handled;
+            } else if (event.logicalKey == LogicalKeyboardKey.digit2 || event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              widget.onCorrect();
+              return KeyEventResult.handled;
+            }
+          }
+        }
+        return KeyEventResult.ignored;
+      },
       child: PageView.builder(
         controller: widget.pageController,
-        physics: const BouncingScrollPhysics(), 
+        physics: const NeverScrollableScrollPhysics(), // 🛡️ ENFORCE GRADING: Prevent swiping past cards without answering
         onPageChanged: (index) {
           _flipController.value = 0.0; // Snap to front instantly when swiping to a new card
           setState(() {
@@ -219,7 +235,7 @@ class _FlashcardStackViewState extends State<FlashcardStackView> with SingleTick
                               Icon(Icons.touch_app_rounded, size: 16, color: Colors.grey.shade500),
                               const SizedBox(width: 8),
                               Text(
-                                "Tap to flip",
+                                kIsWeb ? "Tap or press Space to flip" : "Tap to flip",
                                 style: TextStyle(
                                   color: Colors.grey.shade500,
                                   fontSize: 14,
@@ -232,51 +248,73 @@ class _FlashcardStackViewState extends State<FlashcardStackView> with SingleTick
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               // --- Red Flag (Need Review) ---
-                              GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  widget.onIncorrect();
-                                },
-                                behavior: HitTestBehavior.opaque, // Ensures the tap is captured over the card's flip tap
-                                child: Container(
-                                  height: 64,
-                                  width: 64,
-                                  decoration: BoxDecoration(
-                                    color: Colors.redAccent.withValues(alpha: isDark ? 0.15 : 0.1),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.redAccent.withValues(alpha: isDark ? 0.5 : 0.8), 
-                                      width: 2,
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      widget.onIncorrect();
+                                    },
+                                    behavior: HitTestBehavior.opaque, // Ensures the tap is captured over the card's flip tap
+                                    child: Container(
+                                      height: 64,
+                                      width: 64,
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent.withValues(alpha: isDark ? 0.15 : 0.1),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.redAccent.withValues(alpha: isDark ? 0.5 : 0.8), 
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 32),
                                     ),
                                   ),
-                                  child: const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 32),
-                                ),
+                                  const SizedBox(height: 8),
+                                  const Text("Review", style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                                  if (kIsWeb) ...[
+                                    const SizedBox(height: 4),
+                                    Text("1 or ⬅", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                ],
                               ),
                               const SizedBox(width: 40), // Spacing between the two action buttons
                               
                               // --- Green Check (Got It) ---
-                              GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  widget.onCorrect();
-                                },
-                                behavior: HitTestBehavior.opaque,
-                                child: Container(
-                                  height: 64,
-                                  width: 64,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF00C853), // Solid Green
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF00C853).withValues(alpha: 0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 6),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      widget.onCorrect();
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Container(
+                                      height: 64,
+                                      width: 64,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF00C853), // Solid Green
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF00C853).withValues(alpha: 0.4),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                      child: const Icon(Icons.check_rounded, color: Colors.white, size: 32),
+                                    ),
                                   ),
-                                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 32),
-                                ),
+                                  const SizedBox(height: 8),
+                                  const Text("Got It", style: TextStyle(color: Color(0xFF00C853), fontSize: 14, fontWeight: FontWeight.bold)),
+                                  if (kIsWeb) ...[
+                                    const SizedBox(height: 4),
+                                    Text("2, ➡, or Space", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                ],
                               ),
                             ],
                           ),

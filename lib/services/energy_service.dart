@@ -34,21 +34,27 @@ class EnergyService {
 
   static const String _backendUrl = String.fromEnvironment('BACKEND_URL');
 
+  String? _lastUid;
+  Stream<int>? _cachedEnergyStream;
+
   Stream<int> get energyStream {
-    if (_uid == null) return Stream.value(maxEnergy);
+    final currentUid = _uid;
+    if (currentUid == null) return Stream.value(maxEnergy);
     
-    return _energyRef.snapshots().map((doc) {
-      // 🛡️ If the doc doesn't exist yet, the backend will create it on their 
-      // first generation request. We just assume maxEnergy for the UI until then.
-      if (!doc.exists) return maxEnergy;
-      
-      final data = doc.data() as Map<String, dynamic>?;
-      if (data == null) return maxEnergy;
-      
-      final energy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
-      _currentEnergy = energy; 
-      return energy;
-    });
+    if (_lastUid != currentUid) {
+      _lastUid = currentUid;
+      _cachedEnergyStream = _energyRef.snapshots().map((doc) {
+        if (!doc.exists) return maxEnergy;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return maxEnergy;
+        
+        final energy = (data['energy'] as num?)?.toInt() ?? maxEnergy;
+        _currentEnergy = energy; 
+        return energy;
+      }).asBroadcastStream();
+    }
+    
+    return _cachedEnergyStream!;
   }
 
   Future<void> init() async {
@@ -66,7 +72,7 @@ class EnergyService {
         _currentEnergy = maxEnergy;
       }
     } catch (e) {
-      print("Error initializing EnergyService: $e");
+      debugPrint("Error initializing EnergyService: $e");
     }
   }
 

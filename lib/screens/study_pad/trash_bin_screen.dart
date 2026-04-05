@@ -13,7 +13,7 @@ class TrashBinScreen extends StatefulWidget {
 
 class _TrashBinScreenState extends State<TrashBinScreen> {
   final NoteStorageService _noteStorage = NoteStorageService();
-  final GlobalKey<AnimatedGridState> _gridKey = GlobalKey<AnimatedGridState>();
+  final GlobalKey<SliverAnimatedGridState> _gridKey = GlobalKey<SliverAnimatedGridState>();
   List<Note> _notes = [];
   bool _isLoading = true;
 
@@ -277,50 +277,47 @@ class _TrashBinScreenState extends State<TrashBinScreen> {
                   opacity: _notes.isEmpty ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 400),
                   child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.delete_outline_rounded, size: 64, color: isDark ? Colors.white24 : Colors.grey.shade300),
-                      const SizedBox(height: 16),
-                      Text("Trash is empty", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Deleted notes will appear here.\nNotes are permanently deleted after 30 days.", 
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, height: 1.4),
-                      ),
-                    ],
-                  ),
-                ),
-                CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 1200),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
-                            child: AnimatedGrid(
-                              key: _gridKey,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220,
-                                mainAxisSpacing: 20,
-                                crossAxisSpacing: 20,
-                                childAspectRatio: 0.72, // Made slightly taller to fit 2 buttons
-                              ),
-                              initialItemCount: _notes.length,
-                              itemBuilder: (context, index, animation) {
-                                return _buildNoteCard(context, _notes[index], animation);
-                              },
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.delete_outline_rounded, size: 64, color: isDark ? Colors.white24 : Colors.grey.shade300),
+                                const SizedBox(height: 16),
+                                Text("Trash is empty", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Deleted notes will appear here.\nNotes are permanently deleted after 30 days.", 
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, height: 1.4),
+                                ),
+                              ],
                             ),
                           ),
+                        ), // 🛡️ BUG FIX: Added the missing closing parenthesis here!
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                          sliver: SliverAnimatedGrid(
+                            key: _gridKey,
+                            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 220,
+                              mainAxisSpacing: 20,
+                              crossAxisSpacing: 20,
+                              childAspectRatio: 0.72, // Made slightly taller to fit 2 buttons
+                            ),
+                            initialItemCount: _notes.length,
+                            itemBuilder: (context, index, animation) {
+                              return _buildNoteCard(context, _notes[index], animation);
+                            },
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),

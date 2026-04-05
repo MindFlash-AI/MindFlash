@@ -31,11 +31,13 @@ class Flashcard {
   }) : nextReviewDate = nextReviewDate ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
+    final safeQuestion = question.length > 2999 ? question.substring(0, 2999) : question;
+    final safeAnswer = answer.length > 2999 ? answer.substring(0, 2999) : answer;
     return {
       'id': id,
       'deckId': deckId,
-      'question': question,
-      'answer': answer,
+      'question': safeQuestion,
+      'answer': safeAnswer,
       'isMastered': isMastered,
       'isFlagged': isFlagged,
       'repetitions': repetitions,

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:markdown/markdown.dart' as md;
-import '../../utils/math_markdown.dart';
 import '../../models/quiz_question_model.dart';
+import 'widgets/quiz_progress_bar.dart';
+import 'widgets/quiz_stats_row.dart';
+import 'widgets/quiz_question_card.dart';
+import 'widgets/quiz_option_item.dart';
 
 class QuizWeb extends StatelessWidget {
   final List<QuizQuestion> quiz;
@@ -68,26 +69,34 @@ class QuizWeb extends StatelessWidget {
         appBar: AppBar(
           title: Text(
             deckTitle,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).appBarTheme.foregroundColor),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Theme.of(context).appBarTheme.foregroundColor),
           ),
           backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: Icon(Icons.close, color: Theme.of(context).appBarTheme.foregroundColor),
+            icon: Icon(Icons.close,
+                color: Theme.of(context).appBarTheme.foregroundColor),
             onPressed: onClose,
           ),
         ),
         body: SafeArea(
           child: Center(
-            // 🚀 HCI OPTIMIZATION: Constrains width on Web/Desktop so buttons aren't excessively wide
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 850),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildProgressBar(progress, isDark),
-                  _buildStatsRow(isDark),
+                  QuizProgressBar(
+                      progress: progress, brandGradient: _brandGradient),
+                  QuizStatsRow(
+                    correctCount: correctCount,
+                    incorrectCount: incorrectCount,
+                    remainingCount: remainingCount,
+                  ),
                   Expanded(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
@@ -95,48 +104,72 @@ class QuizWeb extends StatelessWidget {
                         return FadeTransition(
                           opacity: animation,
                           child: SlideTransition(
-                            position: Tween<Offset>(begin: const Offset(0.05, 0), end: Offset.zero).animate(animation),
+                            position: Tween<Offset>(
+                                    begin: const Offset(0.05, 0),
+                                    end: Offset.zero)
+                                .animate(animation),
                             child: child,
                           ),
                         );
                       },
                       child: Padding(
                         key: ValueKey<int>(currentIndex),
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0, vertical: 8.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Center(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05), 
+                                  color: isDark
+                                      ? Colors.white10
+                                      : Colors.black.withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  'Question ${currentIndex + 1} of ${quiz.length}', 
+                                  'Question ${currentIndex + 1} of ${quiz.length}',
                                   style: TextStyle(
-                                    color: isDark ? Colors.white70 : Colors.grey.shade700, 
-                                    fontWeight: FontWeight.bold, 
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.grey.shade700,
+                                    fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 20),
-                            Expanded(flex: 4, child: _buildQuestionCard(context, currentQuestion, isDark)),
+                            Expanded(
+                                flex: 4,
+                                child: QuizQuestionCard(
+                                    question: currentQuestion.question)),
                             const SizedBox(height: 20),
-                            Expanded(flex: 6, child: _buildOptionsList(context, currentQuestion, isDark)),
-                            
+                            Expanded(
+                                flex: 6,
+                                child: _buildOptionsList(
+                                    context, currentQuestion, isDark)),
                             if (hasAnsweredCurrent)
                               Padding(
                                 padding: const EdgeInsets.only(top: 12.0),
                                 child: Center(
                                   child: TextButton.icon(
-                                    onPressed: () => onExplainRequested(currentQuestion, selectedAnswerCurrent),
-                                    icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B4EFF), size: 18),
-                                    label: const Text("Ask AI Tutor to Explain", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold)),
-                                    style: TextButton.styleFrom(backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                                    onPressed: () => onExplainRequested(
+                                        currentQuestion,
+                                        selectedAnswerCurrent),
+                                    icon: const Icon(Icons.auto_awesome_rounded,
+                                        color: Color(0xFF8B4EFF), size: 18),
+                                    label: const Text("Ask AI Tutor to Explain",
+                                        style: TextStyle(
+                                            color: Color(0xFF8B4EFF),
+                                            fontWeight: FontWeight.bold)),
+                                    style: TextButton.styleFrom(
+                                        backgroundColor: const Color(0xFF8B4EFF)
+                                            .withValues(alpha: 0.1),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 12)),
                                   ),
                                 ),
                               ),
@@ -147,7 +180,8 @@ class QuizWeb extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                    child: SizedBox(height: 56, child: _buildNavigationButtons(isDark)),
+                    child: SizedBox(
+                        height: 56, child: _buildNavigationButtons(isDark)),
                   ),
                 ],
               ),
@@ -158,88 +192,8 @@ class QuizWeb extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBar(double progress, bool isDark) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: progress),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, _) => Container(
-        height: 6,
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.grey.shade200, borderRadius: BorderRadius.circular(3)),
-        alignment: Alignment.centerLeft,
-        child: FractionallySizedBox(
-          widthFactor: value,
-          child: Container(decoration: BoxDecoration(gradient: _brandGradient, borderRadius: BorderRadius.circular(3))),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsRow(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildStatBadge(Icons.check_circle_rounded, isDark ? Colors.greenAccent.shade400 : Colors.green.shade600, '$correctCount'),
-          _buildStatBadge(Icons.cancel_rounded, isDark ? Colors.redAccent.shade200 : Colors.red.shade500, '$incorrectCount'),
-          _buildStatBadge(Icons.help_outline_rounded, isDark ? Colors.white54 : Colors.grey.shade500, '$remainingCount'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatBadge(IconData icon, Color color, String text) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 6),
-        Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
-      ],
-    );
-  }
-
-  Widget _buildQuestionCard(BuildContext context, QuizQuestion currentQuestion, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1B142D) : Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.3) : Colors.grey.shade200, width: 1.5),
-        boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 30, offset: const Offset(0, 10))],
-      ),
-      child: Center(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.help_outline_rounded, color: const Color(0xFF8B4EFF).withValues(alpha: 0.5), size: 40),
-              const SizedBox(height: 16),
-              MarkdownBody(
-                data: currentQuestion.question,
-                selectable: true,
-                builders: {'math': MathBuilder()},
-                extensionSet: md.ExtensionSet(
-                  md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-                  [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, MathSyntax()],
-                ),
-                styleSheet: MarkdownStyleSheet(
-                  p: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.4, letterSpacing: -0.5),
-                  pPadding: EdgeInsets.zero,
-                  textAlign: WrapAlignment.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionsList(BuildContext context, QuizQuestion currentQuestion, bool isDark) {
+  Widget _buildOptionsList(
+      BuildContext context, QuizQuestion currentQuestion, bool isDark) {
     final letters = ['A', 'B', 'C', 'D', 'E', 'F'];
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
@@ -247,78 +201,14 @@ class QuizWeb extends StatelessWidget {
       itemBuilder: (context, index) {
         final option = currentQuestion.options[index];
         final letter = letters[index % letters.length];
-        Color buttonColor = Theme.of(context).cardColor;
-        Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87;
-        Color borderColor = Colors.transparent;
-        IconData? feedbackIcon;
-        Color iconColor = Colors.transparent;
 
-        if (hasAnsweredCurrent) {
-          if (option == currentQuestion.correctAnswer) {
-            buttonColor = isDark ? Colors.green.withValues(alpha: 0.2) : Colors.green.shade50;
-            borderColor = isDark ? Colors.greenAccent : Colors.green.shade400;
-            textColor = isDark ? Colors.greenAccent : Colors.green.shade800;
-            feedbackIcon = Icons.check_circle_rounded;
-            iconColor = isDark ? Colors.greenAccent : Colors.green.shade500;
-          } else if (option == selectedAnswerCurrent) {
-            buttonColor = isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50;
-            borderColor = isDark ? Colors.redAccent : Colors.red.shade400;
-            textColor = isDark ? Colors.redAccent : Colors.red.shade800;
-            feedbackIcon = Icons.cancel_rounded;
-            iconColor = isDark ? Colors.redAccent : Colors.red.shade500;
-          }
-        }
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: InkWell(
-            onTap: () => onCheckAnswer(option),
-            borderRadius: BorderRadius.circular(20),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              decoration: BoxDecoration(
-                color: buttonColor,
-                border: Border.all(color: borderColor == Colors.transparent ? (isDark ? Colors.white12 : Colors.grey.shade200) : borderColor, width: borderColor == Colors.transparent ? 1.5 : 2),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  if (hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent))
-                    BoxShadow(color: iconColor.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))
-                  else
-                    BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 8, offset: const Offset(0, 4)),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(
-                      color: hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent) ? iconColor.withValues(alpha: 0.2) : (isDark ? Colors.white12 : Colors.grey.shade100),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(child: Text(letter, style: TextStyle(fontWeight: FontWeight.bold, color: hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent) ? iconColor : (isDark ? Colors.white54 : Colors.black54)))),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: MarkdownBody(
-                      data: option,
-                      builders: {'math': MathBuilder()},
-                      extensionSet: md.ExtensionSet(
-                        md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-                        [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, MathSyntax()],
-                      ),
-                      styleSheet: MarkdownStyleSheet(
-                        p: TextStyle(fontSize: 16, color: textColor, fontWeight: hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent) ? FontWeight.bold : FontWeight.w600),
-                        pPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                  if (feedbackIcon != null) Icon(feedbackIcon, color: iconColor, size: 24),
-                ],
-              ),
-            ),
-          ),
+        return QuizOptionItem(
+          option: option,
+          letter: letter,
+          hasAnswered: hasAnsweredCurrent,
+          isSelected: option == selectedAnswerCurrent,
+          isCorrect: option == currentQuestion.correctAnswer,
+          onTap: () => onCheckAnswer(option),
         );
       },
     );
@@ -334,10 +224,17 @@ class QuizWeb extends StatelessWidget {
               onPressed: onPreviousQuestion,
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300, width: 2),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                side: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    width: 2),
               ),
-              child: Text('Previous', style: TextStyle(fontSize: 16, color: isDark ? Colors.white70 : Colors.grey.shade700, fontWeight: FontWeight.bold)),
+              child: Text('Previous',
+                  style: TextStyle(
+                      fontSize: 16,
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
         if (currentIndex > 0 && hasAnsweredCurrent) const SizedBox(width: 12),
@@ -348,12 +245,29 @@ class QuizWeb extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: _brandGradient,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 6))],
+                boxShadow: [
+                  BoxShadow(
+                      color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6))
+                ],
               ),
               child: ElevatedButton(
                 onPressed: onNextQuestion,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                child: Text(currentIndex < quiz.length - 1 ? 'Next Question' : 'Finish Quiz', style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16))),
+                child: Text(
+                    currentIndex < quiz.length - 1
+                        ? 'Next Question'
+                        : 'Finish Quiz',
+                    style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5)),
               ),
             ),
           ),

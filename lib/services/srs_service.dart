@@ -1,3 +1,4 @@
+import 'dart:math';
 import '../models/card_model.dart';
 
 class SRSService {
@@ -24,6 +25,26 @@ class SRSService {
     
     if (updatedEaseFactor < 1.3) {
       updatedEaseFactor = 1.3;
+    } else if (updatedEaseFactor > 3.0) {
+      // 🚀 EFFICIENCY: Cap maximum ease factor to prevent intervals from growing 
+      // exponentially out of control for easy cards.
+      updatedEaseFactor = 3.0;
+    }
+
+    // 🚀 EFFICIENCY: Enforce a maximum interval (e.g., 1 year) so cards are never lost forever
+    if (updatedInterval > 365) {
+      updatedInterval = 365;
+    }
+
+    // 🚀 EFFICIENCY: Apply "Fuzzing" to prevent Review Spikes.
+    // If multiple cards are studied today and get the same multiplier, fuzzing spreads 
+    // them out by a few days so they don't all clump together on the exact same future date.
+    if (updatedInterval > 3) {
+      final random = Random();
+      // Fuzz by roughly ±5% (minimum 1 day, max 14 days)
+      final fuzzRange = (updatedInterval * 0.05).ceil().clamp(1, 14);
+      final fuzz = random.nextInt(fuzzRange * 2 + 1) - fuzzRange;
+      updatedInterval += fuzz;
     }
 
     DateTime nextDate = DateTime.now().add(Duration(days: updatedInterval));
