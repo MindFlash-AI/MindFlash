@@ -8,6 +8,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart'; // Required for AdMob
 import '../../models/quiz_question_model.dart';
 import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 import '../../services/pro_service.dart'; // Required to check Pro status for the banner
+import 'quiz_mobile.dart';
+import 'quiz_web.dart';
 
 class QuizScreen extends StatefulWidget {
   final List<QuizQuestion> quiz;
@@ -259,6 +261,31 @@ class _QuizScreenState extends State<QuizScreen> {
       ),
     );
     return shouldPop ?? false;
+  }
+
+  void _handlePopInvoked(bool didPop, dynamic result) async {
+    if (didPop) return;
+    final shouldPop = await _onWillPop();
+    if (shouldPop && mounted) {
+      setState(() {
+        _canPop = true;
+      });
+      Future.microtask(() {
+        if (mounted) Navigator.of(context).pop();
+      });
+    }
+  }
+
+  void _handleClose() async {
+    if (_canPop) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final shouldPop = await _onWillPop();
+    if (shouldPop && mounted) {
+      setState(() => _canPop = true);
+      Future.microtask(() { if (mounted) Navigator.of(context).pop(); });
+    }
   }
 
   void _showResults() async {
@@ -625,183 +652,52 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentQuestion = widget.quiz[_currentIndex];
-    final progress =
-        (_currentIndex + (_hasAnsweredCurrent ? 1 : 0)) / widget.quiz.length;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // FIX: Using PopScope with onPopInvokedWithResult to handle predictive back 
-    // gestures and remove the WillPopScope deprecation warning.
-    return PopScope(
-      canPop: _canPop,
-      onPopInvokedWithResult: (bool didPop, dynamic result) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && context.mounted) {
-          setState(() {
-            _canPop = true;
-          });
-          Future.microtask(() {
-            if (context.mounted) Navigator.of(context).pop();
-          });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 850;
+        
+        if (isDesktop) {
+          return QuizWeb(
+            quiz: widget.quiz,
+            deckTitle: widget.deckTitle,
+            currentIndex: _currentIndex,
+            answers: _answers,
+            hasAnsweredCurrent: _hasAnsweredCurrent,
+            selectedAnswerCurrent: _selectedAnswerCurrent,
+            correctCount: _correctCount,
+            incorrectCount: _incorrectCount,
+            remainingCount: _remainingCount,
+            isFinishing: _isFinishing,
+            canPop: _canPop,
+            onCheckAnswer: _checkAnswer,
+            onNextQuestion: _nextQuestion,
+            onPreviousQuestion: _previousQuestion,
+            onPopInvoked: _handlePopInvoked,
+            onClose: _handleClose,
+          );
+        } else {
+          return QuizMobile(
+            quiz: widget.quiz,
+            deckTitle: widget.deckTitle,
+            currentIndex: _currentIndex,
+            answers: _answers,
+            hasAnsweredCurrent: _hasAnsweredCurrent,
+            selectedAnswerCurrent: _selectedAnswerCurrent,
+            correctCount: _correctCount,
+            incorrectCount: _incorrectCount,
+            remainingCount: _remainingCount,
+            isFinishing: _isFinishing,
+            bannerAd: _bannerAd,
+            isBannerAdLoaded: _isBannerAdLoaded,
+            canPop: _canPop,
+            onCheckAnswer: _checkAnswer,
+            onNextQuestion: _nextQuestion,
+            onPreviousQuestion: _previousQuestion,
+            onPopInvoked: _handlePopInvoked,
+            onClose: _handleClose,
+          );
         }
       },
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: Text(
-            widget.deckTitle,
-            style: TextStyle(
-              fontWeight: FontWeight.bold, 
-              fontSize: 18,
-              color: Theme.of(context).appBarTheme.foregroundColor,
-            ),
-          ),
-          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-          elevation: 0,
-          centerTitle: true,
-          leading: IconButton(
-            icon: Icon(Icons.close, color: Theme.of(context).appBarTheme.foregroundColor),
-            onPressed: () async {
-              if (_canPop) {
-                Navigator.of(context).pop();
-                return;
-              }
-              final shouldPop = await _onWillPop();
-              if (shouldPop && context.mounted) {
-                setState(() {
-                  _canPop = true;
-                });
-                Future.microtask(() {
-                  if (context.mounted) Navigator.of(context).pop();
-                });
-              }
-            },
-          ),
-        ),
-        body: SafeArea(
-          child: Stack(
-            children: [
-              // Main content
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildProgressBar(progress, isDark),
-                  _buildStatsRow(isDark),
-
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(begin: const Offset(0.05, 0), end: Offset.zero).animate(animation),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        key: ValueKey<int>(_currentIndex),
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05), 
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  'Question ${_currentIndex + 1} of ${widget.quiz.length}', 
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white70 : Colors.grey.shade700, 
-                                    fontWeight: FontWeight.bold, 
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Expanded(flex: 4, child: _buildQuestionCard(currentQuestion, isDark)),
-                            const SizedBox(height: 20),
-                            Expanded(flex: 6, child: _buildOptionsList(currentQuestion, isDark)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: SizedBox(height: 56, child: _buildNavigationButtons(isDark)),
-                  ),
-
-                  // --- ADDED BANNER AD PLACEMENT ---
-                  // Strict 50px boundary reserved at the bottom to ensure the UI
-                  // does not jump around when the ad loads over slow networks.
-                  if (!kIsWeb && !ProService().isPro)
-                    SizedBox(
-                      height: 50,
-                      width: double.infinity,
-                      child: (_isBannerAdLoaded && _bannerAd != null)
-                          ? AdWidget(ad: _bannerAd!)
-                          : const SizedBox.shrink(),
-                    ),
-                ],
-              ),
-
-              // Full Page Loading Overlay Layer
-              if (_isFinishing)
-                Positioned.fill(
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                      child: Container(
-                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(
-                              width: 60,
-                              height: 60,
-                              child: CircularProgressIndicator(
-                                color: Color(0xFF8B4EFF),
-                                strokeWidth: 4,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              "Calculating Score...",
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: Theme.of(context).textTheme.bodyLarge?.color,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "Wrapping up your quiz results.\nShowing an ad in the meantime ☕",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: isDark ? Colors.white70 : Colors.grey.shade700,
-                                height: 1.4,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
