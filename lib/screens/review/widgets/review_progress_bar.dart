@@ -23,7 +23,7 @@ class ReviewProgressBar extends StatelessWidget {
         height: 4,
         margin: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade200,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(2),
         ),
         alignment: Alignment.centerLeft,
@@ -39,7 +39,7 @@ class ReviewProgressBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.5),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.5),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

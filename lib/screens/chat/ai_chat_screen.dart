@@ -1,15 +1,24 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart'; // Required for kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:flutter_markdown/flutter_markdown.dart'; // Added Markdown support
-import 'package:shared_preferences/shared_preferences.dart'; // Added for saving history
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/deck_model.dart';
+import '../../models/card_model.dart';
 import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/ad_helper.dart';
+import '../../services/card_storage_service.dart';
+import '../../services/pro_service.dart'; 
+import '../../widgets/animated_mascot.dart'; 
+import '../dashboard/dashboard_screen.dart';
+import '../web_landing/web_landing_screen.dart';
+import 'ai_chat_mobile.dart';
+import 'ai_chat_web.dart';
 
 class ChatMessage {
   final String text;
@@ -17,16 +26,23 @@ class ChatMessage {
 
   ChatMessage({required this.text, required this.isUser});
 
-  // Convert to JSON for storage
-  Map<String, dynamic> toJson() => {
-        'text': text,
-        'isUser': isUser,
-      };
+  Map<String, dynamic> toJson() {
+    // 🛡️ SECURITY FIX 3: Prevent 1MB Database Crashes
+    // Cap saved messages to 2,500 characters. If they pasted a massive document, 
+    // it was already sent to the AI. We don't need to save the whole 40k chars to DB history!
+    final safeText = text.length > 2500 
+        ? '${text.substring(0, 2500)}... [Message truncated to save space]' 
+        : text;
 
-  // Create from JSON
+    return {
+      'text': safeText,
+      'isUser': isUser,
+    };
+  }
+
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-        text: json['text'],
-        isUser: json['isUser'],
+        text: json['text']?.toString() ?? '',
+        isUser: json['isUser'] == true,
       );
 }
 
@@ -42,15 +58,17 @@ class AIChatScreen extends StatefulWidget {
 class _AIChatScreenState extends State<AIChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+  bool _isSidebarVisible = true;
   final List<ChatMessage> _messages = [];
   
   final AIService _aiService = AIService();
   final EnergyService _energyService = EnergyService();
+  final CardStorageService _cardStorage = CardStorageService();
 
   bool _isLoading = false;
-  int _currentEnergy = 0;
+  bool _isFetchingHistory = true;
 
-  // AdMob variables
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
   RewardedAd? _rewardedAd;
@@ -66,47 +84,71 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   Future<void> _initServices() async {
     await _energyService.init();
-    if (mounted) {
-      setState(() {
-        _currentEnergy = _energyService.currentEnergy;
-      });
-    }
   }
 
-  // --- Chat History Logic ---
-
   Future<void> _loadChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? historyJson = prefs.getString('chat_history_${widget.deck.id}');
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _isFetchingHistory = false);
+      return;
+    }
 
-    if (historyJson != null) {
-      final List<dynamic> decoded = jsonDecode(historyJson);
-      if (mounted) {
-        setState(() {
-          _messages.addAll(decoded.map((e) => ChatMessage.fromJson(e)).toList());
-        });
-        _scrollToBottom();
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chat')
+          .doc(widget.deck.id)
+          .get();
+
+      if (doc.exists && doc.data() != null && doc.data()!['messages'] != null) {
+        final raw = doc.data()!['messages'];
+
+        if (raw is! List) return;
+
+        final List<dynamic> decoded = List<dynamic>.from(raw);
+        if (mounted) {
+          setState(() {
+            _messages.clear();
+            _messages.addAll(
+              decoded
+                  .where((e) => e is Map)
+                  .map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e as Map))).toList()
+            );
+          });
+          _scrollToBottom();
+        }
       }
-    } else {
-      // Initial greeting from AI if no history exists
+    } catch (e) {
+      debugPrint("Error loading chat history from Firestore: $e");
+    } finally {
       if (mounted) {
         setState(() {
-          _messages.add(
-            ChatMessage(
-              text: "Hi! I'm your AI Tutor. I'm ready to help you study **${widget.deck.name}**.\n\nWhat would you like to know or review?",
-              isUser: false,
-            ),
-          );
+          _isFetchingHistory = false;
         });
-        _saveChatHistory();
       }
     }
   }
 
   Future<void> _saveChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<Map<String, dynamic>> jsonList = _messages.map((m) => m.toJson()).toList();
-    await prefs.setString('chat_history_${widget.deck.id}', jsonEncode(jsonList));
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final List<ChatMessage> recentMessages = _messages.length > 50 
+          ? _messages.sublist(_messages.length - 50) 
+          : _messages;
+
+      final List<Map<String, dynamic>> jsonList = recentMessages.map((m) => m.toJson()).toList();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chat')
+          .doc(widget.deck.id)
+          .set({'messages': jsonList});
+    } catch (e) {
+      debugPrint("Error saving chat history to Firestore: $e");
+    }
   }
 
   Future<void> _clearChat() async {
@@ -139,20 +181,20 @@ class _AIChatScreenState extends State<AIChatScreen> {
     );
 
     if (confirm == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('chat_history_${widget.deck.id}');
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('chat')
+            .doc(widget.deck.id)
+            .delete();
+      }
       
       if (mounted) {
         setState(() {
           _messages.clear();
-          _messages.add(
-            ChatMessage(
-              text: "Hi! I'm your AI Tutor. I'm ready to help you study **${widget.deck.name}**.\n\nWhat would you like to know or review?",
-              isUser: false,
-            ),
-          );
         });
-        _saveChatHistory();
       }
     }
   }
@@ -161,15 +203,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     _bannerAd?.dispose();
     _rewardedAd?.dispose();
     super.dispose();
   }
 
-  // --- Ads Logic ---
-
   void _loadBannerAd() {
-    if (kIsWeb) return;
+    if (kIsWeb || ProService().isPro) return;
+    
     _bannerAd = BannerAd(
       adUnitId: AdHelper.bannerAdUnitId,
       request: const AdRequest(),
@@ -181,7 +223,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
           });
         },
         onAdFailedToLoad: (ad, err) {
-          debugPrint('Failed to load a banner ad: ${err.message}');
           ad.dispose();
         },
       ),
@@ -195,99 +236,206 @@ class _AIChatScreenState extends State<AIChatScreen> {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              _loadRewardedAd(); // Load the next one
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              ad.dispose();
-              _loadRewardedAd();
-            },
-          );
           _rewardedAd = ad;
         },
         onAdFailedToLoad: (err) {
           debugPrint('Failed to load a rewarded ad: ${err.message}');
+          _rewardedAd = null;
         },
       ),
     );
   }
 
-  void _showRewardAdDialog() {
+  void _showEnergyDialog() {
+    final int currentEnergy = _energyService.currentEnergy;
+    final bool isOutOfEnergy = currentEnergy <= 0;
+    final bool isFullEnergy = currentEnergy >= _energyService.maxEnergy;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+        title: Column(
           children: [
-            const Icon(Icons.bolt, color: Colors.amber, size: 28),
-            const SizedBox(width: 8),
-            Text("Out of Energy", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+            AnimatedMascot(
+              state: isOutOfEnergy ? MascotState.sad : MascotState.happy,
+              size: 100,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isOutOfEnergy 
+                      ? Icons.bolt 
+                      : (isFullEnergy ? Icons.battery_charging_full_rounded : Icons.battery_4_bar_rounded),
+                  color: isOutOfEnergy ? Colors.amber : (isFullEnergy ? const Color(0xFF00C853) : const Color(0xFF8B4EFF)),
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isOutOfEnergy 
+                      ? "Out of Energy" 
+                      : (isFullEnergy ? "Fully Charged!" : "Looking Good! ⚡"), 
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
         content: Text(
-          "You've run out of AI energy for now. Watch a short ad to refill your energy completely?",
+          isOutOfEnergy
+              ? "Your AI Tutor needs a quick breather! Your energy automatically resets every day at midnight.\n\nWant to skip the wait? Watch a short ad to fully recharge right now and keep studying!"
+              : "You currently have $currentEnergy energy left! You're all set to keep chatting with your AI Tutor.\n\nRemember, your energy automatically refills to full every day at midnight." + (!isFullEnergy ? "\n\nWant to top up to full right now?" : ""),
+          textAlign: TextAlign.center,
           style: TextStyle(height: 1.4, color: Theme.of(context).textTheme.bodyMedium?.color),
         ),
+        actionsAlignment: MainAxisAlignment.center,
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Maybe Later", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              if (_rewardedAd != null) {
-                _rewardedAd!.show(
-                  onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
-                    _grantEnergyReward();
-                  },
-                );
-              } else {
-                // If ad isn't loaded, grant it anyway as a fallback so user isn't stuck
-                _grantEnergyReward();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B4EFF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          if (!isFullEnergy)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                isOutOfEnergy ? "Maybe Later" : "Back to Chat", 
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
-            child: const Text("Watch Ad", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
+          if (isFullEnergy)
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B4EFF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text("Awesome!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
+          else
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showRewardedAd();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B4EFF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text("Watch Ad", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
         ],
       ),
     );
   }
 
-  Future<void> _grantEnergyReward() async {
-    await _energyService.refillEnergy();
-    if (mounted) {
-      setState(() {
-        _currentEnergy = _energyService.currentEnergy;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("⚡ Energy Restored!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+  void _showRewardedAd() {
+    if (kIsWeb) {
+      _grantEnergyReward();
+      return;
+    }
+
+    if (_rewardedAd != null) {
+      try {
+        _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            setState(() => _rewardedAd = null);
+            _loadRewardedAd(); 
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            ad.dispose();
+            setState(() => _rewardedAd = null);
+            _loadRewardedAd();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Oh no, the ad couldn't be played. Please try again later! 🎬")),
+              );
+            }
+          },
+        );
+
+        _rewardedAd!.show(
+          onUserEarnedReward: (AdWithoutView ad, RewardItem reward) async {
+            await _grantEnergyReward();
+          },
+        );
+      } catch (e) {
+        setState(() => _rewardedAd = null);
+        _loadRewardedAd();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Oops! The ad system hit a snag. You might have reached your daily limit. Please check back tomorrow! 🌟")),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("We couldn't find an ad right now. You may have reached your daily limit (5/day) to keep the AI healthy! Please try again tomorrow. 🌟")),
+        );
+      }
+      _loadRewardedAd();
     }
   }
 
-  // --- Chat Logic ---
+  Future<void> _grantEnergyReward() async {
+    if (mounted) setState(() => _isLoading = true);
+
+    try {
+      if (kIsWeb) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Ad rewards are only available on mobile."),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      await _energyService.refillEnergy();
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("⚡ Energy Restored!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed: ${e.toString()}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    if (_currentEnergy <= 0) {
+    if (_energyService.currentEnergy <= 0) {
       HapticFeedback.heavyImpact();
-      _showRewardAdDialog();
+      _showEnergyDialog();
       return;
     }
 
@@ -296,39 +444,58 @@ class _AIChatScreenState extends State<AIChatScreen> {
       _isLoading = true;
     });
 
-    _saveChatHistory(); // Save after user message
+    _saveChatHistory();
     _messageController.clear();
+    _focusNode.requestFocus();
     _scrollToBottom();
     HapticFeedback.lightImpact();
 
     try {
-      final response = await _aiService.processInput(
-        text: "Regarding my deck '${widget.deck.name}': $text",
+      final List<Flashcard> cards = await _cardStorage.getCardsForDeck(widget.deck.id);
+
+      final recentHistory = _messages.length > 8 
+          ? _messages.sublist(_messages.length - 8) 
+          : _messages;
+
+      final response = await _aiService.processTutorChat(
+        text: text,
+        deck: widget.deck,
+        cards: cards,
+        chatHistory: recentHistory.map((m) => m.toJson()).toList(), 
       );
       
-      // Deduct 1 energy only after a successful AI response
-      await _energyService.deductEnergy();
-      
       setState(() {
-        _currentEnergy = _energyService.currentEnergy;
         _messages.add(ChatMessage(text: response.message, isUser: false));
         _isLoading = false;
       });
-      _saveChatHistory(); // Save after AI response
+      _saveChatHistory();
+      _focusNode.requestFocus();
       _scrollToBottom();
       HapticFeedback.mediumImpact();
-    } catch (e) {
-      setState(() {
-        _messages.add(
-          ChatMessage(
-            text: "Sorry, I encountered an error: ${e.toString()}",
-            isUser: false,
-          ),
-        );
-        _isLoading = false;
-      });
-      _saveChatHistory(); // Save after error message
-      _scrollToBottom();
+    } catch (e, stackTrace) {
+      print("🔥 CRASH REPORT: $e");
+      print("🔥 STACK TRACE: $stackTrace");
+
+      if (e.toString().toLowerCase().contains('energy')) {
+        setState(() {
+          _isLoading = false;
+          if (_messages.isNotEmpty && _messages.last.isUser) _messages.removeLast();
+        });
+        _showEnergyDialog();
+      } else {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              text: "Oops, my circuits got a little tangled! 🤖 I couldn't process that right now. Could you please try asking again?",
+              isUser: false,
+            ),
+          );
+          _isLoading = false;
+        });
+        _saveChatHistory();
+        _focusNode.requestFocus();
+        _scrollToBottom();
+      }
     }
   }
 
@@ -344,325 +511,65 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
-  // --- UI Building ---
+  void _toggleSidebar() {
+    HapticFeedback.lightImpact();
+    setState(() => _isSidebarVisible = !_isSidebarVisible);
+  }
+
+  void _navigateToDashboard() {
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const DashboardScreen()), (route) => false);
+  }
+
+  void _navigateToWebsite() {
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const WebLandingScreen()), (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Column(
-          children: [
-            const Text(
-              "AI Tutor",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            Text(
-              widget.deck.name,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white70 : Colors.grey.shade600,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).appBarTheme.foregroundColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.delete_outline_rounded, color: isDark ? Colors.white54 : Colors.black54),
-            onPressed: _clearChat,
-            tooltip: 'Clear Chat',
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _currentEnergy > 0 
-                  ? const Color(0xFF8B4EFF).withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.bolt,
-                  color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                  size: 18,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  "$_currentEnergy",
-                  style: TextStyle(
-                    color: _currentEnergy > 0 ? const Color(0xFF8B4EFF) : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Banner Ad at the top
-          if (_isBannerAdLoaded && _bannerAd != null)
-            Container(
-              width: double.infinity,
-              height: _bannerAd!.size.height.toDouble(),
-              color: Colors.transparent,
-              child: AdWidget(ad: _bannerAd!),
-            ),
-            
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                return _buildMessageBubble(_messages[index]);
-              },
-            ),
-          ),
-
-          // Loading Indicator
-          if (_isLoading)
-            Padding(
-              padding: const EdgeInsets.only(left: 24, bottom: 16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B4EFF).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFF8B4EFF),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "AI Tutor is typing...",
-                    style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.grey.shade500,
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Input Area
-          Container(
-            padding: EdgeInsets.fromLTRB(
-              16, 12, 16, 
-              MediaQuery.of(context).padding.bottom > 0 
-                  ? MediaQuery.of(context).padding.bottom 
-                  : 16
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                  offset: const Offset(0, -4),
-                  blurRadius: 16,
-                ),
-              ],
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    textCapitalization: TextCapitalization.sentences,
-                    maxLines: 4,
-                    minLines: 1,
-                    textInputAction: TextInputAction.newline,
-                    style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-                    decoration: InputDecoration(
-                      hintText: "Ask a question...",
-                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400),
-                      filled: true,
-                      fillColor: isDark ? const Color(0xFF1E1533) : const Color(0xFFF8F9FA),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 2),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
-                    onPressed: _isLoading ? null : _sendMessage,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(ChatMessage message) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        mainAxisAlignment:
-            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!message.isUser) ...[
-            Container(
-              margin: const EdgeInsets.only(right: 8.0, bottom: 4.0),
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B4EFF).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: Color(0xFF8B4EFF),
-                size: 16,
-              ),
-            ),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
-              decoration: BoxDecoration(
-                color: message.isUser ? null : Theme.of(context).cardColor,
-                gradient: message.isUser
-                    ? const LinearGradient(
-                        colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(message.isUser ? 20 : 4),
-                  bottomRight: Radius.circular(message.isUser ? 4 : 20),
-                ),
-                boxShadow: message.isUser
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-              ),
-              child: message.isUser
-                  ? Text(
-                      message.text,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )
-                  : MarkdownBody(
-                      data: message.text,
-                      selectable: true, // Allows user to copy the AI's response!
-                      styleSheet: MarkdownStyleSheet(
-                        p: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 16,
-                          height: 1.5,
-                        ),
-                        strong: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
-                        em: TextStyle(
-                          fontStyle: FontStyle.italic,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                        ),
-                        listBullet: const TextStyle(
-                          color: Color(0xFF8B4EFF),
-                          fontSize: 16,
-                        ),
-                        h1: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        h2: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        h3: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        code: TextStyle(
-                          backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                          color: const Color(0xFFE841A1),
-                          fontFamily: 'monospace',
-                          fontSize: 14,
-                        ),
-                        codeblockDecoration: BoxDecoration(
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
-                        ),
-                        blockquoteDecoration: BoxDecoration(
-                          border: const Border(
-                            left: BorderSide(
-                              color: Color(0xFF8B4EFF),
-                              width: 4,
-                            ),
-                          ),
-                          color: const Color(0xFF8B4EFF).withOpacity(0.05),
-                        ),
-                        blockquotePadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                      ),
-                    ),
-            ),
-          ),
-          if (message.isUser) const SizedBox(width: 24), // Spacer to balance bubble
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 850;
+        
+        if (isDesktop) {
+          return AIChatWeb(
+            deck: widget.deck,
+            messages: _messages,
+            isLoading: _isLoading,
+            isFetchingHistory: _isFetchingHistory,
+            messageController: _messageController,
+            scrollController: _scrollController,
+            focusNode: _focusNode,
+            energyStream: _energyService.energyStream,
+            currentEnergy: _energyService.currentEnergy,
+            isSidebarVisible: _isSidebarVisible,
+            onSendMessage: _sendMessage,
+            onClearChat: _clearChat,
+            onEnergyTap: _showEnergyDialog,
+            onBack: () => Navigator.pop(context),
+            onToggleSidebar: _toggleSidebar,
+            onDashboardTap: _navigateToDashboard,
+            onWebsiteTap: _navigateToWebsite,
+          );
+        } else {
+          return AIChatMobile(
+            deck: widget.deck,
+            messages: _messages,
+            isLoading: _isLoading,
+            isFetchingHistory: _isFetchingHistory,
+            messageController: _messageController,
+            scrollController: _scrollController,
+            focusNode: _focusNode,
+            energyStream: _energyService.energyStream,
+            currentEnergy: _energyService.currentEnergy,
+            bannerAd: _bannerAd,
+            isBannerAdLoaded: _isBannerAdLoaded,
+            onSendMessage: _sendMessage,
+            onClearChat: _clearChat,
+            onEnergyTap: _showEnergyDialog,
+            onBack: () => Navigator.pop(context),
+          );
+        }
+      }
     );
   }
 }

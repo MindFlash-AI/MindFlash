@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class ReviewActionButtons extends StatelessWidget {
   final bool showAnswer;
@@ -14,100 +15,90 @@ class ReviewActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (!showAnswer) {
+      return Container(
+        height: 60,
+        alignment: Alignment.center,
+        child: Text(
+          "Flip card to reveal answer",
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.white54 
+                : Colors.grey.shade600,
+            fontStyle: FontStyle.italic,
+            fontSize: 15,
+          ),
+        ),
+      );
+    }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOutBack,
-        switchOutCurve: Curves.easeIn,
-        transitionBuilder: (child, animation) {
-          return ScaleTransition(
-            scale: animation,
-            child: FadeTransition(
-              opacity: animation,
-              child: child,
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildActionButton(
+              context: context,
+              label: "Need Review",
+              icon: Icons.close_rounded,
+              color: const Color(0xFFFF5252),
+              onTap: onIncorrect,
             ),
-          );
-        },
-        child: showAnswer
-            ? Row(
-                key: const ValueKey('answer_buttons'),
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: _buildActionButton(
-                      label: "Need Review",
-                      icon: Icons.repeat_rounded,
-                      color: isDark ? Colors.redAccent.shade200 : Colors.redAccent,
-                      onPressed: onIncorrect,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildActionButton(
-                      label: "Got It",
-                      icon: Icons.check_rounded,
-                      color: isDark ? Colors.greenAccent.shade400 : Colors.green.shade600,
-                      onPressed: onCorrect,
-                      isPrimary: true,
-                    ),
-                  ),
-                ],
-              )
-            : SizedBox(
-                key: const ValueKey('placeholder_box'),
-                width: double.infinity,
-                height: 56, 
-                child: Center(
-                  child: Text(
-                    "Flip card to reveal answer",
-                    style: TextStyle(
-                      color: isDark ? Colors.white.withOpacity(0.3) : Colors.black54,
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _buildActionButton(
+              context: context,
+              label: "Got It",
+              icon: Icons.check_rounded,
+              color: const Color(0xFF69F0AE),
+              onTap: onCorrect,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildActionButton({
+    required BuildContext context,
     required String label,
     required IconData icon,
     required Color color,
-    required VoidCallback onPressed,
-    bool isPrimary = false,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        color: isPrimary ? color.withOpacity(0.15) : Colors.transparent,
-        border: Border.all(
-          color: isPrimary ? color : color.withOpacity(0.5),
-          width: 2,
-        ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(14),
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: isDark ? 0.15 : 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withValues(alpha: isDark ? 0.6 : 1.0), 
+              width: 1.5,
+            ),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 20),
+              Icon(icon, color: isDark ? color : color.withValues(alpha: 0.9), size: 20),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
-                  color: color,
+                  color: isDark ? color : color.withValues(alpha: 0.9),
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 15,
                 ),
               ),
             ],

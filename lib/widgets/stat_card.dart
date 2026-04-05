@@ -34,12 +34,12 @@ class StatCard extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2), 
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.2), 
             width: 1
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.4) : shadowColor.withOpacity(0.4),
+              color: isDark ? Colors.black.withValues(alpha: 0.4) : shadowColor.withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -51,11 +51,11 @@ class StatCard extends StatelessWidget {
             children: [
               Positioned(
                 right: -10,
-                bottom: -15,
+                bottom: -10,
                 child: Icon(
                   icon,
-                  size: 100,
-                  color: Colors.white.withOpacity(0.15),
+                  size: 80,
+                  color: Colors.white.withValues(alpha: 0.15),
                 ),
               ),
 
@@ -65,8 +65,8 @@ class StatCard extends StatelessWidget {
                   onTap: onTap,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 20,
+                      horizontal: 16,
+                      vertical: 16,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -82,8 +82,8 @@ class StatCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.5,
                                 ),
@@ -95,22 +95,14 @@ class StatCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 28,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(icon, color: Colors.white, size: 28),
-                        ),
+                        const SizedBox(width: 12)
                       ],
                     ),
                   ),

@@ -4,6 +4,11 @@ import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/deck_model.dart';
 import '../services/ad_helper.dart';
+import '../services/energy_service.dart';
+import '../services/pro_service.dart'; // Added to check Pro status
+import '../screens/settings/manage_subscription_screen.dart'; // For the Pro Upgrade routing
+import 'pro_paywall_sheet.dart'; // The Universal Paywall Widget
+import 'package:flutter/services.dart';
 
 class UpdateDeckAIDialog extends StatefulWidget {
   final List<Deck> decks;
@@ -25,13 +30,13 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
   final TextEditingController _topicController = TextEditingController();
   bool _isSubmitting = false;
 
-  InterstitialAd? _interstitialAd;
-  bool _isAdLoaded = false;
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd();
+    _loadRewardedAd();
     if (widget.decks.isNotEmpty) {
       _selectedDeck = widget.decks.first;
     }
@@ -40,65 +45,329 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
+    _rewardedAd?.dispose();
     _topicController.dispose();
     super.dispose();
   }
 
-  void _loadInterstitialAd() {
-    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+  void _loadRewardedAd() {
+    if (kIsWeb) return; 
 
-    InterstitialAd.load(
-      adUnitId: AdHelper.interstitialAdUnitId,
+    RewardedAd.load(
+      adUnitId: AdHelper.rewardedAdUnitId,
       request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              ad.dispose();
-            },
-          );
-          _interstitialAd = ad;
-          _isAdLoaded = true;
+          _rewardedAd = ad;
+          _isRewardedAdLoaded = true;
         },
         onAdFailedToLoad: (err) {
-          debugPrint('Failed to load an interstitial ad: ${err.message}');
-          _isAdLoaded = false;
+          debugPrint('Failed to load a rewarded ad: ${err.message}');
+          _rewardedAd = null;
+          _isRewardedAdLoaded = false;
         },
       ),
     );
   }
 
+  // 🛡️ BUG FIX: Robust routing to prevent infinite loading screens
+  void _showLoadingOverlay({bool isRefilling = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      routeSettings: const RouteSettings(name: 'loading_overlay'), 
+      builder: (ctx) => PopScope(
+        canPop: false, 
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
+              width: double.infinity,
+              height: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFE940A3),
+                      strokeWidth: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    isRefilling ? "Refilling Energy..." : "Updating Deck...",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isRefilling 
+                        ? "Please wait a moment ⚡" 
+                        : "Adding new flashcards with AI ☕",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                      height: 1.4,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 🛡️ BUG FIX: Safely hunts down and destroys ONLY the loading overlay
+  void _closeLoadingOverlay() {
+    bool foundOverlay = false;
+    Navigator.of(context).popUntil((route) {
+      if (route.settings.name == 'loading_overlay') {
+        foundOverlay = true;
+        return true;
+      }
+      if (route.isFirst) {
+        return true; 
+      }
+      return false; 
+    });
+    
+    if (foundOverlay) {
+      Navigator.of(context).pop();
+    }
+  }
+
   void _submitUpdate() async {
     if (_formKey.currentState!.validate() && _selectedDeck != null) {
+      if (_selectedDeck!.cardCount >= 100) {
+        HapticFeedback.heavyImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("This deck is full (100 cards max)! Please choose another deck. 🛑"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isSubmitting = true;
       });
 
-      // Show the overlay for 1.5 seconds before popping the ad
-      await Future.delayed(const Duration(milliseconds: 1500));
-
-      if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
-        _interstitialAd!.show();
-        _isAdLoaded = false;
-      }
+      _showLoadingOverlay();
 
       final topic = _topicController.text.trim();
 
       try {
         final successMessage = await widget.onGenerate(_selectedDeck!, topic);
         if (mounted) {
-          Navigator.of(context).pop(successMessage);
+          _closeLoadingOverlay(); 
+          
+          // 🌟 POST-SUCCESS PAYWALL TRIGGER
+          if (!ProService().isPro) {
+            await ProPaywallSheet.show(
+              context,
+              title: "Deck Updated! 🎉",
+              subtitle: "Want to do this twice as much? Upgrade to Pro for double the daily AI limits and zero ads.",
+            );
+          }
+
+          if (mounted) {
+            Navigator.of(context).pop(successMessage); 
+          }
         }
       } catch (e) {
         if (mounted) {
+          _closeLoadingOverlay(); 
           setState(() {
             _isSubmitting = false;
           });
+
+          final errorStr = e.toString();
+          if (errorStr.toLowerCase().contains('energy') || errorStr.contains('INSUFFICIENT_ENERGY')) {
+            _showEnergyAdDialog();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorStr.replaceAll('Exception: ', '')),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
         }
+      }
+    }
+  }
+
+  // 🛡️ BUG FIX: Changed AlertDialog to a Dialog to fix full-width buttons layout
+  void _showEnergyAdDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (ctx) => Dialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.bolt_rounded, color: Colors.orange, size: 32),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Out of Energy", 
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Updating a deck costs 3 energy. Watch a quick ad to refill your energy, or upgrade to MindFlash Pro for double the daily limit and no ads!",
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showRewardedAd();
+                },
+                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                label: const Text("Watch Ad to Refill", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE940A3),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ManageSubscriptionScreen()),
+                  );
+                },
+                icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF8B4EFF)),
+                label: const Text("Upgrade to Pro", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold, fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontSize: 15)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showRewardedAd() {
+    if (kIsWeb) {
+      _refillAndSubmit();
+      return;
+    }
+
+    if (_isRewardedAdLoaded && _rewardedAd != null) {
+      try {
+        _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            _rewardedAd = null;
+            _isRewardedAdLoaded = false;
+            _loadRewardedAd(); 
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            ad.dispose();
+            _rewardedAd = null;
+            _isRewardedAdLoaded = false;
+            _loadRewardedAd();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Oh no, the ad couldn't be played. Please try again later! 🎬")),
+              );
+            }
+          },
+        );
+
+        _rewardedAd!.show(
+          onUserEarnedReward: (AdWithoutView ad, RewardItem reward) async {
+            await _refillAndSubmit();
+          },
+        );
+      } catch (e) {
+        _rewardedAd = null;
+        _isRewardedAdLoaded = false;
+        _loadRewardedAd();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Oops! The ad system hit a snag. You might have reached your daily limit. Please check back tomorrow! 🌟")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("We couldn't find an ad right now. You may have reached your daily limit (5/day) to keep the AI healthy! Please try again tomorrow. 🌟")),
+      );
+      _loadRewardedAd();
+    }
+  }
+
+  Future<void> _refillAndSubmit() async {
+    setState(() => _isSubmitting = true);
+    
+    _showLoadingOverlay(isRefilling: true);
+
+    try {
+      final energyService = EnergyService();
+      await energyService.refillEnergy();
+      
+      await Future.delayed(const Duration(milliseconds: 800));
+      
+      if (mounted) {
+        _closeLoadingOverlay(); 
+        setState(() => _isSubmitting = false);
+        _submitUpdate(); 
+      }
+    } catch (e) {
+      if (mounted) {
+        _closeLoadingOverlay(); 
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to refill energy. Please try again.")),
+        );
       }
     }
   }
@@ -159,7 +428,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -194,7 +463,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFE940A3).withOpacity(0.1),
+                                        color: const Color(0xFFE940A3).withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: const Icon(
@@ -395,7 +664,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                                   ? null
                                   : [
                                       BoxShadow(
-                                        color: const Color(0xFFE940A3).withOpacity(0.3),
+                                        color: const Color(0xFFE940A3).withValues(alpha: 0.3),
                                         blurRadius: 8,
                                         offset: const Offset(0, 4),
                                       ),
@@ -451,53 +720,6 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                   ),
                 ),
               ),
-
-              // Full Page Loading Overlay Layer
-              if (_isSubmitting)
-                Positioned.fill(
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                      child: Container(
-                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(
-                              width: 60,
-                              height: 60,
-                              child: CircularProgressIndicator(
-                                color: Color(0xFFE940A3),
-                                strokeWidth: 4,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              "Updating Deck...",
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: Theme.of(context).textTheme.bodyLarge?.color,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "Adding new flashcards with AI.\nShowing an ad in the meantime ☕",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: isDark ? Colors.white70 : Colors.grey.shade700,
-                                height: 1.4,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

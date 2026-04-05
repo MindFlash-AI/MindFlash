@@ -1,14 +1,17 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart'; // 🛡️ WEB FIX: Required for PointerDeviceKind
+import 'dart:math';
 import '../../../models/card_model.dart';
 
-class FlashcardStackView extends StatelessWidget {
+class FlashcardStackView extends StatefulWidget {
   final List<Flashcard> cards;
   final int currentIndex;
   final PageController pageController;
-  final ValueChanged<int> onPageChanged;
-  final ValueChanged<bool> onFlip;
+  final Function(int) onPageChanged;
+  final Function(bool) onFlip;
+  final VoidCallback onCorrect;
+  final VoidCallback onIncorrect;
 
   const FlashcardStackView({
     super.key,
@@ -17,92 +20,42 @@ class FlashcardStackView extends StatelessWidget {
     required this.pageController,
     required this.onPageChanged,
     required this.onFlip,
+    required this.onCorrect,
+    required this.onIncorrect,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: pageController,
-      onPageChanged: onPageChanged,
-      physics: const BouncingScrollPhysics(),
-      itemCount: cards.length,
-      itemBuilder: (context, index) {
-        final card = cards[index];
-        
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            double cardWidth = constraints.maxWidth * 0.85;
-            double cardHeight = constraints.maxHeight * 0.82;
-
-            const double optimalMaxWidth = 420.0;
-            const double optimalMaxHeight = 560.0;
-
-            if (cardWidth > optimalMaxWidth) cardWidth = optimalMaxWidth;
-            if (cardHeight > optimalMaxHeight) cardHeight = optimalMaxHeight;
-
-            return Center(
-              child: SizedBox(
-                width: cardWidth,
-                height: cardHeight,
-                child: _FlashcardWidget(
-                  key: ValueKey('card_${card.id}_$index'),
-                  card: card,
-                  onFlip: onFlip,
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  State<FlashcardStackView> createState() => _FlashcardStackViewState();
 }
 
-class _FlashcardWidget extends StatefulWidget {
-  final Flashcard card;
-  final ValueChanged<bool> onFlip;
-
-  const _FlashcardWidget({
-    super.key,
-    required this.card,
-    required this.onFlip,
-  });
-
-  @override
-  State<_FlashcardWidget> createState() => _FlashcardWidgetState();
-}
-
-class _FlashcardWidgetState extends State<_FlashcardWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+class _FlashcardStackViewState extends State<FlashcardStackView> with SingleTickerProviderStateMixin {
   bool _isFront = true;
+
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _flipController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 600),
     );
-    _animation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic),
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeOutBack),
     );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _flipController.dispose();
     super.dispose();
   }
 
-  void _toggleCard() {
-    HapticFeedback.lightImpact();
-    if (_isFront) {
-      _controller.forward();
-    } else {
-      _controller.reverse();
-    }
+  void _flipCard() {
+    if (_isFront) _flipController.forward();
+    else _flipController.reverse();
+
     setState(() {
       _isFront = !_isFront;
     });
@@ -111,114 +64,252 @@ class _FlashcardWidgetState extends State<_FlashcardWidget>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggleCard,
-      child: AnimatedBuilder(
-        animation: _animation,
-        builder: (context, child) {
-          final angle = _animation.value * pi;
-          
-          final transform = Matrix4.identity()
-            ..setEntry(3, 2, 0.001)
-            ..rotateY(angle);
+    if (widget.cards.isEmpty) return const SizedBox.shrink();
+    
+    // 🛡️ WEB FIX: ScrollConfiguration allows mouse clicking & dragging on Flutter Web
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse, // Explicitly enables mouse swiping!
+          PointerDeviceKind.trackpad,
+        },
+      ),
+      child: PageView.builder(
+        controller: widget.pageController,
+        physics: const BouncingScrollPhysics(), 
+        onPageChanged: (index) {
+          _flipController.value = 0.0; // Snap to front instantly when swiping to a new card
+          setState(() {
+            _isFront = true;
+          });
+          widget.onPageChanged(index);
+        },
+        itemCount: widget.cards.length,
+        itemBuilder: (context, index) {
+          final card = widget.cards[index];
+          return GestureDetector(
+            onTap: _flipCard,
+            // ✨ IMPROVED ANIMATION: True 3D Flip with perspective and physics
+            child: AnimatedBuilder(
+              animation: _flipAnimation,
+              builder: (context, child) {
+                final angle = _flipAnimation.value * pi;
+                bool isUnder = angle >= (pi / 2);
+                
+                // Premium SaaS 3D lift effect during the flip
+                final lift = sin(_flipAnimation.value * pi);
 
-          final isBackVisible = angle >= pi / 2;
-
-          return Transform(
-            transform: transform,
-            alignment: Alignment.center,
-            child: isBackVisible
-                ? Transform(
-                    transform: Matrix4.identity()..rotateY(pi),
-                    alignment: Alignment.center,
-                    child: _buildCardFace(isFront: false),
-                  )
-                : _buildCardFace(isFront: true),
+                return Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001) // Adds true 3D depth/perspective
+                    ..translate(0.0, -lift * 20, 0.0) // Lifts up
+                    ..scale(1.0 - (0.05 * lift)) // Shrinks slightly for depth
+                    ..rotateY(angle),
+                  child: isUnder
+                      // Rotate the back side by an extra 180 degrees so the text isn't mirrored!
+                      ? Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.rotationY(pi),
+                          child: _buildCardSide(context, card, false, lift: lift, key: const ValueKey(false)),
+                        )
+                      : _buildCardSide(context, card, true, lift: lift, key: const ValueKey(true)),
+                );
+              },
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildCardFace({required bool isFront}) {
+  Widget _buildCardSide(BuildContext context, Flashcard card, bool isFront, {required double lift, required Key key}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(32),
-        border: isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.4 : 0.1),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: isFront
-                  ? const Color(0xFF8B4EFF).withOpacity(isDark ? 0.15 : 0.1)
-                  : const Color(0xFFE841A1).withOpacity(isDark ? 0.15 : 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              isFront ? "QUESTION" : "ANSWER",
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-                color: isFront 
-                    ? (isDark ? const Color(0xFFB48AFF) : const Color(0xFF8B4EFF)) 
-                    : (isDark ? const Color(0xFFFF72C5) : const Color(0xFFE841A1)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Text(
-                  isFront ? widget.card.question : widget.card.answer,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: isFront ? 24 : 20,
-                    fontWeight: isFront ? FontWeight.bold : FontWeight.w600,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.touch_app_rounded,
-                size: 16,
-                color: isDark ? Colors.white38 : Colors.grey.shade400,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                "Tap to flip",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white38 : Colors.grey.shade400,
-                  fontWeight: FontWeight.w600,
-                ),
+    
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: 450, // Prevents card from stretching too wide on tablets/web
+          maxHeight: 650, // Prevents card from becoming awkwardly tall
+        ),
+        child: Container(
+          key: key,
+          width: double.infinity,
+          height: double.infinity, // Forces consistent size regardless of text length
+          margin: const EdgeInsets.fromLTRB(20, 10, 20, 50),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+                blurRadius: 20 + (lift * 20),
+                offset: Offset(0, 8 + (lift * 12)),
               ),
             ],
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+              width: 1,
+            ),
           ),
-        ],
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.2 : 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          isFront ? "QUESTION" : "ANSWER",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF8B4EFF),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      isFront ? card.question : card.answer,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        height: 1.4,
+                      ),
+                    ),
+                    const Spacer(),
+                    
+                    // Dynamic bottom layout based on which side is showing
+                    isFront
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.touch_app_rounded, size: 16, color: Colors.grey.shade500),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Tap to flip",
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // --- Red Flag (Need Review) ---
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  widget.onIncorrect();
+                                },
+                                behavior: HitTestBehavior.opaque, // Ensures the tap is captured over the card's flip tap
+                                child: Container(
+                                  height: 64,
+                                  width: 64,
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent.withValues(alpha: isDark ? 0.15 : 0.1),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.redAccent.withValues(alpha: isDark ? 0.5 : 0.8), 
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(Icons.flag_rounded, color: Colors.redAccent, size: 32),
+                                ),
+                              ),
+                              const SizedBox(width: 40), // Spacing between the two action buttons
+                              
+                              // --- Green Check (Got It) ---
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  widget.onCorrect();
+                                },
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  height: 64,
+                                  width: 64,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00C853), // Solid Green
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF00C853).withValues(alpha: 0.4),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 32),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ],
+                ),
+              ),
+              
+              if (card.lastScore != null)
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: _buildLastScoreIndicator(context, card.lastScore),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLastScoreIndicator(BuildContext context, int? lastScore) {
+    if (lastScore == null) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    Color color;
+    IconData iconData;
+    String tooltipMsg;
+
+    // Use < 3 to map to the 'Need Review' red flag logic and >= 3 for 'Got It'
+    if (lastScore < 3) {
+      color = Colors.redAccent;
+      iconData = Icons.flag_rounded;
+      tooltipMsg = "Last time: Need Review";
+    } else {
+      color = const Color(0xFF00C853);
+      iconData = Icons.check_rounded;
+      tooltipMsg = "Last time: Got It";
+    }
+
+    return Tooltip(
+      message: tooltipMsg,
+      triggerMode: TooltipTriggerMode.longPress,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isDark ? 0.15 : 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+        ),
+        child: Icon(iconData, size: 18, color: color),
       ),
     );
   }

@@ -109,7 +109,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withValues(alpha: 0.15),
                         blurRadius: 30,
                         offset: const Offset(0, 10),
                       ),
@@ -126,7 +126,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFE841A1).withOpacity(0.4),
+                              color: const Color(0xFFE841A1).withValues(alpha: 0.4),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -175,7 +175,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                           color: isDark ? const Color(0xFF1A1128) : const Color(0xFFF9F5FF),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                            color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                           ),
                         ),
                         child: Row(
@@ -212,7 +212,7 @@ class _ReviewCompletionScreenState extends State<ReviewCompletionScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                              color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                               blurRadius: 15,
                               offset: const Offset(0, 6),
                             ),

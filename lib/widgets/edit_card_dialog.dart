@@ -97,7 +97,7 @@ class _EditCardDialogState extends State<EditCardDialog> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
+              backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50,
               foregroundColor: isDark ? Colors.redAccent : Colors.red,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -251,7 +251,7 @@ class _EditCardDialogState extends State<EditCardDialog> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                            color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                             blurRadius: 15,
                             offset: const Offset(0, 6),
                           ),
