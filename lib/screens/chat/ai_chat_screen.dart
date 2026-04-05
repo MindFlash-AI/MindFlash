@@ -62,6 +62,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   final FocusNode _focusNode = FocusNode();
   bool _isSidebarVisible = true;
   final List<ChatMessage> _messages = [];
+  List<Flashcard> _deckCards = [];
   
   final AIService _aiService = AIService();
   final EnergyService _energyService = EnergyService();
@@ -78,14 +79,30 @@ class _AIChatScreenState extends State<AIChatScreen> {
   @override
   void initState() {
     super.initState();
+    _focusNode.addListener(_onFocusChange);
     _initServices();
     _loadBannerAd();
     _loadRewardedAd();
     _loadChatHistory();
   }
 
+  void _onFocusChange() {
+    if (_focusNode.hasFocus) {
+      // 🛡️ UX FIX: Wait for the keyboard slide animation to finish, 
+      // then auto-scroll to the bottom so the latest messages aren't hidden!
+      Future.delayed(const Duration(milliseconds: 300), _scrollToBottom);
+    }
+  }
+
   Future<void> _initServices() async {
     await _energyService.init();
+    
+    final cards = await _cardStorage.getCardsForDeck(widget.deck.id);
+    if (mounted) {
+      setState(() {
+        _deckCards = cards;
+      });
+    }
   }
 
   Future<void> _loadChatHistory() async {
@@ -214,6 +231,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _messageController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
@@ -561,29 +579,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
             onDashboardTap: _navigateToDashboard,
             onWebsiteTap: _navigateToWebsite,
           );
-        } else {
-          return AIChatMobile(
-            deck: widget.deck,
-            messages: _messages,
-            isLoading: _isLoading,
-            isFetchingHistory: _isFetchingHistory,
-            messageController: _messageController,
-            scrollController: _scrollController,
-            focusNode: _focusNode,
-            energyStream: _energyService.energyStream,
-            currentEnergy: _energyService.currentEnergy,
-            bannerAd: _bannerAd,
-            isBannerAdLoaded: _isBannerAdLoaded,
-            onSendMessage: _sendMessage,
-            onClearChat: _clearChat,
-            onEnergyTap: _showEnergyDialog,
-            onBack: () => Navigator.pop(context),
-          );
-        }
-      }
-    );
-  }
-};
         } else {
           return AIChatMobile(
             deck: widget.deck,

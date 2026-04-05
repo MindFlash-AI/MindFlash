@@ -6,6 +6,8 @@ class ReviewHeader extends StatelessWidget {
   final int totalCards;
   final VoidCallback onExit;
   final VoidCallback onShuffle;
+  final bool canUndo;
+  final VoidCallback onUndo;
 
   const ReviewHeader({
     super.key,
@@ -13,6 +15,8 @@ class ReviewHeader extends StatelessWidget {
     required this.totalCards,
     required this.onExit,
     required this.onShuffle,
+    required this.canUndo,
+    required this.onUndo,
   });
 
   Future<void> _showShuffleConfirmation(BuildContext context) async {
@@ -114,13 +118,26 @@ class ReviewHeader extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            icon: Icon(
-              Icons.shuffle_rounded, 
-              color: isDark ? Colors.white70 : Colors.black54,
-            ),
-            onPressed: () => _showShuffleConfirmation(context),
-            tooltip: 'Shuffle Cards',
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.undo_rounded, 
+                  color: canUndo ? (isDark ? Colors.white70 : Colors.black54) : Colors.grey.withValues(alpha: 0.5),
+                ),
+                onPressed: canUndo ? onUndo : null,
+                tooltip: 'Undo',
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.shuffle_rounded, 
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+                onPressed: () => _showShuffleConfirmation(context),
+                tooltip: 'Shuffle Cards',
+              ),
+            ],
           ),
         ],
       ),

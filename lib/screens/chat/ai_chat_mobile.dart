@@ -7,6 +7,7 @@ import '../../services/pro_service.dart';
 import '../../widgets/animated_mascot.dart';
 import 'ai_chat_screen.dart'; // For ChatMessage model
 import 'widgets/premium_chat_message_bubble.dart';
+import 'widgets/typing_indicator.dart';
 
 class AIChatMobile extends StatelessWidget {
   final Deck deck;
@@ -158,9 +159,9 @@ class AIChatMobile extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B4EFF))),
+                        const TypingIndicator(color: Color(0xFF8B4EFF)),
                         const SizedBox(width: 8),
-                        Text("Thinking...", style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600, fontStyle: FontStyle.italic, fontSize: 13)),
+                        Text("typing...", style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600, fontStyle: FontStyle.italic, fontSize: 13)),
                       ],
                     ),
                   ),

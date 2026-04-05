@@ -57,6 +57,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
   // 🚀 OPTIMIZATION: Holds modified cards in memory to batch-write them later
   final Map<String, Flashcard> _pendingUpdates = {};
 
+  // 🔙 UNDO HISTORY: Tracks previous card states and session stats
+  final List<({Flashcard card, int correct, int incorrect})> _history = [];
+
   @override
   void initState() {
     super.initState();
@@ -159,6 +162,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
   void _handleAnswer(bool wasCorrect) {
     Flashcard originalCard = _reviewCards[_currentIndex];
 
+    // 🛡️ Save the exact state before we mutate anything so we can undo it safely
+    _history.add((card: originalCard, correct: _correctCount, incorrect: _incorrectCount));
+
     setState(() {
       if (wasCorrect) {
         if (!originalCard.isMastered) _correctCount++;
@@ -244,11 +250,35 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
+  void _undo() {
+    if (_history.isEmpty || _currentIndex == 0) return;
+    HapticFeedback.lightImpact();
+
+    final lastState = _history.removeLast();
+
+    setState(() {
+      _currentIndex--;
+      _showAnswer = false; 
+      _correctCount = lastState.correct;
+      _incorrectCount = lastState.incorrect;
+      _reviewCards[_currentIndex] = lastState.card;
+
+      _pendingUpdates.remove(lastState.card.id);
+      widget.onCardUpdated?.call(lastState.card);
+    });
+
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   void _handleShuffle() {
     setState(() {
       _reviewCards.shuffle();
       _currentIndex = 0;
       _showAnswer = false;
+      _history.clear(); // Clear history to prevent jumping to an invalid state
     });
     _pageController.jumpToPage(0);
   }
@@ -342,6 +372,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     pageController: _pageController,
                     correctCount: _correctCount,
                     incorrectCount: _incorrectCount,
+                    canUndo: _history.isNotEmpty,
+                    onUndo: _undo,
                     onExit: () {
                       _savePendingUpdates();
                       Navigator.pop(context);
@@ -363,6 +395,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     incorrectCount: _incorrectCount,
                     isBannerAdLoaded: _isBannerAdLoaded,
                     bannerAd: _bannerAd,
+                    canUndo: _history.isNotEmpty,
+                    onUndo: _undo,
                     onExit: () {
                       _savePendingUpdates();
                       Navigator.pop(context);

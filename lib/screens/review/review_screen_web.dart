@@ -15,6 +15,8 @@ class ReviewScreenWeb extends StatelessWidget {
   final PageController pageController;
   final int correctCount;
   final int incorrectCount;
+  final bool canUndo;
+  final VoidCallback onUndo;
   
   final VoidCallback onExit;
   final VoidCallback onShuffle;
@@ -32,6 +34,8 @@ class ReviewScreenWeb extends StatelessWidget {
     required this.pageController,
     required this.correctCount,
     required this.incorrectCount,
+    required this.canUndo,
+    required this.onUndo,
     required this.onExit,
     required this.onShuffle,
     required this.onPageChanged,
@@ -217,6 +221,28 @@ class ReviewScreenWeb extends StatelessWidget {
                 const Spacer(),
 
                 // 4. Utility Actions
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: canUndo ? onUndo : null,
+                    icon: const Icon(Icons.undo_rounded, size: 20),
+                    label: const Text(
+                      "Undo Last Card",
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+                      side: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.black12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(

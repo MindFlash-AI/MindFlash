@@ -19,6 +19,8 @@ class ReviewScreenMobile extends StatelessWidget {
   final int incorrectCount;
   final bool isBannerAdLoaded;
   final BannerAd? bannerAd;
+  final bool canUndo;
+  final VoidCallback onUndo;
   
   final VoidCallback onExit;
   final VoidCallback onShuffle;
@@ -38,6 +40,8 @@ class ReviewScreenMobile extends StatelessWidget {
     required this.incorrectCount,
     required this.isBannerAdLoaded,
     this.bannerAd,
+    required this.canUndo,
+    required this.onUndo,
     required this.onExit,
     required this.onShuffle,
     required this.onPageChanged,
@@ -59,6 +63,8 @@ class ReviewScreenMobile extends StatelessWidget {
               totalCards: reviewCards.length,
               onExit: onExit,
               onShuffle: onShuffle,
+              canUndo: canUndo,
+              onUndo: onUndo,
             ),
 
             ReviewProgressBar(
