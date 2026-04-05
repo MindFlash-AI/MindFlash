@@ -28,10 +28,34 @@ class FlashcardStackView extends StatefulWidget {
   State<FlashcardStackView> createState() => _FlashcardStackViewState();
 }
 
-class _FlashcardStackViewState extends State<FlashcardStackView> {
+class _FlashcardStackViewState extends State<FlashcardStackView> with SingleTickerProviderStateMixin {
   bool _isFront = true;
 
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeOutBack),
+    );
+  }
+
+  @override
+  void dispose() {
+    _flipController.dispose();
+    super.dispose();
+  }
+
   void _flipCard() {
+    if (_isFront) _flipController.forward();
+    else _flipController.reverse();
+
     setState(() {
       _isFront = !_isFront;
     });
@@ -55,6 +79,7 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
         controller: widget.pageController,
         physics: const BouncingScrollPhysics(), 
         onPageChanged: (index) {
+          _flipController.value = 0.0; // Snap to front instantly when swiping to a new card
           setState(() {
             _isFront = true;
           });
@@ -66,27 +91,30 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
           return GestureDetector(
             onTap: _flipCard,
             // ✨ IMPROVED ANIMATION: True 3D Flip with perspective and physics
-            child: TweenAnimationBuilder(
-              tween: Tween<double>(begin: 0, end: _isFront ? 0 : pi),
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeOutBack, // Gives the card a satisfying physical "snap"
-              builder: (context, double value, child) {
-                // If the rotation is past 90 degrees (pi/2), we are looking at the back
-                bool isUnder = value >= (pi / 2);
+            child: AnimatedBuilder(
+              animation: _flipAnimation,
+              builder: (context, child) {
+                final angle = _flipAnimation.value * pi;
+                bool isUnder = angle >= (pi / 2);
                 
+                // Premium SaaS 3D lift effect during the flip
+                final lift = sin(_flipAnimation.value * pi);
+
                 return Transform(
                   alignment: Alignment.center,
                   transform: Matrix4.identity()
                     ..setEntry(3, 2, 0.001) // Adds true 3D depth/perspective
-                    ..rotateY(value),
+                    ..translate(0.0, -lift * 20, 0.0) // Lifts up
+                    ..scale(1.0 - (0.05 * lift)) // Shrinks slightly for depth
+                    ..rotateY(angle),
                   child: isUnder
                       // Rotate the back side by an extra 180 degrees so the text isn't mirrored!
                       ? Transform(
                           alignment: Alignment.center,
                           transform: Matrix4.rotationY(pi),
-                          child: _buildCardSide(context, card, false, key: const ValueKey(false)),
+                          child: _buildCardSide(context, card, false, lift: lift, key: const ValueKey(false)),
                         )
-                      : _buildCardSide(context, card, true, key: const ValueKey(true)),
+                      : _buildCardSide(context, card, true, lift: lift, key: const ValueKey(true)),
                 );
               },
             ),
@@ -96,7 +124,7 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
     );
   }
 
-  Widget _buildCardSide(BuildContext context, Flashcard card, bool isFront, {required Key key}) {
+  Widget _buildCardSide(BuildContext context, Flashcard card, bool isFront, {required double lift, required Key key}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Center(
@@ -115,13 +143,13 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+                blurRadius: 20 + (lift * 20),
+                offset: Offset(0, 8 + (lift * 12)),
               ),
             ],
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
           ),
@@ -138,7 +166,7 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8B4EFF).withOpacity(isDark ? 0.2 : 0.1),
+                          color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.2 : 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -197,10 +225,10 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
                                   height: 64,
                                   width: 64,
                                   decoration: BoxDecoration(
-                                    color: Colors.redAccent.withOpacity(isDark ? 0.15 : 0.1),
+                                    color: Colors.redAccent.withValues(alpha: isDark ? 0.15 : 0.1),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: Colors.redAccent.withOpacity(isDark ? 0.5 : 0.8), 
+                                      color: Colors.redAccent.withValues(alpha: isDark ? 0.5 : 0.8), 
                                       width: 2,
                                     ),
                                   ),
@@ -224,7 +252,7 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF00C853).withOpacity(0.4),
+                                        color: const Color(0xFF00C853).withValues(alpha: 0.4),
                                         blurRadius: 12,
                                         offset: const Offset(0, 6),
                                       ),
@@ -277,9 +305,9 @@ class _FlashcardStackViewState extends State<FlashcardStackView> {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withOpacity(isDark ? 0.15 : 0.1),
+          color: color.withValues(alpha: isDark ? 0.15 : 0.1),
           shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
         ),
         child: Icon(iconData, size: 18, color: color),
       ),

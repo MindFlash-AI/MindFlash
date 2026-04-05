@@ -37,7 +37,7 @@ dependencies:
   flutter_quill: ^11.5.0
   google_mlkit_digital_ink_recognition: ^0.14.2
   flutter_math_fork: ^0.7.3
-  markdown: ^3.6.0
+  markdown: ^7.3.1
 
 dev_dependencies:
   flutter_test:

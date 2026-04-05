@@ -4,7 +4,7 @@ import '../../models/deck_model.dart';
 import '../../widgets/animated_mascot.dart';
 import '../../widgets/universal_sidebar.dart';
 import 'ai_chat_screen.dart'; // For ChatMessage model
-import 'widgets/chat_message_bubble.dart';
+import 'widgets/premium_chat_message_bubble.dart';
 
 class AIChatWeb extends StatelessWidget {
   final Deck deck;
@@ -149,7 +149,7 @@ class AIChatWeb extends StatelessWidget {
                             controller: scrollController,
                             padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                             itemCount: messages.length,
-                            itemBuilder: (context, index) => ChatMessageBubble(message: messages[index], isDark: isDark, isDesktop: true),
+                            itemBuilder: (context, index) => PremiumChatMessageBubble(message: messages[index], isDark: isDark, isDesktop: true),
                           ),
               ),
 
