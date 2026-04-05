@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart'; // Required for AdMob
+import 'package:audioplayers/audioplayers.dart';
 import '../../models/quiz_question_model.dart';
 import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 import '../../services/pro_service.dart'; // Required to check Pro status for the banner
@@ -40,6 +41,9 @@ class _QuizScreenState extends State<QuizScreen> {
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
 
+  // Audio Player for feedback sounds
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   bool _canPop = false;
   bool _isFinishing = false; // Controls the loading overlay
 
@@ -68,6 +72,7 @@ class _QuizScreenState extends State<QuizScreen> {
     }
     _interstitialAd?.dispose(); // Clean up AdMob resources
     _bannerAd?.dispose(); // Clean up Banner Ad resources
+    _audioPlayer.dispose(); // Clean up Audio Player
     super.dispose();
   }
 
@@ -190,12 +195,26 @@ class _QuizScreenState extends State<QuizScreen> {
     await prefs.remove('quiz_index_${widget.deckId}');
   }
 
-  void _checkAnswer(String answer) {
+  void _checkAnswer(String answer) async {
     if (_hasAnsweredCurrent) return;
     HapticFeedback.lightImpact();
+    
     setState(() {
       _answers[_currentIndex] = answer;
     });
+
+    // Play engaging sound effects
+    try {
+      final isCorrect = answer == widget.quiz[_currentIndex].correctAnswer;
+      if (isCorrect) {
+        await _audioPlayer.play(AssetSource('sounds/correct.mp3'));
+      } else {
+        await _audioPlayer.play(AssetSource('sounds/incorrect.mp3'));
+      }
+    } catch (e) {
+      debugPrint("Audio playback error: $e");
+    }
+
     _scheduleSave(); // debounced, not immediate
   }
 

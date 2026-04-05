@@ -38,6 +38,7 @@ dependencies:
   google_mlkit_digital_ink_recognition: ^0.14.2
   flutter_math_fork: ^0.7.3
   markdown: ^7.3.1
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -49,6 +50,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/sounds/
     - assets/mascot/
 
 flutter_launcher_icons:

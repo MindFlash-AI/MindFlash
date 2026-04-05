@@ -51,10 +51,10 @@ class StatCard extends StatelessWidget {
             children: [
               Positioned(
                 right: -10,
-                bottom: -15,
+                bottom: -10,
                 child: Icon(
                   icon,
-                  size: 100,
+                  size: 80,
                   color: Colors.white.withValues(alpha: 0.15),
                 ),
               ),
@@ -65,8 +65,8 @@ class StatCard extends StatelessWidget {
                   onTap: onTap,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 20,
+                      horizontal: 16,
+                      vertical: 16,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -83,7 +83,7 @@ class StatCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.5,
                                 ),
@@ -95,7 +95,7 @@ class StatCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 28,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

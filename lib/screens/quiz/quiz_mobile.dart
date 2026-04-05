@@ -2,8 +2,41 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:markdown/markdown.dart' as md;
 import '../../models/quiz_question_model.dart';
 import '../../services/pro_service.dart';
+
+class _MathSyntax extends md.InlineSyntax {
+  _MathSyntax() : super(r'\$\$(.*?)\$\$|\$(.*?)\$');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    final isDisplay = match[1] != null;
+    final math = match[1] ?? match[2];
+    final el = md.Element.text('math', math ?? '');
+    el.attributes['display'] = isDisplay.toString();
+    parser.addNode(el);
+    return true;
+  }
+}
+
+class _MathBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final isDisplay = element.attributes['display'] == 'true';
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: isDisplay ? 8.0 : 0.0),
+      child: Math.tex(
+        element.textContent,
+        textStyle: preferredStyle?.copyWith(fontSize: 16),
+        mathStyle: isDisplay ? MathStyle.display : MathStyle.text,
+        onErrorFallback: (err) => Text(element.textContent, style: preferredStyle?.copyWith(color: Colors.redAccent)),
+      ),
+    );
+  }
+}
 
 class QuizMobile extends StatelessWidget {
   final List<QuizQuestion> quiz;
@@ -231,10 +264,19 @@ class QuizMobile extends StatelessWidget {
             children: [
               Icon(Icons.help_outline_rounded, color: const Color(0xFF8B4EFF).withValues(alpha: 0.5), size: 40),
               const SizedBox(height: 16),
-              Text(
-                currentQuestion.question,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.4, letterSpacing: -0.5),
+              MarkdownBody(
+                data: currentQuestion.question,
+                selectable: true,
+                builders: {'math': _MathBuilder()},
+                extensionSet: md.ExtensionSet(
+                  md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+                  [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, _MathSyntax()],
+                ),
+                styleSheet: MarkdownStyleSheet(
+                  p: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.4, letterSpacing: -0.5),
+                  pPadding: EdgeInsets.zero,
+                  textAlign: WrapAlignment.center,
+                ),
               ),
             ],
           ),
@@ -304,7 +346,20 @@ class QuizMobile extends StatelessWidget {
                     child: Center(child: Text(letter, style: TextStyle(fontWeight: FontWeight.bold, color: hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent) ? iconColor : (isDark ? Colors.white54 : Colors.black54)))),
                   ),
                   const SizedBox(width: 16),
-                  Expanded(child: Text(option, style: TextStyle(fontSize: 16, color: textColor, fontWeight: hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent) ? FontWeight.bold : FontWeight.w600))),
+                  Expanded(
+                    child: MarkdownBody(
+                      data: option,
+                      builders: {'math': _MathBuilder()},
+                      extensionSet: md.ExtensionSet(
+                        md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+                        [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, _MathSyntax()],
+                      ),
+                      styleSheet: MarkdownStyleSheet(
+                        p: TextStyle(fontSize: 16, color: textColor, fontWeight: hasAnsweredCurrent && (option == currentQuestion.correctAnswer || option == selectedAnswerCurrent) ? FontWeight.bold : FontWeight.w600),
+                        pPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
                   if (feedbackIcon != null) Icon(feedbackIcon, color: iconColor, size: 24),
                 ],
               ),

@@ -39,13 +39,13 @@ class DashboardMobile extends StatelessWidget {
             children: [
               SafeArea(
                 bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -57,9 +57,12 @@ class DashboardMobile extends StatelessWidget {
                           const Flexible(child: DashboardHeader()),
                         ],
                       ),
-                      const SizedBox(height: 32),
-                      
-                      Text(
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
                         "Overview",
                         style: TextStyle(
                           fontSize: 18,
@@ -68,10 +71,15 @@ class DashboardMobile extends StatelessWidget {
                           color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      overview, 
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 🛡️ HCI: Edge-to-edge scroll container removes the boxed-in layout constraint
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: overview,
+                    ),
+                  ],
                 ),
               ),
       

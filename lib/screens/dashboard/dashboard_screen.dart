@@ -583,40 +583,26 @@ class _DashboardScreenState extends State<DashboardScreen>
               ],
             ),
           );
-        } else if (maxWidth < 380) {
-          // 📱 HCI Layout Improvement: Very narrow mobile screens (e.g., iPhone SE)
-          return Column(
-            children: [
-              statCards[0],
-              const SizedBox(height: 12),
-              statCards[1],
-              const SizedBox(height: 12),
-              statCards[2],
-            ],
-          );
         } else {
-          return Column(
-            children: [
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+          // 📱 HCI Layout Improvement: Hero + Split Grid Layout
+          // Eliminates the need to swipe (carousel) while keeping vertical height minimal and visually structured.
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                // Hero Stat: AI Energy (Highly dynamic/actionable)
+                SizedBox(height: 100, width: double.infinity, child: statCards[2]),
+                const SizedBox(height: 12),
+                // Split Stats: Decks & Cards (Content metrics)
+                Row(
                   children: [
-                    Expanded(child: statCards[0]),
+                    Expanded(child: SizedBox(height: 100, child: statCards[0])),
                     const SizedBox(width: 12),
-                    Expanded(child: statCards[1]),
+                    Expanded(child: SizedBox(height: 100, child: statCards[1])),
                   ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: statCards[2]),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           );
         }
       }
