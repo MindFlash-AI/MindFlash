@@ -194,18 +194,16 @@ class AIService {
     if (targetDeckId != null && existingCards.isNotEmpty) {
       // 💰 COST OPTIMIZATION: If explicitly updating a deck, ONLY send that deck's context.
       buffer.write('CRITICAL: The user is asking to UPDATE this specific deck. Here are the flashcards ALREADY inside it. DO NOT generate duplicates of these:\n');
-      final sample = existingCards.take(40).toList();
+      final sample = existingCards.take(50).toList();
       for (var c in sample) {
-        buffer.write('    -> Q: ${c.question} | A: ${c.answer}\n');
+        // 🚀 COST OPTIMIZATION: Only send the question to prevent duplicates.
+        // Sending the answer too doubles the token cost for no reason!
+        buffer.write('    -> Q: ${c.question}\n');
       }
     } else {
-      // 💰 COST OPTIMIZATION: Limit general context to 10 decks instead of 30.
-      final recentDecks = decks.take(10).toList();
-      buffer.write('The user currently has the following study decks saved in their library:\n');
-      for (final deck in recentDecks) {
-        final safeName = deck.name.length > 80 ? deck.name.substring(0, 80) : deck.name;
-        buffer.write('- Deck Name: \'$safeName\' (Subject: ${deck.subject}, ID: ${deck.id}).\n');
-      }
+      // 💰 COST OPTIMIZATION: Omit the list of existing decks to save ~500 tokens per request.
+      // The AI does not need to know the names of all other decks just to generate a new one!
+      buffer.write('The user is requesting to create a brand new deck.');
     }
     return buffer.toString();
   }

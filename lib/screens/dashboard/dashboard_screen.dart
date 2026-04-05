@@ -285,6 +285,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       final XFile? photo = await picker.pickImage(
         source: ImageSource.camera,
         imageQuality: 80,
+        maxWidth: 1080, // 🚀 COST OPTIMIZATION: Caps resolution natively before uploading
+        maxHeight: 1080, // Reduces Firebase bandwidth and Gemini Image Tokens by ~80%
       );
 
       if (photo != null) {

@@ -475,7 +475,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
       _isLoading = true;
     });
 
-    _saveChatHistory();
+    // 🚀 COST OPTIMIZATION: Removed redundant _saveChatHistory() here.
+    // We wait for the AI to reply and save both messages at once, cutting Firestore writes by 50%!
     _messageController.clear();
     _focusNode.requestFocus();
     _scrollToBottom();
