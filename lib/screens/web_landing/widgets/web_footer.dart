@@ -97,6 +97,14 @@ class WebFooter extends StatelessWidget {
           },
           child: _buildFooterLink("Terms of Service", isDark),
         ),
+        HoverScale(
+          scaleFactor: 1.05,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            LegalDocumentDialog.show(context, "Data Compliance", LegalTexts.dataCompliance);
+          },
+          child: _buildFooterLink("Data Compliance", isDark),
+        ),
         HoverScale(child: _buildFooterLink("Contact Support", isDark), scaleFactor: 1.05),
       ],
     );

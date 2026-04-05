@@ -9,6 +9,7 @@ class AccountSettingsMobile extends StatelessWidget {
   final VoidCallback onManageSubscription;
   final VoidCallback onPrivacyPolicy;
   final VoidCallback onTermsOfService;
+  final VoidCallback onDataCompliance;
   final VoidCallback onDeleteAccount;
 
   const AccountSettingsMobile({
@@ -18,6 +19,7 @@ class AccountSettingsMobile extends StatelessWidget {
     required this.onManageSubscription,
     required this.onPrivacyPolicy,
     required this.onTermsOfService,
+    required this.onDataCompliance,
     required this.onDeleteAccount,
   });
 
@@ -114,6 +116,12 @@ class AccountSettingsMobile extends StatelessWidget {
             icon: Icons.description_rounded,
             iconColor: const Color(0xFFFF9100),
             onTap: onTermsOfService,
+          ),
+          SettingsActionTile(
+            title: "Data Compliance & GDPR",
+            icon: Icons.security_rounded,
+            iconColor: const Color(0xFF0284C7),
+            onTap: onDataCompliance,
           ),
 
           const SizedBox(height: 18),

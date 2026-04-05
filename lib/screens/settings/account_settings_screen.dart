@@ -447,6 +447,27 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       ),
                       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                     ),
+                    Divider(height: 1, indent: 60, color: isDark ? Colors.white12 : Colors.grey.shade200),
+                    ListTile(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        LegalDocumentDialog.show(
+                          context,
+                          "Data Compliance & GDPR",
+                          LegalTexts.dataCompliance,
+                        );
+                      },
+                      title: Text(
+                        "Data Compliance & GDPR",
+                        style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color),
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: const Color(0xFF0284C7).withValues(alpha: 0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.security_rounded, color: Color(0xFF0284C7)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                    ),
                   ],
                 ),
               ),
