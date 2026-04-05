@@ -21,6 +21,11 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // 🚀 Automatically parses strings like "15" or "15 / 30" to animate the leading number!
+    final match = RegExp(r'^(\d+)(.*)$').firstMatch(count.trim());
+    final int? targetNumber = match != null ? int.tryParse(match.group(1)!) : null;
+    final String suffix = match != null ? match.group(2)! : '';
 
     return Semantics(
       button: onTap != null,
@@ -80,15 +85,31 @@ class StatCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          count,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                            height: 1.1,
+                        if (targetNumber != null)
+                          TweenAnimationBuilder<int>(
+                            tween: IntTween(begin: 0, end: targetNumber),
+                            duration: const Duration(milliseconds: 1500),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, _) => Text(
+                              '$value$suffix',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                height: 1.1,
+                              ),
+                            ),
+                          )
+                        else
+                          Text(
+                            count,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                              height: 1.1,
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 4),
                         Text(
                           title,
