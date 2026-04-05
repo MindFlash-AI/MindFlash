@@ -26,6 +26,7 @@ class ReviewScreenMobile extends StatelessWidget {
   final Function(bool) onFlip;
   final VoidCallback onCorrect;
   final VoidCallback onIncorrect;
+  final Function(Flashcard) onExplainRequested;
 
   const ReviewScreenMobile({
     super.key,
@@ -43,6 +44,7 @@ class ReviewScreenMobile extends StatelessWidget {
     required this.onFlip,
     required this.onCorrect,
     required this.onIncorrect,
+    required this.onExplainRequested,
   });
 
   @override
@@ -84,6 +86,7 @@ class ReviewScreenMobile extends StatelessWidget {
                   onFlip: onFlip,
                   onCorrect: onCorrect,
                   onIncorrect: onIncorrect,
+                  onExplainRequested: onExplainRequested,
                 ),
               ),
             ),

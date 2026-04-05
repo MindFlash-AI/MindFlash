@@ -49,6 +49,8 @@ class QuizMobile extends StatelessWidget {
   final int incorrectCount;
   final int remainingCount;
   final bool isFinishing;
+  final String overlayTitle;
+  final String overlaySubtitle;
   final BannerAd? bannerAd;
   final bool isBannerAdLoaded;
   final bool canPop;
@@ -57,6 +59,7 @@ class QuizMobile extends StatelessWidget {
   final VoidCallback onPreviousQuestion;
   final void Function(bool, dynamic) onPopInvoked;
   final VoidCallback onClose;
+  final Function(QuizQuestion, String?) onExplainRequested;
 
   const QuizMobile({
     super.key,
@@ -70,6 +73,8 @@ class QuizMobile extends StatelessWidget {
     required this.incorrectCount,
     required this.remainingCount,
     required this.isFinishing,
+    required this.overlayTitle,
+    required this.overlaySubtitle,
     required this.bannerAd,
     required this.isBannerAdLoaded,
     required this.canPop,
@@ -78,6 +83,7 @@ class QuizMobile extends StatelessWidget {
     required this.onPreviousQuestion,
     required this.onPopInvoked,
     required this.onClose,
+    required this.onExplainRequested,
   });
 
   final LinearGradient _brandGradient = const LinearGradient(
@@ -157,6 +163,19 @@ class QuizMobile extends StatelessWidget {
                             Expanded(flex: 4, child: _buildQuestionCard(context, currentQuestion, isDark)),
                             const SizedBox(height: 20),
                             Expanded(flex: 6, child: _buildOptionsList(context, currentQuestion, isDark)),
+                            
+                            if (hasAnsweredCurrent)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12.0),
+                                child: Center(
+                                  child: TextButton.icon(
+                                    onPressed: () => onExplainRequested(currentQuestion, selectedAnswerCurrent),
+                                    icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B4EFF), size: 18),
+                                    label: const Text("Ask AI Tutor to Explain", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold)),
+                                    style: TextButton.styleFrom(backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -188,9 +207,9 @@ class QuizMobile extends StatelessWidget {
                           children: [
                             const SizedBox(width: 60, height: 60, child: CircularProgressIndicator(color: Color(0xFF8B4EFF), strokeWidth: 4)),
                             const SizedBox(height: 24),
-                            Text("Calculating Score...", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Theme.of(context).textTheme.bodyLarge?.color, letterSpacing: -0.5)),
+                            Text(overlayTitle, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Theme.of(context).textTheme.bodyLarge?.color, letterSpacing: -0.5)),
                             const SizedBox(height: 12),
-                            Text("Wrapping up your quiz results.\nShowing an ad in the meantime ☕", textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: isDark ? Colors.white70 : Colors.grey.shade700, height: 1.4, fontWeight: FontWeight.w500)),
+                            Text(overlaySubtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: isDark ? Colors.white70 : Colors.grey.shade700, height: 1.4, fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),

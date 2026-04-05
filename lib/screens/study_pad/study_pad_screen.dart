@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../services/ad_helper.dart';
+import '../../services/pro_service.dart';
 
 import '../../models/note_model.dart';
 import '../../services/note_storage_service.dart';
@@ -45,6 +48,10 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   double _selectedWidth = 4.0;
   late String _noteId;
 
+  // AdMob Banner variables
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+
   // Drawing State
   List<DrawingStroke> _strokes = [];
   DrawingStroke? _currentStroke;
@@ -83,9 +90,30 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
       }
     }
 
+    _loadBannerAd();
+
     // Attach Debounced Auto-Save Listeners
     _docChangeSubscription = _controller.document.changes.listen((_) => _triggerAutoSave());
     _titleController.addListener(_triggerAutoSave);
+  }
+
+  void _loadBannerAd() {
+    // 🛡️ Ensure ads don't load on Web or for Pro subscribers
+    if (kIsWeb || ProService().isPro) return;
+    
+    _bannerAd = BannerAd(
+      adUnitId: AdHelper.bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) setState(() => _isBannerAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
   }
 
   void _triggerAutoSave() {
@@ -424,6 +452,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     _drawingNotifier.dispose();
     _hoverNotifier.dispose();
     _saveNotifier.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -508,6 +537,8 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             onUndo: _undo,
             onRedo: _redo,
             onBack: () => Navigator.pop(context),
+            bannerAd: _bannerAd,
+            isBannerAdLoaded: _isBannerAdLoaded,
           );
         }
       },

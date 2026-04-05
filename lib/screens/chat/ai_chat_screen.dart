@@ -48,8 +48,9 @@ class ChatMessage {
 
 class AIChatScreen extends StatefulWidget {
   final Deck deck;
+  final String? initialPrompt;
 
-  const AIChatScreen({super.key, required this.deck});
+  const AIChatScreen({super.key, required this.deck, this.initialPrompt});
 
   @override
   State<AIChatScreen> createState() => _AIChatScreenState();
@@ -68,6 +69,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   bool _isLoading = false;
   bool _isFetchingHistory = true;
+  bool _hasSentInitialPrompt = false;
 
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
@@ -126,6 +128,17 @@ class _AIChatScreenState extends State<AIChatScreen> {
         setState(() {
           _isFetchingHistory = false;
         });
+        
+        // 🚀 Micro-Unlock: Auto-send the contextual question if one was passed in
+        if (widget.initialPrompt != null && !_hasSentInitialPrompt) {
+          _hasSentInitialPrompt = true;
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              _messageController.text = widget.initialPrompt!;
+              _sendMessage();
+            }
+          });
+        }
       }
     }
   }

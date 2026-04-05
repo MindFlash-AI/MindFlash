@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
@@ -9,6 +10,7 @@ import '../../services/card_storage_service.dart';
 import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 import '../../services/srs_service.dart'; // SRS Math Engine
 import 'review_completion.dart';
+import '../chat/ai_chat_screen.dart'; // Import the AI Chat Screen
 
 import 'review_screen_mobile.dart';
 import 'review_screen_web.dart';
@@ -43,6 +45,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
 
+  // AdMob Interstitial variables
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
+  bool _isFinishing = false;
+  String _overlayTitle = "Saving Progress...";
+  String _overlaySubtitle = "Saving your mastery progress...\nShowing an ad in the meantime ☕";
+
   @override
   void initState() {
     super.initState();
@@ -59,13 +68,34 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     // Initialize Banner Ad
     _loadBannerAd();
+    _loadInterstitialAd();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _bannerAd?.dispose(); // Clean up AdMob resources
+    _interstitialAd?.dispose();
     super.dispose();
+  }
+
+  void _loadInterstitialAd() {
+    if (kIsWeb) return; // Skip loading ads on web to prevent crashes
+
+    InterstitialAd.load(
+      adUnitId: AdHelper.interstitialAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _interstitialAd = ad;
+          _isAdLoaded = true;
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('Failed to load an interstitial ad: ${err.message}');
+          _isAdLoaded = false;
+        },
+      ),
+    );
   }
 
   // Load Banner Ad
@@ -146,7 +176,54 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _nextCard();
   }
 
+  void _showInterstitialAdAndNavigate(VoidCallback onComplete) async {
+    if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
+      setState(() {
+        _isFinishing = true;
+      });
+      
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (!mounted) return;
+      
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          _isAdLoaded = false;
+          _interstitialAd = null;
+          _loadInterstitialAd();
+          if (mounted) {
+            setState(() => _isFinishing = false);
+            onComplete();
+          }
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          ad.dispose();
+          _isAdLoaded = false;
+          _interstitialAd = null;
+          _loadInterstitialAd();
+          if (mounted) {
+            setState(() => _isFinishing = false);
+            onComplete();
+          }
+        },
+      );
+
+      _interstitialAd!.show();
+    } else {
+      onComplete();
+    }
+  }
+
   void _finishReview() {
+    setState(() {
+      _overlayTitle = "Saving Progress...";
+      _overlaySubtitle = "Saving your mastery progress...\nShowing an ad in the meantime ☕";
+    });
+    _showInterstitialAdAndNavigate(_navigateToCompletion);
+  }
+
+  void _navigateToCompletion() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -169,6 +246,63 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _pageController.jumpToPage(0);
   }
 
+  void _handleExplainRequested(Flashcard card) async {
+    HapticFeedback.lightImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B4EFF)),
+            const SizedBox(width: 8),
+            Text("Ask AI Tutor", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+          ],
+        ),
+        content: Text(
+          "The AI Tutor will explain this flashcard in detail. This will consume 1 AI Energy.",
+          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B4EFF),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Ask AI", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed != true) return;
+
+    setState(() {
+      _overlayTitle = "Passing question to AI...";
+      _overlaySubtitle = "Watch an ad in the meantime ☕";
+    });
+
+    _showInterstitialAdAndNavigate(() {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AIChatScreen(
+            deck: widget.deck,
+            initialPrompt: "Can you explain this flashcard to me in simple terms?\n\nQuestion: ${card.question}\nAnswer: ${card.answer}",
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_reviewCards.isEmpty) return const Scaffold();
@@ -181,44 +315,98 @@ class _ReviewScreenState extends State<ReviewScreen> {
       ) : SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth >= 850;
+      child: Stack(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth >= 850;
 
-          if (isDesktop) {
-            return ReviewScreenWeb(
-              deck: widget.deck,
-              reviewCards: _reviewCards,
-              currentIndex: _currentIndex,
-              pageController: _pageController,
-              correctCount: _correctCount,
-              incorrectCount: _incorrectCount,
-              onExit: () => Navigator.pop(context),
-              onShuffle: _handleShuffle,
-              onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
-              onFlip: (isFront) => setState(() => _showAnswer = !isFront),
-              onCorrect: () => _handleAnswer(true),
-              onIncorrect: () => _handleAnswer(false),
-            );
-          } else {
-            return ReviewScreenMobile(
-              deck: widget.deck,
-              reviewCards: _reviewCards,
-              currentIndex: _currentIndex,
-              pageController: _pageController,
-              correctCount: _correctCount,
-              incorrectCount: _incorrectCount,
-              isBannerAdLoaded: _isBannerAdLoaded,
-              bannerAd: _bannerAd,
-              onExit: () => Navigator.pop(context),
-              onShuffle: _handleShuffle,
-              onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
-              onFlip: (isFront) => setState(() => _showAnswer = !isFront),
-              onCorrect: () => _handleAnswer(true),
-              onIncorrect: () => _handleAnswer(false),
-            );
-          }
-        },
+              if (isDesktop) {
+                return ReviewScreenWeb(
+                  deck: widget.deck,
+                  reviewCards: _reviewCards,
+                  currentIndex: _currentIndex,
+                  pageController: _pageController,
+                  correctCount: _correctCount,
+                  incorrectCount: _incorrectCount,
+                  onExit: () => Navigator.pop(context),
+                  onShuffle: _handleShuffle,
+                  onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
+                  onFlip: (isFront) => setState(() => _showAnswer = !isFront),
+                  onCorrect: () => _handleAnswer(true),
+                  onIncorrect: () => _handleAnswer(false),
+                  onExplainRequested: _handleExplainRequested,
+                );
+              } else {
+                return ReviewScreenMobile(
+                  deck: widget.deck,
+                  reviewCards: _reviewCards,
+                  currentIndex: _currentIndex,
+                  pageController: _pageController,
+                  correctCount: _correctCount,
+                  incorrectCount: _incorrectCount,
+                  isBannerAdLoaded: _isBannerAdLoaded,
+                  bannerAd: _bannerAd,
+                  onExit: () => Navigator.pop(context),
+                  onShuffle: _handleShuffle,
+                  onPageChanged: (index) => setState(() { _currentIndex = index; _showAnswer = false; }),
+                  onFlip: (isFront) => setState(() => _showAnswer = !isFront),
+                  onCorrect: () => _handleAnswer(true),
+                  onIncorrect: () => _handleAnswer(false),
+                  onExplainRequested: _handleExplainRequested,
+                );
+              }
+            },
+          ),
+          if (_isFinishing)
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                    child: Container(
+                      color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 60,
+                            height: 60,
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF8B4EFF),
+                              strokeWidth: 4,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            _overlayTitle,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _overlaySubtitle,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: isDark ? Colors.white70 : Colors.grey.shade700,
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

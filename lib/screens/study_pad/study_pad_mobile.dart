@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import '../../services/pro_service.dart';
 import 'widgets/drawing_overlay.dart';
 
 class StudyPadMobile extends StatelessWidget {
@@ -37,6 +40,8 @@ class StudyPadMobile extends StatelessWidget {
   final VoidCallback onGenerateWithAI;
   final VoidCallback onOpenNotes;
   final VoidCallback onBack;
+  final BannerAd? bannerAd;
+  final bool isBannerAdLoaded;
 
   const StudyPadMobile({
     super.key,
@@ -73,6 +78,8 @@ class StudyPadMobile extends StatelessWidget {
     required this.onGenerateWithAI,
     required this.onOpenNotes,
     required this.onBack,
+    required this.bannerAd,
+    required this.isBannerAdLoaded,
   });
 
   @override
@@ -341,6 +348,19 @@ class StudyPadMobile extends StatelessWidget {
               ],
             ),
           ),
+          
+          // 🛡️ HCI: The banner ad strictly anchored below the canvas and locked to a 50px height
+          if (!kIsWeb && !ProService().isPro)
+            SafeArea(
+              top: false,
+              child: SizedBox(
+                height: 50,
+                width: double.infinity,
+                child: (isBannerAdLoaded && bannerAd != null)
+                    ? AdWidget(ad: bannerAd!)
+                    : const SizedBox.shrink(),
+              ),
+            ),
         ],
       ),
       // Floating Actions for Drawing

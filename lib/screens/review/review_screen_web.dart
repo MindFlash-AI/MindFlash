@@ -22,6 +22,7 @@ class ReviewScreenWeb extends StatelessWidget {
   final Function(bool) onFlip;
   final VoidCallback onCorrect;
   final VoidCallback onIncorrect;
+  final Function(Flashcard) onExplainRequested;
 
   const ReviewScreenWeb({
     super.key,
@@ -37,6 +38,7 @@ class ReviewScreenWeb extends StatelessWidget {
     required this.onFlip,
     required this.onCorrect,
     required this.onIncorrect,
+    required this.onExplainRequested,
   });
 
   Future<void> _showShuffleConfirmation(BuildContext context) async {
@@ -263,6 +265,7 @@ class ReviewScreenWeb extends StatelessWidget {
                           onFlip: onFlip,
                           onCorrect: onCorrect,
                           onIncorrect: onIncorrect,
+                          onExplainRequested: onExplainRequested,
                         ),
                       ),
                     ),

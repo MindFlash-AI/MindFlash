@@ -12,6 +12,7 @@ class FlashcardStackView extends StatefulWidget {
   final Function(bool) onFlip;
   final VoidCallback onCorrect;
   final VoidCallback onIncorrect;
+  final Function(Flashcard) onExplainRequested;
 
   const FlashcardStackView({
     super.key,
@@ -22,6 +23,7 @@ class FlashcardStackView extends StatefulWidget {
     required this.onFlip,
     required this.onCorrect,
     required this.onIncorrect,
+    required this.onExplainRequested,
   });
 
   @override
@@ -193,6 +195,21 @@ class _FlashcardStackViewState extends State<FlashcardStackView> with SingleTick
                       ),
                     ),
                     const Spacer(),
+                    
+                    if (!isFront) ...[
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () => widget.onExplainRequested(card),
+                          icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B4EFF), size: 18),
+                          label: const Text("Ask AI Tutor", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     
                     // Dynamic bottom layout based on which side is showing
                     isFront

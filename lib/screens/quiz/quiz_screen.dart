@@ -9,6 +9,8 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../models/quiz_question_model.dart';
 import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 import '../../services/pro_service.dart'; // Required to check Pro status for the banner
+import '../../services/deck_storage_service.dart'; // Required to fetch the deck
+import '../chat/ai_chat_screen.dart'; // Required to open the AI Chat
 import 'quiz_mobile.dart';
 import 'quiz_web.dart';
 
@@ -46,6 +48,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
   bool _canPop = false;
   bool _isFinishing = false; // Controls the loading overlay
+  String _overlayTitle = "Calculating Score...";
+  String _overlaySubtitle = "Wrapping up your quiz results.\nShowing an ad in the meantime ☕";
 
   final LinearGradient _brandGradient = const LinearGradient(
     colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -109,22 +113,6 @@ class _QuizScreenState extends State<QuizScreen> {
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              if (mounted) {
-                setState(() => _isFinishing = false);
-                _showResultsDialog(); // Show results after ad is dismissed
-              }
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              ad.dispose();
-              if (mounted) {
-                setState(() => _isFinishing = false);
-                _showResultsDialog(); // Show results even if ad fails to display
-              }
-            },
-          );
           _interstitialAd = ad;
           _isAdLoaded = true;
         },
@@ -234,6 +222,117 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
+  void _showInterstitialAdAndNavigate(VoidCallback onComplete) async {
+    if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
+      setState(() {
+        _isFinishing = true;
+      });
+      
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (!mounted) return;
+      
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          _isAdLoaded = false;
+          _interstitialAd = null;
+          _loadInterstitialAd(); // Pre-load the next ad
+          if (mounted) {
+            setState(() => _isFinishing = false);
+            onComplete();
+          }
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          ad.dispose();
+          _isAdLoaded = false;
+          _interstitialAd = null;
+          _loadInterstitialAd();
+          if (mounted) {
+            setState(() => _isFinishing = false);
+            onComplete();
+          }
+        },
+      );
+
+      _interstitialAd!.show();
+    } else {
+      onComplete();
+    }
+  }
+
+  void _handleExplainRequested(QuizQuestion question, String? selectedAnswer) async {
+    HapticFeedback.lightImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B4EFF)),
+            const SizedBox(width: 8),
+            Text("Ask AI Tutor", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+          ],
+        ),
+        content: Text(
+          "The AI Tutor will explain this question and its answer in detail. This will consume 1 AI Energy.",
+          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B4EFF),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Ask AI", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed != true) return;
+
+    try {
+      // We need to fetch the full Deck object to pass to the Chat screen
+      final decks = await DeckStorageService().getDecks();
+      final deck = decks.firstWhere((d) => d.id == widget.deckId);
+      
+      if (!mounted) return;
+      
+      String prompt = "Can you explain this quiz question to me?\n\nQuestion: ${question.question}\nCorrect Answer: ${question.correctAnswer}";
+      if (selectedAnswer != null && selectedAnswer != question.correctAnswer) {
+        prompt = "I got this quiz question wrong. I guessed '$selectedAnswer', but the correct answer is '${question.correctAnswer}'. Can you explain why?\n\nQuestion: ${question.question}";
+      }
+      
+      setState(() {
+        _overlayTitle = "Passing question to AI...";
+        _overlaySubtitle = "Watch an ad in the meantime ☕";
+      });
+
+      _showInterstitialAdAndNavigate(() {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AIChatScreen(
+              deck: deck,
+              initialPrompt: prompt,
+            ),
+          ),
+        );
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error launching AI Tutor.")));
+    }
+  }
+
   Future<bool> _onWillPop() async {
     // Flush immediately so progress is saved before the screen is popped.
     _saveDebounce?.cancel();
@@ -310,24 +409,13 @@ class _QuizScreenState extends State<QuizScreen> {
   void _showResults() async {
     setState(() {
       _canPop = true;
+      _overlayTitle = "Calculating Score...";
+      _overlaySubtitle = "Wrapping up your quiz results.\nShowing an ad in the meantime ☕";
     });
     await _clearProgress();
     if (!mounted) return;
 
-    if (!kIsWeb && _isAdLoaded && _interstitialAd != null) {
-      setState(() {
-        _isFinishing = true; // Show the blurred overlay
-      });
-      
-      // Delay for 1.5 seconds to let the user read the overlay text
-      await Future.delayed(const Duration(milliseconds: 1500));
-      
-      if (!mounted) return;
-      _interstitialAd!.show();
-      _isAdLoaded = false;
-    } else {
-      _showResultsDialog();
-    }
+    _showInterstitialAdAndNavigate(_showResultsDialog);
   }
 
   void _showResultsDialog() {
@@ -687,12 +775,15 @@ class _QuizScreenState extends State<QuizScreen> {
             incorrectCount: _incorrectCount,
             remainingCount: _remainingCount,
             isFinishing: _isFinishing,
+            overlayTitle: _overlayTitle,
+            overlaySubtitle: _overlaySubtitle,
             canPop: _canPop,
             onCheckAnswer: _checkAnswer,
             onNextQuestion: _nextQuestion,
             onPreviousQuestion: _previousQuestion,
             onPopInvoked: _handlePopInvoked,
             onClose: _handleClose,
+            onExplainRequested: _handleExplainRequested,
           );
         } else {
           return QuizMobile(
@@ -706,6 +797,8 @@ class _QuizScreenState extends State<QuizScreen> {
             incorrectCount: _incorrectCount,
             remainingCount: _remainingCount,
             isFinishing: _isFinishing,
+            overlayTitle: _overlayTitle,
+            overlaySubtitle: _overlaySubtitle,
             bannerAd: _bannerAd,
             isBannerAdLoaded: _isBannerAdLoaded,
             canPop: _canPop,
@@ -714,6 +807,7 @@ class _QuizScreenState extends State<QuizScreen> {
             onPreviousQuestion: _previousQuestion,
             onPopInvoked: _handlePopInvoked,
             onClose: _handleClose,
+            onExplainRequested: _handleExplainRequested,
           );
         }
       },

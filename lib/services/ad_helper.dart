@@ -75,4 +75,27 @@ class AdHelper {
     }
     throw UnsupportedError('Unsupported platform');
   }
+
+  static String get nativeAdUnitId {
+    // Guarded: Pro users do not see native ads
+    if (ProService().isPro) return '';
+    
+    if (kIsWeb) return '';
+    
+    if (_useTestAds) {
+      if (Platform.isAndroid) {
+        return 'ca-app-pub-3940256099942544/2247696110'; // Google Test Native Advanced (Android)
+      } else if (Platform.isIOS) {
+        return 'ca-app-pub-3940256099942544/3986624511'; // Google Test Native Advanced (iOS)
+      }
+    } else {
+      // ⚠️ REPLACE WITH YOUR REAL ADMOB NATIVE IDs HERE
+      if (Platform.isAndroid) {
+        return '<YOUR_ANDROID_NATIVE_AD_UNIT_ID>';
+      } else if (Platform.isIOS) {
+        return '<YOUR_IOS_NATIVE_AD_UNIT_ID>';
+      }
+    }
+    throw UnsupportedError('Unsupported platform');
+  }
 }

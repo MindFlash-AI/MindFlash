@@ -45,12 +45,15 @@ class QuizWeb extends StatelessWidget {
   final int incorrectCount;
   final int remainingCount;
   final bool isFinishing;
+  final String overlayTitle;
+  final String overlaySubtitle;
   final bool canPop;
   final Function(String) onCheckAnswer;
   final VoidCallback onNextQuestion;
   final VoidCallback onPreviousQuestion;
   final void Function(bool, dynamic) onPopInvoked;
   final VoidCallback onClose;
+  final Function(QuizQuestion, String?) onExplainRequested;
 
   const QuizWeb({
     super.key,
@@ -64,12 +67,15 @@ class QuizWeb extends StatelessWidget {
     required this.incorrectCount,
     required this.remainingCount,
     required this.isFinishing,
+    required this.overlayTitle,
+    required this.overlaySubtitle,
     required this.canPop,
     required this.onCheckAnswer,
     required this.onNextQuestion,
     required this.onPreviousQuestion,
     required this.onPopInvoked,
     required this.onClose,
+    required this.onExplainRequested,
   });
 
   final LinearGradient _brandGradient = const LinearGradient(
@@ -151,6 +157,19 @@ class QuizWeb extends StatelessWidget {
                             Expanded(flex: 4, child: _buildQuestionCard(context, currentQuestion, isDark)),
                             const SizedBox(height: 20),
                             Expanded(flex: 6, child: _buildOptionsList(context, currentQuestion, isDark)),
+                            
+                            if (hasAnsweredCurrent)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12.0),
+                                child: Center(
+                                  child: TextButton.icon(
+                                    onPressed: () => onExplainRequested(currentQuestion, selectedAnswerCurrent),
+                                    icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B4EFF), size: 18),
+                                    label: const Text("Ask AI Tutor to Explain", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold)),
+                                    style: TextButton.styleFrom(backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),

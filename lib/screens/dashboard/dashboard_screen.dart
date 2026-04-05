@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; 
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../constants/constants.dart';
 import '../../models/deck_model.dart';
@@ -12,6 +14,8 @@ import '../../services/card_storage_service.dart'; // 🛡️ Added Card Storage
 import '../../services/ai_service.dart';
 import '../../services/energy_service.dart';
 import '../../services/note_storage_service.dart';
+import '../../services/ad_helper.dart'; 
+import '../../services/pro_service.dart'; 
 import '../../services/secure_cache_service.dart';
 
 import '../../widgets/stat_card.dart';
@@ -51,6 +55,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _pulseController;
   SortOption _currentSort = SortOption.nameAsc;
 
+  NativeAd? _nativeAd;
+  bool _isNativeAdLoaded = false;
+  bool _isNativeAdLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,9 +70,58 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load the Native ad here so we have access to the active Theme.of(context) to style it
+    if (!_isNativeAdLoading && _nativeAd == null) {
+      _isNativeAdLoading = true;
+      _loadNativeAd();
+    }
+  }
+
+  @override
   void dispose() {
     _pulseController.dispose();
+    _nativeAd?.dispose();
     super.dispose();
+  }
+
+  void _loadNativeAd() {
+    if (kIsWeb || ProService().isPro) return;
+
+    final adUnitId = AdHelper.nativeAdUnitId;
+    if (adUnitId.isEmpty) return;
+
+    _nativeAd = NativeAd(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      listener: NativeAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) setState(() => _isNativeAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          debugPrint('NativeAd failed to load: $error');
+        },
+      ),
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.small, // Small template perfectly matches your 140px card height!
+        mainBackgroundColor: Theme.of(context).cardColor,
+        cornerRadius: 16.0,
+        callToActionTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.white,
+          backgroundColor: const Color(0xFF8B4EFF),
+          style: NativeTemplateFontStyle.bold,
+          size: 14.0,
+        ),
+        primaryTextStyle: NativeTemplateTextStyle(
+          textColor: Theme.of(context).textTheme.bodyLarge?.color,
+          backgroundColor: Colors.transparent,
+          style: NativeTemplateFontStyle.bold,
+          size: 16.0,
+        ),
+      ),
+    )..load();
   }
 
   void _applySort() {
@@ -584,23 +641,20 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           );
         } else {
-          // 📱 HCI Layout Improvement: Hero + Split Grid Layout
-          // Eliminates the need to swipe (carousel) while keeping vertical height minimal and visually structured.
-          return Padding(
+          // 📱 HCI Layout Improvement: Horizontally scrollable minimal stat cards.
+          // Drastically reduces vertical screen space taken by the dashboard overview!
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
+            clipBehavior: Clip.none, // Prevents shadows from clipping
+            child: Row(
               children: [
-                // Hero Stat: AI Energy (Highly dynamic/actionable)
-                SizedBox(height: 100, width: double.infinity, child: statCards[2]),
-                const SizedBox(height: 12),
-                // Split Stats: Decks & Cards (Content metrics)
-                Row(
-                  children: [
-                    Expanded(child: SizedBox(height: 100, child: statCards[0])),
-                    const SizedBox(width: 12),
-                    Expanded(child: SizedBox(height: 100, child: statCards[1])),
-                  ],
-                ),
+                statCards[2], // AI Energy first since it's highly dynamic
+                const SizedBox(width: 12),
+                statCards[0], // Decks
+                const SizedBox(width: 12),
+                statCards[1], // Cards
               ],
             ),
           );
@@ -914,10 +968,28 @@ class _DashboardScreenState extends State<DashboardScreen>
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
             ),
-            itemCount: _decks.length,
+            itemCount: _decks.length + (_isNativeAdLoaded ? 1 : 0),
             itemBuilder: (context, index) {
-              final deck = _decks[index];
-              final int delayMultiplier = index.clamp(0, 10); 
+              // 🛡️ HCI: Place the ad consistently at index 2 (the 3rd item), or at the end if they have fewer than 2 decks.
+              final int adIndex = _decks.length >= 2 ? 2 : _decks.length;
+
+              if (_isNativeAdLoaded && index == adIndex) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color.fromARGB(255, 224, 224, 224), width: 2),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06), blurRadius: 20, offset: const Offset(0, 16))],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: AdWidget(ad: _nativeAd!),
+                );
+              }
+
+              // Shift the deck index down if it appears after the ad
+              final int deckIndex = (_isNativeAdLoaded && index > adIndex) ? index - 1 : index;
+              final deck = _decks[deckIndex];
+              final int delayMultiplier = deckIndex.clamp(0, 10); 
               
               return TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),

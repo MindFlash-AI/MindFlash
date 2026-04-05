@@ -300,6 +300,9 @@ class AIService {
         if (details.contains('503') || details.contains('high demand')) {
           return 'The AI is a little overwhelmed with students right now! 🎓 Please take a deep breath and try again in a few moments.';
         }
+        if (details.toLowerCase().contains('quota') || details.contains('429') || details.toLowerCase().contains('exhausted')) {
+          return 'Our AI Tutor has been studying too hard today and reached its daily limit! 😴 Please check back tomorrow when it\'s fully rested.';
+        }
         final error = decoded['error']?.toString();
         if (error != null) return 'Oops, our servers had a tiny hiccup! 🛠️ Please try that again.\nError: $error';
         if (details.isNotEmpty) return 'Oops, our servers had a tiny hiccup! 🛠️ Please try that again.\nDetails: $details';
