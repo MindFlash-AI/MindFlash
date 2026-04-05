@@ -145,7 +145,7 @@ class _DeckSettingsScreenState extends State<DeckSettingsScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.orange.withOpacity(0.2) : Colors.orange.shade50,
+              backgroundColor: isDark ? Colors.orange.withValues(alpha: 0.2) : Colors.orange.shade50,
               foregroundColor: Colors.orange,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -204,7 +204,7 @@ class _DeckSettingsScreenState extends State<DeckSettingsScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
+              backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50,
               foregroundColor: Colors.redAccent,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

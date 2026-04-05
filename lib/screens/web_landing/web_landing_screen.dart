@@ -126,9 +126,9 @@ class WebLandingScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF8B4EFF).withOpacity(0.1),
+            color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.3)),
+            border: Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3)),
           ),
           child: const Text(
             "✨ Now available on the Web for Pro Users",
@@ -170,7 +170,7 @@ class WebLandingScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.4),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -201,12 +201,12 @@ class WebLandingScreen extends StatelessWidget {
         color: isDark ? const Color(0xFF1E1437) : Colors.white,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8B4EFF).withOpacity(isDark ? 0.3 : 0.15),
+            color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.3 : 0.15),
             blurRadius: 80,
             offset: const Offset(0, 30),
           ),
@@ -224,7 +224,7 @@ class WebLandingScreen extends StatelessWidget {
                 width: 250, height: 250,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF8B4EFF).withOpacity(0.4),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
                 ),
                 child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
               ),
@@ -236,7 +236,7 @@ class WebLandingScreen extends StatelessWidget {
                 width: 250, height: 250,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFE841A1).withOpacity(0.3),
+                  color: const Color(0xFFE841A1).withValues(alpha: 0.3),
                 ),
                 child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
               ),
@@ -249,7 +249,7 @@ class WebLandingScreen extends StatelessWidget {
                 height: 60,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                  color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                   border: Border(bottom: BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
                 ),
                 child: Row(
@@ -263,7 +263,7 @@ class WebLandingScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+                        color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text("MindFlash Pro", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54)),
@@ -283,10 +283,10 @@ class WebLandingScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF2A1B3D) : Colors.white,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.5), width: 2),
+                    border: Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.5), width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 30,
                         offset: const Offset(0, 15),
                       )
@@ -302,7 +302,7 @@ class WebLandingScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF8B4EFF).withOpacity(0.2),
+                              color: const Color(0xFF8B4EFF).withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text("Biology 101", style: TextStyle(color: Color(0xFF8B4EFF), fontSize: 12, fontWeight: FontWeight.bold)),
@@ -333,8 +333,8 @@ class WebLandingScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF2A1B3D) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05)),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10))],
+                    border: Border.all(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 10))],
                   ),
                   child: const Row(
                     children: [
@@ -358,7 +358,7 @@ class WebLandingScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [Color(0xFF8B4EFF), Color(0xFF5B4FE6)]),
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+                    boxShadow: [BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
                   ),
                   child: const Row(
                     children: [
@@ -392,9 +392,9 @@ class WebLandingScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 40),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
+        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
         border: Border.symmetric(
-          horizontal: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05)),
+          horizontal: BorderSide(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
         ),
       ),
       child: Center(
@@ -498,7 +498,7 @@ class WebLandingScreen extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -508,7 +508,7 @@ class WebLandingScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF8B4EFF).withOpacity(0.1),
+              color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: const Color(0xFF8B4EFF), size: 28),
@@ -557,7 +557,7 @@ class WebLandingScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                   blurRadius: 40,
                   offset: const Offset(0, 20),
                 ),
@@ -581,7 +581,7 @@ class WebLandingScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: isMobile ? 16 : 20,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -594,7 +594,7 @@ class WebLandingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -713,14 +713,14 @@ class _HoverLiftState extends State<HoverLift> {
           boxShadow: _isHovered
               ? [
                   BoxShadow(
-                    color: const Color(0xFF8B4EFF).withOpacity(isDark ? 0.3 : 0.2),
+                    color: const Color(0xFF8B4EFF).withValues(alpha: isDark ? 0.3 : 0.2),
                     blurRadius: 30,
                     offset: const Offset(0, 15),
                   )
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   )

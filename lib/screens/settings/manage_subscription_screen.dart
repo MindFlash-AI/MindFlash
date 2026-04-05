@@ -170,14 +170,14 @@ class ManageSubscriptionScreen extends StatelessWidget {
         border: Border.all(
           color: isActive 
               ? (isPremium ? const Color(0xFFE841A1) : Colors.grey.shade400) 
-              : (isDark ? Colors.white.withOpacity(0.05) : Colors.transparent),
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.transparent),
           width: isActive ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: isPremium && isActive
-                ? const Color(0xFFE841A1).withOpacity(0.15)
-                : Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                ? const Color(0xFFE841A1).withValues(alpha: 0.15)
+                : Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -238,7 +238,7 @@ class ManageSubscriptionScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       alignment: Alignment.center,

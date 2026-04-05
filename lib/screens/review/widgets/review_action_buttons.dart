@@ -81,22 +81,22 @@ class ReviewActionButtons extends StatelessWidget {
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: color.withOpacity(isDark ? 0.15 : 0.1),
+            color: color.withValues(alpha: isDark ? 0.15 : 0.1),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: color.withOpacity(isDark ? 0.6 : 1.0), 
+              color: color.withValues(alpha: isDark ? 0.6 : 1.0), 
               width: 1.5,
             ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: isDark ? color : color.withOpacity(0.9), size: 20),
+              Icon(icon, color: isDark ? color : color.withValues(alpha: 0.9), size: 20),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
-                  color: isDark ? color : color.withOpacity(0.9),
+                  color: isDark ? color : color.withValues(alpha: 0.9),
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),

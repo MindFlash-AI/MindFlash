@@ -85,7 +85,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
           body: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
             child: Container(
-              color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
+              color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
               width: double.infinity,
               height: double.infinity,
               child: Column(
@@ -277,7 +277,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                 icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF8B4EFF)),
                 label: const Text("Upgrade to Pro", style: TextStyle(color: Color(0xFF8B4EFF), fontWeight: FontWeight.bold, fontSize: 15)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                  backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -428,7 +428,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -463,7 +463,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFE940A3).withOpacity(0.1),
+                                        color: const Color(0xFFE940A3).withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: const Icon(
@@ -664,7 +664,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
                                   ? null
                                   : [
                                       BoxShadow(
-                                        color: const Color(0xFFE940A3).withOpacity(0.3),
+                                        color: const Color(0xFFE940A3).withValues(alpha: 0.3),
                                         blurRadius: 8,
                                         offset: const Offset(0, 4),
                                       ),

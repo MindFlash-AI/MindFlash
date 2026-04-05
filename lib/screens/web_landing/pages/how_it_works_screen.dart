@@ -55,9 +55,9 @@ class HowItWorksScreen extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.3)),
+                                  border: Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3)),
                                 ),
                                 child: const Text(
                                   "SIMPLE & FAST",
@@ -144,7 +144,7 @@ class HowItWorksScreen extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
           width: 2,
         ),
       ),
@@ -163,7 +163,7 @@ class HowItWorksScreen extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.4),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 )
@@ -224,7 +224,7 @@ class HowItWorksScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                   blurRadius: 40,
                   offset: const Offset(0, 20),
                 ),
@@ -248,7 +248,7 @@ class HowItWorksScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: isMobile ? 16 : 20,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -261,7 +261,7 @@ class HowItWorksScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),

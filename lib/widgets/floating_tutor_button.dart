@@ -127,13 +127,13 @@ class _FloatingTutorButtonState extends State<FloatingTutorButton> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
                     ],
                     border: Border.all(
-                      color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                      color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                       width: 1.5,
                     )
                   ),

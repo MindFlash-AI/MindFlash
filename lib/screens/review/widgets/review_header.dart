@@ -102,7 +102,7 @@ class ReviewHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF23173D) : const Color(0xFF8B4EFF).withOpacity(0.1),
+              color: isDark ? const Color(0xFF23173D) : const Color(0xFF8B4EFF).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(

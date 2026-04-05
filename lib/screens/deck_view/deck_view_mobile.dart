@@ -120,12 +120,12 @@ class DeckViewMobile extends StatelessWidget {
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isDark ? Colors.white12 : const Color(0xFF8B4EFF).withOpacity(0.25),
+                  color: isDark ? Colors.white12 : const Color(0xFF8B4EFF).withValues(alpha: 0.25),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark ? Colors.black45 : const Color(0xFF8B4EFF).withOpacity(0.12),
+                    color: isDark ? Colors.black45 : const Color(0xFF8B4EFF).withValues(alpha: 0.12),
                     blurRadius: 24,
                     offset: const Offset(0, 8),
                   ),
@@ -141,7 +141,7 @@ class DeckViewMobile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                          color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -192,7 +192,7 @@ class DeckViewMobile extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.15) : const Color(0xFFF4F6FF),
+                            color: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.15) : const Color(0xFFF4F6FF),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -304,7 +304,7 @@ class DeckViewMobile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   if (canReview)
-                    BoxShadow(color: const Color(0xFF8B4EFF).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+                    BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8)),
                 ],
               ),
               child: Material(
@@ -337,9 +337,9 @@ class DeckViewMobile extends StatelessWidget {
               height: 52,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: isDark ? Colors.red.withOpacity(0.1) : Colors.red.shade50,
+                color: isDark ? Colors.red.withValues(alpha: 0.1) : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? Colors.red.withOpacity(0.3) : Colors.red.shade100, width: 1.5),
+                border: Border.all(color: isDark ? Colors.red.withValues(alpha: 0.3) : Colors.red.shade100, width: 1.5),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -475,13 +475,13 @@ class DeckViewMobile extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: selectedCards.contains(card.id) 
-                      ? (isDark ? Colors.blue.withOpacity(0.15) : Colors.blue.shade50) 
+                      ? (isDark ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50) 
                       : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(20),
                   border: selectedCards.contains(card.id)
                       ? Border.all(color: Colors.blueAccent, width: 2)
-                      : (isDark ? Border.all(color: Colors.white.withOpacity(0.05), width: 1) : null),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.04), blurRadius: 15, offset: const Offset(0, 5))],
+                      : (isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1) : null),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04), blurRadius: 15, offset: const Offset(0, 5))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,20 +497,20 @@ class DeckViewMobile extends StatelessWidget {
                                 Container(
                                   margin: const EdgeInsets.only(right: 8),
                                   padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(color: isDark ? Colors.red.withOpacity(0.15) : Colors.red.shade50, shape: BoxShape.circle),
+                                  decoration: BoxDecoration(color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50, shape: BoxShape.circle),
                                   child: Icon(Icons.flag_rounded, color: isDark ? Colors.redAccent.shade200 : Colors.redAccent, size: 14),
                                 )
                               else if (card.isMastered)
                                 Container(
                                   margin: const EdgeInsets.only(right: 8),
                                   padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(color: isDark ? Colors.green.withOpacity(0.15) : Colors.green.shade50, shape: BoxShape.circle),
+                                  decoration: BoxDecoration(color: isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50, shape: BoxShape.circle),
                                   child: Icon(Icons.check_rounded, color: isDark ? Colors.greenAccent.shade400 : Colors.green, size: 14),
                                 ),
                               Flexible(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.1) : const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(12)),
+                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.1) : const Color(0xFFF4F6FF), borderRadius: BorderRadius.circular(12)),
                                   child: Text(
                                     "#${index + 1}",
                                     style: TextStyle(color: isDark ? const Color(0xFFB48AFF) : const Color(0xFF5A6DFF), fontSize: 11, fontWeight: FontWeight.w900),
@@ -625,7 +625,7 @@ class _DeckActionsHeaderDelegate extends SliverPersistentHeaderDelegate {
                   decoration: BoxDecoration(
                     color: Theme.of(context).scaffoldBackgroundColor,
                     boxShadow: (overlapsContent || expandProgress > 0)
-                        ? [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.4 : 0.05), blurRadius: 10, offset: const Offset(0, 4))]
+                        ? [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.05), blurRadius: 10, offset: const Offset(0, 4))]
                         : [],
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),

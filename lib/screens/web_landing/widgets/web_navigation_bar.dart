@@ -53,15 +53,15 @@ class WebNavBar extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.75),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.08),
+                color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.08),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
@@ -92,7 +92,7 @@ class WebNavBar extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF8B4EFF).withOpacity(0.4),
+                                color: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               )
@@ -160,7 +160,7 @@ class WebNavBar extends StatelessWidget {
                                     backgroundColor: Theme.of(context).textTheme.bodyLarge?.color, 
                                     foregroundColor: Theme.of(context).scaffoldBackgroundColor, 
                                     elevation: 4,
-                                    shadowColor: Colors.black.withOpacity(0.2),
+                                    shadowColor: Colors.black.withValues(alpha: 0.2),
                                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16), 
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   ),
@@ -178,7 +178,7 @@ class WebNavBar extends StatelessWidget {
                               backgroundColor: Theme.of(context).textTheme.bodyLarge?.color, 
                               foregroundColor: Theme.of(context).scaffoldBackgroundColor, 
                               elevation: 4,
-                              shadowColor: Colors.black.withOpacity(0.2),
+                              shadowColor: Colors.black.withValues(alpha: 0.2),
                               // Smaller padding on mobile
                               padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 28, vertical: isMobile ? 14 : 18), 
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -213,7 +213,7 @@ class WebNavBar extends StatelessWidget {
                           offset: const Offset(0, 50),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05)),
+                            side: BorderSide(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
                           ),
                           color: Theme.of(context).cardColor,
                           elevation: 12,
@@ -283,9 +283,9 @@ class WebNavBar extends StatelessWidget {
   Widget _buildThemeToggle(BuildContext context, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
         shape: BoxShape.circle,
-        border: Border.all(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05)),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
       ),
       child: IconButton(
         icon: Icon(
@@ -331,7 +331,7 @@ class WebNavBar extends StatelessWidget {
       offset: const Offset(0, 60),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05)),
+        side: BorderSide(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
       ),
       color: Theme.of(context).cardColor,
       elevation: 10,

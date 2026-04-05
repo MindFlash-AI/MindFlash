@@ -37,7 +37,7 @@ class SessionStatsBar extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.4),
+                color: color.withValues(alpha: 0.4),
                 blurRadius: 4,
                 offset: const Offset(0, 1),
               ),

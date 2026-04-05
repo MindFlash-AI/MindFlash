@@ -84,7 +84,7 @@ class DashboardMobile extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                     boxShadow: isDark ? [] : [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 20,
                         offset: const Offset(0, -4),
                       )

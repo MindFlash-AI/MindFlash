@@ -245,7 +245,7 @@ class _QuizScreenState extends State<QuizScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? const Color(0xFF8B4EFF).withOpacity(0.2) : const Color(0xFF8B4EFF).withOpacity(0.1),
+              backgroundColor: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.2) : const Color(0xFF8B4EFF).withValues(alpha: 0.1),
               foregroundColor: isDark ? const Color(0xFFB48AFF) : const Color(0xFF8B4EFF),
               elevation: 0,
               shape: RoundedRectangleBorder(

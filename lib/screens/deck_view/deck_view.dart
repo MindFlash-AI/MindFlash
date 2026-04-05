@@ -190,7 +190,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50, foregroundColor: isDark ? Colors.redAccent : Colors.red, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: ElevatedButton.styleFrom(backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50, foregroundColor: isDark ? Colors.redAccent : Colors.red, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: const Text("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
@@ -258,7 +258,7 @@ class _DeckViewState extends State<DeckView> with TickerProviderStateMixin {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
+              backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50,
               foregroundColor: isDark ? Colors.redAccent : Colors.red,
               elevation: 0,
               shape: RoundedRectangleBorder(

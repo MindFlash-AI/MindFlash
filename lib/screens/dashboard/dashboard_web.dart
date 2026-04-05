@@ -31,7 +31,7 @@ class DashboardWeb extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF130E24) : Theme.of(context).cardColor,
                 border: Border(
-                  right: BorderSide(color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05)),
+                  right: BorderSide(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
                 ),
               ),
               child: sidebar,
@@ -84,12 +84,12 @@ class DashboardWeb extends StatelessWidget {
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(32),
                       border: Border.all(
-                        color: isDark ? Colors.white12 : Colors.black.withOpacity(0.03),
+                        color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.03),
                         width: 1.5,
                       ),
                       boxShadow: isDark ? [] : [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: Colors.black.withValues(alpha: 0.03),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
                         )

@@ -557,7 +557,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                            color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(10),
                                           ),
                                           child: const Icon(

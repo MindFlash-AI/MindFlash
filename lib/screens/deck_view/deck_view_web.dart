@@ -77,14 +77,14 @@ class DeckViewWeb extends StatelessWidget {
               color: Theme.of(context).cardColor,
               border: Border(
                 right: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(isDark ? 0.2 : 0.5),
+                  color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.2 : 0.5),
                   width: 1,
                 ),
               ),
               boxShadow: [
                 if (!isDark)
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 15,
                     offset: const Offset(3, 0),
                   ),
@@ -106,14 +106,14 @@ class DeckViewWeb extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.arrow_back_rounded, size: 20, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                            Icon(Icons.arrow_back_rounded, size: 20, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                             const SizedBox(width: 8),
                             Text(
                               "Library",
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -133,7 +133,7 @@ class DeckViewWeb extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -142,7 +142,7 @@ class DeckViewWeb extends StatelessWidget {
                       fontSize: 11,
                       letterSpacing: 1.2,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                     ),
                   ),
                 ),
@@ -164,10 +164,10 @@ class DeckViewWeb extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+                    color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
                     ),
                   ),
                   child: Row(
@@ -197,7 +197,7 @@ class DeckViewWeb extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 4,
-                      shadowColor: const Color(0xFF8B4EFF).withOpacity(0.4),
+                      shadowColor: const Color(0xFF8B4EFF).withValues(alpha: 0.4),
                     ),
                   ),
                 ).wrapWithGradient(_brandGradient, borderRadius: 14),
@@ -355,7 +355,7 @@ class DeckViewWeb extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Text(
                                     "Add some cards manually or use the AI Tutor.",
-                                    style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                                    style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                                   ),
                                   const SizedBox(height: 32),
                                   ElevatedButton.icon(
@@ -423,7 +423,7 @@ class DeckViewWeb extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -441,7 +441,7 @@ class DeckViewWeb extends StatelessWidget {
         boxShadow: [
           if (!isDark)
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -458,13 +458,13 @@ class DeckViewWeb extends StatelessWidget {
               if (card.isMastered)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                   child: const Text("MASTERED", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
                 )
               else if (card.isFlagged)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                   child: const Text("FLAGGED", style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
                 )
               else
@@ -517,7 +517,7 @@ class DeckViewWeb extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                 fontSize: 14,
                 height: 1.4,
               ),

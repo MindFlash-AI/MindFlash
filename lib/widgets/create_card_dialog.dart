@@ -191,7 +191,7 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                            color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                             blurRadius: 15,
                             offset: const Offset(0, 6),
                           ),

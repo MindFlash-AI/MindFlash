@@ -22,11 +22,11 @@ class GoogleSignInButton extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: isDark 
-            ? Border.all(color: Colors.white.withOpacity(0.1), width: 1.5) 
+            ? Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5) 
             : Border.all(color: Colors.grey.shade200, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),

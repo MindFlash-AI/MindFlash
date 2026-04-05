@@ -63,7 +63,7 @@ class LegalDocumentDialog extends StatelessWidget {
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                  backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                   foregroundColor: const Color(0xFF8B4EFF),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

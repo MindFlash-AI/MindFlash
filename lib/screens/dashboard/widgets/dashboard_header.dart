@@ -30,7 +30,7 @@ class _DashboardHeaderState extends State<DashboardHeader> {
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6A5AE0).withOpacity(0.3),
+                color: const Color(0xFF6A5AE0).withValues(alpha: 0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -94,7 +94,7 @@ class _DashboardHeaderState extends State<DashboardHeader> {
                 }
               },
               child: Material(
-                color: const Color(0xFF5B4FE6).withOpacity(0.08),
+                color: const Color(0xFF5B4FE6).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(24),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
@@ -162,7 +162,7 @@ class _DashboardHeaderState extends State<DashboardHeader> {
             
             // Settings Button
             Material(
-              color: const Color(0xFF5B4FE6).withOpacity(0.08),
+              color: const Color(0xFF5B4FE6).withValues(alpha: 0.08),
               shape: const CircleBorder(),
               clipBehavior: Clip.antiAlias,
               child: InkWell(

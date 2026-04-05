@@ -97,9 +97,9 @@ class _ProPaywallSheetState extends State<ProPaywallSheet> with SingleTickerProv
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.pinkStart.withOpacity(isDark ? 0.15 : 0.08),
+                color: AppColors.pinkStart.withValues(alpha: isDark ? 0.15 : 0.08),
                 boxShadow: [
-                  BoxShadow(color: AppColors.pinkStart.withOpacity(isDark ? 0.2 : 0.1), blurRadius: 100),
+                  BoxShadow(color: AppColors.pinkStart.withValues(alpha: isDark ? 0.2 : 0.1), blurRadius: 100),
                 ],
               ),
             ),
@@ -112,9 +112,9 @@ class _ProPaywallSheetState extends State<ProPaywallSheet> with SingleTickerProv
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.blueStart.withOpacity(isDark ? 0.15 : 0.08),
+                color: AppColors.blueStart.withValues(alpha: isDark ? 0.15 : 0.08),
                 boxShadow: [
-                  BoxShadow(color: AppColors.blueStart.withOpacity(isDark ? 0.2 : 0.1), blurRadius: 100),
+                  BoxShadow(color: AppColors.blueStart.withValues(alpha: isDark ? 0.2 : 0.1), blurRadius: 100),
                 ],
               ),
             ),
@@ -159,15 +159,15 @@ class _ProPaywallSheetState extends State<ProPaywallSheet> with SingleTickerProv
                                   shape: BoxShape.circle,
                                   gradient: LinearGradient(
                                     colors: [
-                                      AppColors.pinkStart.withOpacity(0.2),
-                                      AppColors.blueStart.withOpacity(0.2)
+                                      AppColors.pinkStart.withValues(alpha: 0.2),
+                                      AppColors.blueStart.withValues(alpha: 0.2)
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.pinkStart.withOpacity(0.3),
+                                      color: AppColors.pinkStart.withValues(alpha: 0.3),
                                       blurRadius: 30,
                                       spreadRadius: 5,
                                     ),
@@ -206,11 +206,11 @@ class _ProPaywallSheetState extends State<ProPaywallSheet> with SingleTickerProv
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor.withOpacity(isDark ? 0.5 : 1.0),
+                            color: Theme.of(context).cardColor.withValues(alpha: isDark ? 0.5 : 1.0),
                             borderRadius: BorderRadius.circular(24),
-                            border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                            border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
                             boxShadow: [
-                              if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 4)),
+                              if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 4)),
                             ],
                           ),
                           child: Column(
@@ -239,7 +239,7 @@ class _ProPaywallSheetState extends State<ProPaywallSheet> with SingleTickerProv
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Theme.of(context).scaffoldBackgroundColor.withOpacity(0.0),
+                        Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
                         Theme.of(context).scaffoldBackgroundColor,
                         Theme.of(context).scaffoldBackgroundColor,
                       ],
@@ -262,7 +262,7 @@ class _ProPaywallSheetState extends State<ProPaywallSheet> with SingleTickerProv
                               end: Alignment.centerRight,
                             ),
                             boxShadow: [
-                              BoxShadow(color: AppColors.pinkStart.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8)),
+                              BoxShadow(color: AppColors.pinkStart.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
                             ],
                           ),
                           child: ElevatedButton(
@@ -312,7 +312,7 @@ class _ProPaywallSheetState extends State<ProPaywallSheet> with SingleTickerProv
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.15), 
+            color: iconColor.withValues(alpha: 0.15), 
             borderRadius: BorderRadius.circular(16)
           ),
           child: Icon(icon, color: iconColor, size: 28),

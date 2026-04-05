@@ -58,7 +58,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         number: "1",
         title: "Create Your Deck",
         color: const Color(0xFF5B4FE6),
-        bgColor: isDark ? const Color(0xFF5B4FE6).withOpacity(0.15) : const Color(0xFFEEF0FF),
+        bgColor: isDark ? const Color(0xFF5B4FE6).withValues(alpha: 0.15) : const Color(0xFFEEF0FF),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -77,7 +77,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         number: "2",
         title: "Add Your Cards",
         color: const Color(0xFFD041E6),
-        bgColor: isDark ? const Color(0xFFD041E6).withOpacity(0.15) : const Color(0xFFFBF0FF),
+        bgColor: isDark ? const Color(0xFFD041E6).withValues(alpha: 0.15) : const Color(0xFFFBF0FF),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -96,7 +96,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         number: "3",
         title: "Generate with AI",
         color: const Color(0xFF2979FF),
-        bgColor: isDark ? const Color(0xFF2979FF).withOpacity(0.15) : const Color(0xFFEDF2FF),
+        bgColor: isDark ? const Color(0xFF2979FF).withValues(alpha: 0.15) : const Color(0xFFEDF2FF),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -145,7 +145,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         number: "4",
         title: "Study Your Cards",
         color: const Color(0xFF00C853),
-        bgColor: isDark ? const Color(0xFF00C853).withOpacity(0.15) : const Color(0xFFE8F5E9),
+        bgColor: isDark ? const Color(0xFF00C853).withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -194,7 +194,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
         number: "5",
         title: "Test Your Knowledge",
         color: const Color(0xFF5A6DFF),
-        bgColor: isDark ? const Color(0xFF5A6DFF).withOpacity(0.15) : const Color(0xFFF4F6FF),
+        bgColor: isDark ? const Color(0xFF5A6DFF).withValues(alpha: 0.15) : const Color(0xFFF4F6FF),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -387,7 +387,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                                   BoxShadow(
                                     color: const Color(
                                       0xFF8B4EFF,
-                                    ).withOpacity(0.3),
+                                    ).withValues(alpha: 0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
                                   ),
@@ -420,7 +420,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(
                                   0xFF8B4EFF,
-                                ).withOpacity(0.1),
+                                ).withValues(alpha: 0.1),
                                 foregroundColor: const Color(0xFF8B4EFF),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
@@ -489,7 +489,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.2),
+                  color: color.withValues(alpha: 0.2),
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 ),
@@ -526,7 +526,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
               border: Border.all(color: isDark ? Colors.white12 : bgColor, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -553,11 +553,11 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFFF9A825).withOpacity(0.15) : const Color(0xFFFFF9E6),
+              color: isDark ? const Color(0xFFF9A825).withValues(alpha: 0.15) : const Color(0xFFFFF9E6),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFBC02D).withOpacity(0.2),
+                  color: const Color(0xFFFBC02D).withValues(alpha: 0.2),
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 ),
@@ -591,7 +591,7 @@ class _HowItWorksDialogState extends State<HowItWorksDialog> {
               border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFFFF9E6), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),

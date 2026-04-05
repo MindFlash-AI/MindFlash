@@ -126,10 +126,10 @@ class DeckSettingsMobile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+          border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -168,10 +168,10 @@ class DeckSettingsMobile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1),
+          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.redAccent.withOpacity(isDark ? 0.1 : 0.05),
+              color: Colors.redAccent.withValues(alpha: isDark ? 0.1 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -198,7 +198,7 @@ class DeckSettingsMobile extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: cardCount > 0 ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                  color: cardCount > 0 ? Colors.orange.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.refresh_rounded, color: cardCount > 0 ? Colors.orange : Colors.grey),
@@ -224,7 +224,7 @@ class DeckSettingsMobile extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: cardCount > 0 ? Colors.redAccent.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                  color: cardCount > 0 ? Colors.redAccent.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.delete_sweep_rounded, color: cardCount > 0 ? Colors.redAccent : Colors.grey),

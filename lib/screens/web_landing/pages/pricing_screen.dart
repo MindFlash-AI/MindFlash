@@ -55,9 +55,9 @@ class PricingScreen extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: const Color(0xFF8B4EFF).withOpacity(0.3)),
+                                  border: Border.all(color: const Color(0xFF8B4EFF).withValues(alpha: 0.3)),
                                 ),
                                 child: const Text(
                                   "PRICING",
@@ -157,19 +157,19 @@ class PricingScreen extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(40),
         border: Border.all(
-          color: isPro ? const Color(0xFF8B4EFF) : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+          color: isPro ? const Color(0xFF8B4EFF) : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
           width: isPro ? 3 : 2,
         ),
         boxShadow: [
           if (isPro)
             BoxShadow(
-              color: const Color(0xFF8B4EFF).withOpacity(0.2),
+              color: const Color(0xFF8B4EFF).withValues(alpha: 0.2),
               blurRadius: 40,
               offset: const Offset(0, 20),
             )
           else
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
               blurRadius: 40,
               offset: const Offset(0, 20),
             ),
@@ -274,7 +274,7 @@ class PricingScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                  color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                   blurRadius: 40,
                   offset: const Offset(0, 20),
                 ),
@@ -298,7 +298,7 @@ class PricingScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: isMobile ? 16 : 20,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -311,7 +311,7 @@ class PricingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),

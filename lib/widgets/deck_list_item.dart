@@ -51,7 +51,7 @@ class DeckListItem extends StatelessWidget {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
+                backgroundColor: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50,
                 foregroundColor: isDark ? Colors.redAccent : Colors.red,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -111,13 +111,13 @@ class DeckListItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           // 🛡️ REBUILT: Added a clean grey border for light mode to make the cards crisp
           border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.05) : const Color.fromARGB(255, 224, 224, 224), 
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color.fromARGB(255, 224, 224, 224), 
             width: 2,
           ),
           // 🛡️ REBUILT: Enhanced the drop shadow for a deeper "floating" SaaS feel
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
               blurRadius: 20,
               offset: const Offset(0, 16),
             ),
@@ -144,7 +144,7 @@ class DeckListItem extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF8B4EFF).withOpacity(0.3),
+                          color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -195,7 +195,7 @@ class DeckListItem extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF8B4EFF).withOpacity(0.1) : const Color(0xFFF4F6FF),
+                            color: isDark ? const Color(0xFF8B4EFF).withValues(alpha: 0.1) : const Color(0xFFF4F6FF),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(

@@ -92,14 +92,14 @@ class ReviewScreenWeb extends StatelessWidget {
               color: Theme.of(context).cardColor,
               border: Border(
                 right: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(isDark ? 0.2 : 0.5),
+                  color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.2 : 0.5),
                   width: 1,
                 ),
               ),
               boxShadow: [
                 if (!isDark)
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 15,
                     offset: const Offset(3, 0),
                   ),
@@ -121,7 +121,7 @@ class ReviewScreenWeb extends StatelessWidget {
                         Icon(
                           Icons.arrow_back_rounded, 
                           size: 20, 
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -129,7 +129,7 @@ class ReviewScreenWeb extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -142,7 +142,7 @@ class ReviewScreenWeb extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B4EFF).withOpacity(0.1),
+                    color: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
@@ -173,10 +173,10 @@ class ReviewScreenWeb extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+                    color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
                     ),
                   ),
                   child: Column(

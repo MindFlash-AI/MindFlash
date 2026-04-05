@@ -138,10 +138,10 @@ class _DeckSettingsWebState extends State<DeckSettingsWeb> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+            border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -184,9 +184,9 @@ class _DeckSettingsWebState extends State<DeckSettingsWeb> {
         const SizedBox(height: 32),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.redAccent.withOpacity(0.05) : Colors.red.shade50,
+            color: isDark ? Colors.redAccent.withValues(alpha: 0.05) : Colors.red.shade50,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3), width: 1),
           ),
           child: Column(
             children: [
@@ -207,13 +207,13 @@ class _DeckSettingsWebState extends State<DeckSettingsWeb> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: widget.cardCount > 0 ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    color: widget.cardCount > 0 ? Colors.orange.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.refresh_rounded, color: widget.cardCount > 0 ? Colors.orange : Colors.grey),
                 ),
               ),
-              Divider(height: 1, indent: 72, color: Colors.redAccent.withOpacity(0.2)),
+              Divider(height: 1, indent: 72, color: Colors.redAccent.withValues(alpha: 0.2)),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 onTap: widget.cardCount > 0 ? widget.onDeleteAllCards : null,
@@ -231,7 +231,7 @@ class _DeckSettingsWebState extends State<DeckSettingsWeb> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: widget.cardCount > 0 ? Colors.redAccent.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    color: widget.cardCount > 0 ? Colors.redAccent.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.delete_sweep_rounded, color: widget.cardCount > 0 ? Colors.redAccent : Colors.grey),
@@ -291,7 +291,7 @@ class _DeckSettingsWebState extends State<DeckSettingsWeb> {
               ),
             ],
           ),
-          VerticalDivider(thickness: 1, width: 1, color: Theme.of(context).dividerColor.withOpacity(0.1)),
+          VerticalDivider(thickness: 1, width: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
           Expanded(
             child: Center(
               child: ConstrainedBox(

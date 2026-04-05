@@ -167,7 +167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B4EFF).withOpacity(0.1),
+                      backgroundColor: const Color(0xFF8B4EFF).withValues(alpha: 0.1),
                       foregroundColor: const Color(0xFF8B4EFF),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -297,8 +297,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : null,
                   color: isPro ? null : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: !isPro && isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  border: !isPro && isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                 ),
                 child: Material(
                   color: Colors.transparent,
@@ -313,7 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: isPro ? Colors.white.withOpacity(0.2) : const Color(0xFFE841A1).withOpacity(0.1),
+                              color: isPro ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFE841A1).withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(Icons.workspace_premium_rounded, size: 28, color: isPro ? Colors.white : const Color(0xFFE841A1)),
@@ -357,10 +357,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+                border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -386,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         CircleAvatar(
                           radius: 32,
-                          backgroundColor: const Color(0xFF5B4FE6).withOpacity(0.1),
+                          backgroundColor: const Color(0xFF5B4FE6).withValues(alpha: 0.1),
                           backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
                           child: user.photoURL == null
                               ? const Icon(Icons.person, size: 32, color: Color(0xFF8B4EFF))
@@ -450,10 +450,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -480,7 +480,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       secondary: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isDarkMode ? const Color(0xFF5B4FE6).withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                          color: isDarkMode ? const Color(0xFF5B4FE6).withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -513,7 +513,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   secondary: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00C853).withOpacity(0.15),
+                      color: const Color(0xFF00C853).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -552,10 +552,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -578,7 +578,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   secondary: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF9100).withOpacity(0.15),
+                      color: const Color(0xFFFF9100).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -606,7 +606,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2979FF).withOpacity(0.15),
+                      color: const Color(0xFF2979FF).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.sort_rounded, color: Color(0xFF2979FF)),
@@ -660,10 +660,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -693,7 +693,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00C853).withOpacity(0.15),
+                      color: const Color(0xFF00C853).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.school_rounded, color: Color(0xFF00C853)),
@@ -720,7 +720,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2979FF).withOpacity(0.15),
+                      color: const Color(0xFF2979FF).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.help_outline_rounded, color: Color(0xFF2979FF)),
@@ -762,7 +762,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF9100).withOpacity(0.15),
+                      color: const Color(0xFFFF9100).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.mail_outline_rounded, color: Color(0xFFFF9100)),
@@ -791,10 +791,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -834,7 +834,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFC107).withOpacity(0.15),
+                      color: const Color(0xFFFFC107).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
@@ -872,7 +872,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE841A1).withOpacity(0.15),
+                      color: const Color(0xFFE841A1).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.share_rounded, color: Color(0xFFE841A1)),
@@ -901,10 +901,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -929,7 +929,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.1),
+                  color: Colors.redAccent.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.logout_rounded, color: Colors.redAccent),
