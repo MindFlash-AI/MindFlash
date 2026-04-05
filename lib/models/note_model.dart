@@ -6,6 +6,7 @@ class Note {
   final String content;
   final String drawingData;
   final DateTime updatedAt;
+  final bool isTrashed;
 
   Note({
     required this.id,
@@ -13,6 +14,7 @@ class Note {
     required this.content,
     this.drawingData = '',
     required this.updatedAt,
+    this.isTrashed = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +24,7 @@ class Note {
       'content': content,
       'drawingData': drawingData,
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'isTrashed': isTrashed,
     };
   }
 
@@ -32,6 +35,7 @@ class Note {
       content: map['content'] ?? '',
       drawingData: map['drawingData'] ?? '',
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isTrashed: map['isTrashed'] == true,
     );
   }
 }

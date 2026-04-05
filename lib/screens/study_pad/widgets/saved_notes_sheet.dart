@@ -9,6 +9,7 @@ import '../../../models/note_model.dart';
 import '../../../services/note_storage_service.dart';
 import '../../../services/secure_cache_service.dart';
 import '../study_pad_screen.dart';
+import '../trash_bin_screen.dart';
 
 class SavedNotesSheet extends StatefulWidget {
   const SavedNotesSheet({super.key});
@@ -45,8 +46,12 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
               content: e['content']?.toString() ?? '',
               drawingData: e['drawingData']?.toString() ?? '',
               updatedAt: e['updatedAt'] != null ? DateTime.parse(e['updatedAt']) : DateTime.now(),
+              isTrashed: e['isTrashed'] == true,
             )).toList();
             
+            // 🛡️ Safely filter out any trashed notes from the local cache
+            cachedNotes.removeWhere((n) => n.isTrashed == true);
+
             if (mounted) {
               setState(() {
                 _notes = cachedNotes;
@@ -61,9 +66,12 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
     }
 
     final notes = await _noteStorage.getNotes();
+    
+    // 🛡️ Safely filter out trashed notes from the server response
+    final activeNotes = notes.where((note) => note.isTrashed != true).toList();
     if (mounted) {
       setState(() {
-        _notes = notes;
+        _notes = activeNotes;
         _isLoading = false;
       });
     }
@@ -83,6 +91,7 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
           'content': n.content,
           'drawingData': n.drawingData,
           'updatedAt': n.updatedAt.toIso8601String(),
+          'isTrashed': n.isTrashed,
         }).toList());
         final encryptedData = SecureCacheService.encrypt(encoded, uid);
         await prefs.setString('study_pad_notes_cache_$uid', encryptedData);
@@ -94,7 +103,7 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
 
   void _deleteNote(String id) async {
     setState(() => _notes.removeWhere((n) => n.id == id));
-    await _noteStorage.deleteNote(id);
+    await _noteStorage.moveToTrash(id);
     _updateCacheSilently(); // 🚀 OPTIMIZATION: Keep cache in sync so deleted notes don't reappear
   }
 
@@ -132,14 +141,14 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
         backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          "Delete Note?",
+          "Move to Trash?",
           style: TextStyle(
             color: Theme.of(context).textTheme.bodyLarge?.color, 
             fontWeight: FontWeight.bold
           ),
         ),
         content: Text(
-          "Are you sure you want to delete \"$title\"? This action cannot be undone.",
+          "Are you sure you want to move \"$title\" to the trash bin?",
           style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.5),
         ),
         actions: [
@@ -157,7 +166,7 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text("Move to Trash", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -270,9 +279,9 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
                                 value: 'delete',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                    Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 20),
                                     SizedBox(width: 12),
-                                    Text("Delete", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                    Text("Move to Trash", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                               ),
@@ -321,6 +330,17 @@ class _SavedNotesSheetState extends State<SavedNotesSheet> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+            tooltip: "Trash Bin",
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const TrashBinScreen()));
+              _loadNotes(); // Refresh active list upon return in case items were restored!
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewNote,

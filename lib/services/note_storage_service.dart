@@ -45,6 +45,51 @@ class NoteStorageService {
     await _notesCollection.doc(note.id).set(note.toMap());
   }
 
+  // 🗑️ SOFT DELETION: Move note to trash instead of permanent deletion
+  Future<void> moveToTrash(String noteId) async {
+    if (currentUserId == null) return;
+    await _notesCollection.doc(noteId).update({
+      'isTrashed': true,
+      'updatedAt': FieldValue.serverTimestamp(), // Reset timer for 30-day auto-delete
+    });
+  }
+
+  // ♻️ RESTORE: Recover a trashed note
+  Future<void> restoreNote(String noteId) async {
+    if (currentUserId == null) return;
+    await _notesCollection.doc(noteId).update({
+      'isTrashed': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // 🧹 AUTO-DELETE: Purge trashed notes older than 30 days
+  Future<void> cleanupOldTrashedNotes() async {
+    if (currentUserId == null) return;
+    try {
+      final snapshot = await _notesCollection.where('isTrashed', isEqualTo: true).get();
+      final now = DateTime.now();
+      final batch = _firestore.batch();
+      int deleteCount = 0;
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate() ?? now;
+        
+        if (now.difference(updatedAt).inDays >= 30) {
+          batch.delete(doc.reference);
+          deleteCount++;
+        }
+      }
+
+      if (deleteCount > 0) {
+        await batch.commit();
+      }
+    } catch (e) {
+      // Fail silently, it's a background cleanup task
+    }
+  }
+
   Future<void> deleteNote(String noteId) async {
     if (currentUserId == null) return;
     await _notesCollection.doc(noteId).delete();
