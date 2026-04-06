@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../services/ad_helper.dart';
 import '../../services/pro_service.dart';
 
@@ -28,7 +30,7 @@ class StudyPadScreen extends StatefulWidget {
   State<StudyPadScreen> createState() => _StudyPadScreenState();
 }
 
-class _StudyPadScreenState extends State<StudyPadScreen> {
+class _StudyPadScreenState extends State<StudyPadScreen> with WidgetsBindingObserver {
   late quill.QuillController _controller;
   final FocusNode _focusNode = FocusNode();
   
@@ -58,6 +60,10 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
 
+  // AdMob Rewarded Ad for PDF Export
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
+
   // Drawing State
   List<DrawingStroke> _strokes = [];
   DrawingStroke? _currentStroke;
@@ -71,6 +77,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _noteId = widget.initialNote?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
     _titleController.text = widget.initialNote?.title ?? "Untitled Note";
 
@@ -101,10 +108,22 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     }
 
     _loadBannerAd();
+    _loadRewardedAd();
 
     // Attach Debounced Auto-Save Listeners
     _docChangeSubscription = _controller.document.changes.listen((_) => _triggerAutoSave());
     _titleController.addListener(_triggerAutoSave);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 🛡️ DATA LOSS PREVENTION: If the user backgrounds the app, instantly save the note!
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (!_isDeleted && (_saveNotifier.value == "Saving..." || (_debounceTimer?.isActive ?? false))) {
+        _debounceTimer?.cancel();
+        _saveNote(); 
+      }
+    }
   }
 
   void _loadBannerAd() {
@@ -124,6 +143,24 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
         },
       ),
     )..load();
+  }
+
+  void _loadRewardedAd() {
+    if (kIsWeb || ProService().isPro) return;
+    RewardedAd.load(
+      adUnitId: AdHelper.rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedAd = ad;
+          _isRewardedAdLoaded = true;
+        },
+        onAdFailedToLoad: (err) {
+          _rewardedAd = null;
+          _isRewardedAdLoaded = false;
+        },
+      ),
+    );
   }
 
   void _triggerAutoSave() {
@@ -271,6 +308,115 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception:', '').trim()}')));
+    } finally {
+      if (mounted) setState(() => _isRecognizing = false);
+    }
+  }
+
+  // --- PDF Export Logic ---
+  void _handleExportNote() {
+    HapticFeedback.lightImpact();
+    final text = _controller.document.toPlainText().trim();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your note is empty! Write something first to export.')),
+      );
+      return;
+    }
+
+    if (kIsWeb || ProService().isPro) {
+      _generateAndSharePDF();
+    } else {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
+              const SizedBox(width: 8),
+              Text("Export to PDF", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+            ],
+          ),
+          content: Text(
+            "Exporting notes to PDF is a premium feature. You can watch a quick ad to unlock this export, or upgrade to MindFlash Pro for an ad-free experience!",
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _showRewardedAdForExport();
+              },
+              icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+              label: const Text("Watch Ad", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE940A3), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _showRewardedAdForExport() {
+    if (_isRewardedAdLoaded && _rewardedAd != null) {
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          _isRewardedAdLoaded = false;
+          _loadRewardedAd();
+        },
+        onAdFailedToShowFullScreenContent: (ad, err) {
+          ad.dispose();
+          _isRewardedAdLoaded = false;
+          _loadRewardedAd();
+          _generateAndSharePDF(); // Fallback graciously if ad fails to show
+        },
+      );
+      _rewardedAd!.show(onUserEarnedReward: (_, __) {
+        _generateAndSharePDF();
+      });
+    } else {
+      _loadRewardedAd();
+      _generateAndSharePDF(); // Be generous if ads aren't loaded yet
+    }
+  }
+
+  Future<void> _generateAndSharePDF() async {
+    setState(() => _isRecognizing = true);
+    try {
+      final pdf = PdfDocument();
+      final page = pdf.pages.add();
+      final Size pageSize = page.getClientSize();
+
+      final title = _titleController.text.trim().isEmpty ? "Untitled Note" : _titleController.text.trim();
+      final text = _controller.document.toPlainText();
+
+      final titleElement = PdfTextElement(text: title, font: PdfStandardFont(PdfFontFamily.helvetica, 24, style: PdfFontStyle.bold));
+      final titleResult = titleElement.draw(page: page, bounds: Rect.fromLTWH(0, 0, pageSize.width, pageSize.height));
+
+      final contentElement = PdfTextElement(text: text, font: PdfStandardFont(PdfFontFamily.helvetica, 12));
+      
+      // Automatically paginates if the text exceeds one page!
+      contentElement.draw(
+        page: page,
+        bounds: Rect.fromLTWH(0, (titleResult?.bounds.bottom ?? 0) + 20, pageSize.width, pageSize.height - ((titleResult?.bounds.bottom ?? 0) + 20)),
+        format: PdfLayoutFormat(layoutType: PdfLayoutType.paginate),
+      );
+
+      final List<int> bytes = await pdf.save();
+      pdf.dispose();
+
+      final xFile = XFile.fromData(Uint8List.fromList(bytes), mimeType: 'application/pdf', name: '$title.pdf');
+      await Share.shareXFiles([xFile], subject: "MindFlash Note: $title");
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to export PDF: $e")));
     } finally {
       if (mounted) setState(() => _isRecognizing = false);
     }
@@ -522,6 +668,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // 🛡️ BUG FIX: Prevent Data Loss. If a save was pending when the user hits back, 
     // execute it immediately before the controller is torn down!
     if (!_isDeleted && (_saveNotifier.value == "Saving..." || (_debounceTimer?.isActive ?? false))) {
@@ -542,6 +689,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
     _hoverNotifier.dispose();
     _saveNotifier.dispose();
     _bannerAd?.dispose();
+    _rewardedAd?.dispose();
     super.dispose();
   }
 
@@ -581,6 +729,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             onRecognizeText: _recognizeHandwriting,
             onGenerateWithAI: _generateDeckWithAI,
             onOpenNotes: _openSavedNotes,
+            onExportNote: _handleExportNote,
             selectedColor: _selectedColor,
             onColorSelected: (color) => setState(() => _selectedColor = color),
             selectedWidth: _selectedWidth,
@@ -618,6 +767,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> {
             onRecognizeText: _recognizeHandwriting,
             onGenerateWithAI: _generateDeckWithAI,
             onOpenNotes: _openSavedNotes,
+            onExportNote: _handleExportNote,
             selectedColor: _selectedColor,
             onColorSelected: (color) => setState(() => _selectedColor = color),
             selectedWidth: _selectedWidth,

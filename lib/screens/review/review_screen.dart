@@ -33,7 +33,7 @@ class ReviewScreen extends StatefulWidget {
   State<ReviewScreen> createState() => _ReviewScreenState();
 }
 
-class _ReviewScreenState extends State<ReviewScreen> {
+class _ReviewScreenState extends State<ReviewScreen> with WidgetsBindingObserver {
   final CardStorageService _cardStorageService = CardStorageService();
 
   late List<Flashcard> _reviewCards;
@@ -63,6 +63,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController(initialPage: 0);
     
     _reviewCards = List.from(widget.cards);
@@ -81,10 +82,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _bannerAd?.dispose(); // Clean up AdMob resources
     _interstitialAd?.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _savePendingUpdates(); // 🛡️ DATA LOSS PREVENTION
+    }
   }
 
   void _loadInterstitialAd() {

@@ -61,26 +61,25 @@ app.post('/refill-energy', requireAppCheck, requireAuth, async (req, res) => {
             
             // Check if our specific entitlement ID exists in the map
             const isPro = !!entitlements['MindFlash: AI Flashcards Pro'];
-            const MAX_ENERGY = isPro ? 30 : 15;
+            const REWARD_AMOUNT = isPro ? 30 : 15; // Generous but profitable reward for watching an ad!
 
             const doc = await transaction.get(energyRef);
             if (doc.exists) {
                 const currentEnergy = doc.data().energy || 0;
-                if (currentEnergy >= MAX_ENERGY) {
-                    throw new Error("ALREADY_HAS_MAX_ENERGY");
-                }
+                transaction.update(energyRef, { 
+                    energy: currentEnergy + REWARD_AMOUNT,
+                    lastResetDate: doc.data().lastResetDate || admin.firestore.FieldValue.serverTimestamp()
+                });
+            } else {
+                transaction.set(energyRef, { 
+                    energy: REWARD_AMOUNT,
+                    lastResetDate: admin.firestore.FieldValue.serverTimestamp() 
+                });
             }
-            transaction.set(energyRef, { 
-                energy: MAX_ENERGY,
-                lastResetDate: admin.firestore.FieldValue.serverTimestamp() 
-            }, { merge: true });
         });
 
-        res.status(200).json({ success: true, message: 'Energy refilled to maximum.' });
+        res.status(200).json({ success: true, message: 'Energy rewarded successfully.' });
     } catch (error) {
-        if (error.message === "ALREADY_HAS_MAX_ENERGY") {
-            return res.status(400).json({ error: 'Refill denied. Your energy is already full!' });
-        }
         console.error("Refill Error:", error);
         res.status(500).json({ error: 'Failed to refill energy' });
     }
@@ -107,7 +106,7 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
         
         // Check if our specific entitlement ID exists in the map
         isPro = !!entitlements['MindFlash: AI Flashcards Pro'];
-        const MAX_ENERGY = isPro ? 30 : 15;
+        const MAX_ENERGY = isPro ? 750 : 15;
 
         const energyDoc = await transaction.get(energyRef);
         
@@ -127,10 +126,24 @@ app.post('/generate-deck', requireAppCheck, requireAuth, async (req, res) => {
                 const lastReset = lastResetStamp.toDate();
                 const now = new Date();
                 
-                if (lastReset.getUTCFullYear() !== now.getUTCFullYear() ||
-                    lastReset.getUTCMonth() !== now.getUTCMonth() ||
-                    lastReset.getUTCDate() !== now.getUTCDate()) {
+                let shouldReset = false;
+                
+                if (isPro) {
+                    // Monthly reset for Pro users
+                    if (lastReset.getUTCFullYear() !== now.getUTCFullYear() ||
+                        lastReset.getUTCMonth() !== now.getUTCMonth()) {
+                        shouldReset = true;
+                    }
+                } else {
+                    // Daily reset for Free users
+                    if (lastReset.getUTCFullYear() !== now.getUTCFullYear() ||
+                        lastReset.getUTCMonth() !== now.getUTCMonth() ||
+                        lastReset.getUTCDate() !== now.getUTCDate()) {
+                        shouldReset = true;
+                    }
+                }
                     
+                if (shouldReset) {
                     currentEnergy = MAX_ENERGY;
                     transaction.update(energyRef, {
                         lastResetDate: admin.firestore.FieldValue.serverTimestamp()

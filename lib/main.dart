@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart';
 // 🛡️ ADDED: Required for Quill Localization
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart'; 
@@ -46,6 +47,17 @@ void main() async {
       await FirebaseAppCheck.instance.activate(
         providerWeb: ReCaptchaV3Provider(recaptchaKey),
       );
+    }
+    
+    // 🛡️ OFFLINE RELIABILITY: Explicitly enable offline data persistence for Web 
+    // so users don't lose access to their decks if their WiFi drops.
+    try {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+    } catch (e) {
+      debugPrint("Firestore Web Persistence Error: $e");
     }
   }
 

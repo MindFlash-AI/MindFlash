@@ -76,6 +76,26 @@ class AdHelper {
     throw UnsupportedError('Unsupported platform');
   }
 
+  static String get sponsoredMessageAdUnitId {
+    // specifically for Pro users hitting their 750 limit on mobile
+    if (kIsWeb) return '';
+    
+    if (_useTestAds) {
+      if (Platform.isAndroid) {
+        return 'ca-app-pub-3940256099942544/5224354917'; // Google Test Rewarded (Android)
+      } else if (Platform.isIOS) {
+        return 'ca-app-pub-3940256099942544/1712409664'; // Google Test Rewarded (iOS)
+      }
+    } else {
+      if (Platform.isAndroid) {
+        return '<YOUR_ANDROID_SPONSORED_MSG_AD_UNIT_ID>';
+      } else if (Platform.isIOS) {
+        return '<YOUR_IOS_SPONSORED_MSG_AD_UNIT_ID>';
+      }
+    }
+    throw UnsupportedError('Unsupported platform');
+  }
+
   static String get nativeAdUnitId {
     // Guarded: Pro users do not see native ads
     if (ProService().isPro) return '';

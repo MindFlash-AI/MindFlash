@@ -454,12 +454,18 @@ class WebNavBar extends StatelessWidget {
           child: CircleAvatar(
             radius: 20,
             backgroundColor: isDark ? Colors.white12 : Colors.black12,
-            backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
-            // 🛡️ RESILIENCE: Catch the 429 Error if Google rate-limits the avatar!
-            onBackgroundImageError: (exception, stackTrace) => debugPrint("Avatar rate limited: Falling back to icon."),
-            child: user.photoURL == null 
-              ? Icon(Icons.person_rounded, color: isDark ? Colors.white70 : Colors.black54)
-              : null,
+            child: user.photoURL != null
+                ? ClipOval(
+                    child: Image.network(
+                      user.photoURL!,
+                      fit: BoxFit.cover,
+                      width: 40,
+                      height: 40,
+                      gaplessPlayback: true,
+                      errorBuilder: (context, error, stackTrace) => Icon(Icons.person_rounded, color: isDark ? Colors.white70 : Colors.black54),
+                    ),
+                  )
+                : Icon(Icons.person_rounded, color: isDark ? Colors.white70 : Colors.black54),
           ),
         ),
       ),

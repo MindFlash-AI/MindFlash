@@ -85,144 +85,149 @@ class _CreateCardDialogState extends State<CreateCardDialog> {
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 5,
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white24 : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 650),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Add New Card",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            HapticFeedback.selectionClick();
-                            Navigator.of(context).pop();
-                          },
-                          icon: Container(
-                            padding: const EdgeInsets.all(4),
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 5,
+                            margin: const EdgeInsets.only(bottom: 24),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white12 : Colors.grey.shade100,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.close_rounded,
-                              color: isDark ? Colors.white54 : Colors.black54,
-                              size: 20,
+                              color: isDark ? Colors.white24 : Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
 
-                    _buildInputLabel(
-                      "Question (Front)",
-                      Icons.flip_to_front_rounded,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildTextFormField(
-                      controller: _questionController,
-                      focusNode: _questionFocus,
-                      hint: "e.g., It is everything visible on the screen",
-                      textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) =>
-                          FocusScope.of(context).requestFocus(_answerFocus),
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty
-                          ? 'Question is required'
-                          : null,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    _buildInputLabel(
-                      "Answer (Back)",
-                      Icons.flip_to_back_rounded,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildTextFormField(
-                      controller: _answerController,
-                      focusNode: _answerFocus,
-                      hint: "e.g., Widgets",
-                      maxLines: 4,
-                      minLines: 2,
-                      textInputAction: TextInputAction.newline,
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty
-                          ? 'Answer is required'
-                          : null,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    Container(
-                      width: double.infinity,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: _brandGradient,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        clipBehavior: Clip.antiAlias,
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          onTap: _createCard,
-                          child: const Center(
-                            child: Text(
-                              "Save Card",
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Add New Card",
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                HapticFeedback.selectionClick();
+                                Navigator.of(context).pop();
+                              },
+                              icon: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white12 : Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                              ),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  color: isDark ? Colors.white54 : Colors.black54,
+                                  size: 20,
+                                ),
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+
+                        _buildInputLabel(
+                          "Question (Front)",
+                          Icons.flip_to_front_rounded,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTextFormField(
+                          controller: _questionController,
+                          focusNode: _questionFocus,
+                          hint: "e.g., It is everything visible on the screen",
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) =>
+                              FocusScope.of(context).requestFocus(_answerFocus),
+                          validator: (value) =>
+                              value == null || value.trim().isEmpty
+                              ? 'Question is required'
+                              : null,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _buildInputLabel(
+                          "Answer (Back)",
+                          Icons.flip_to_back_rounded,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTextFormField(
+                          controller: _answerController,
+                          focusNode: _answerFocus,
+                          hint: "e.g., Widgets",
+                          maxLines: null, // 🛡️ RESPONSIVENESS: Allows the field to scale dynamically instead of overflowing
+                          minLines: 2,
+                          textInputAction: TextInputAction.newline,
+                          validator: (value) =>
+                              value == null || value.trim().isEmpty
+                              ? 'Answer is required'
+                              : null,
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: _brandGradient,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF8B4EFF).withValues(alpha: 0.3),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            clipBehavior: Clip.antiAlias,
+                            borderRadius: BorderRadius.circular(16),
+                            child: InkWell(
+                              onTap: _createCard,
+                              child: const Center(
+                                child: Text(
+                                  "Save Card",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
           ),
         ),
+      ),
       ),
     );
   }

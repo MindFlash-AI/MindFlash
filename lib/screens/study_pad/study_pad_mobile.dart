@@ -39,6 +39,7 @@ class StudyPadMobile extends StatelessWidget {
   final VoidCallback onRecognizeText;
   final VoidCallback onGenerateWithAI;
   final VoidCallback onOpenNotes;
+  final VoidCallback onExportNote;
   final VoidCallback onBack;
   final BannerAd? bannerAd;
   final bool isBannerAdLoaded;
@@ -78,6 +79,7 @@ class StudyPadMobile extends StatelessWidget {
     required this.onRecognizeText,
     required this.onGenerateWithAI,
     required this.onOpenNotes,
+    required this.onExportNote,
     required this.onBack,
     required this.bannerAd,
     required this.isBannerAdLoaded,
@@ -135,6 +137,11 @@ class StudyPadMobile extends StatelessWidget {
             icon: const Icon(Icons.folder_copy_rounded, color: Color(0xFF8B4EFF)),
             onPressed: onOpenNotes,
             tooltip: "My Notes",
+          ),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
+            onPressed: onExportNote,
+            tooltip: "Export to PDF",
           ),
           IconButton(
             icon: isRecognizing 

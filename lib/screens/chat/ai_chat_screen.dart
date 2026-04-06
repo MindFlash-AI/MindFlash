@@ -263,7 +263,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   void _loadRewardedAd() {
     if (kIsWeb) return;
     RewardedAd.load(
-      adUnitId: AdHelper.rewardedAdUnitId,
+      adUnitId: ProService().isPro ? AdHelper.sponsoredMessageAdUnitId : AdHelper.rewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
@@ -321,8 +321,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
         ),
         content: Text(
           isOutOfEnergy
-              ? "Your AI Tutor needs a quick breather! Your energy automatically resets every day at midnight.\n\nWant to skip the wait? Watch a short ad to fully recharge right now and keep studying!"
-              : "You currently have $currentEnergy energy left! You're all set to keep chatting with your AI Tutor.\n\nRemember, your energy automatically refills to full every day at midnight." + (!isFullEnergy ? "\n\nWant to top up to full right now?" : ""),
+              ? (ProService().isPro 
+                  ? "You've used your 750 monthly AI Tutor credits!\n\nWant to keep studying? Watch a quick sponsored message to get an instant +30 energy boost!"
+                  : "Your AI Tutor needs a quick breather! Your energy automatically resets every day at midnight.\n\nWant to skip the wait? Watch a short ad to recharge 15 energy right now!")
+              : "You currently have $currentEnergy energy left! You're all set to keep chatting with your AI Tutor.\n\nRemember, your energy automatically refills to full " + (ProService().isPro ? "every month." : "every day at midnight.") + (!isFullEnergy && !kIsWeb ? "\n\nWant to get a quick boost right now?" : ""),
           textAlign: TextAlign.center,
           style: TextStyle(height: 1.4, color: Theme.of(context).textTheme.bodyMedium?.color),
         ),

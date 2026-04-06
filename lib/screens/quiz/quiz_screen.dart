@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart'; // Required for AdMob
 import 'package:audioplayers/audioplayers.dart';
+import 'package:confetti/confetti.dart';
 import '../../models/quiz_question_model.dart';
 import '../../services/ad_helper.dart'; // AdHelper for Unit IDs
 import '../../services/pro_service.dart'; // Required to check Pro status for the banner
@@ -42,6 +43,9 @@ class _QuizScreenState extends State<QuizScreen> {
   // Audio Player for feedback sounds
   final AudioPlayer _audioPlayer = AudioPlayer();
 
+  // Confetti controller for perfect score
+  late ConfettiController _confettiController;
+
   bool _canPop = false;
   bool _isFinishing = false; // Controls the loading overlay
   String _overlayTitle = "Calculating Score...";
@@ -51,6 +55,7 @@ class _QuizScreenState extends State<QuizScreen> {
   void initState() {
     super.initState();
     _answers = List.filled(widget.quiz.length, null);
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _loadProgress();
     _loadInterstitialAd();
     _loadBannerAd(); // Safely load the banner ad for Free users
@@ -65,6 +70,7 @@ class _QuizScreenState extends State<QuizScreen> {
     _interstitialAd?.dispose();
     _bannerAd?.dispose();
     _audioPlayer.dispose();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -403,6 +409,16 @@ class _QuizScreenState extends State<QuizScreen> {
   void _showResultsDialog() {
     if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isPerfectScore = _correctCount == widget.quiz.length;
+    
+    if (isPerfectScore) {
+      _confettiController.play();
+      try {
+        _audioPlayer.play(AssetSource('sounds/correct.mp3')); // Plays victory sound
+      } catch (e) {
+        debugPrint("Audio playback error: $e");
+      }
+    }
     
     final LinearGradient brandGradient = const LinearGradient(
       colors: [Color(0xFF8B4EFF), Color(0xFFE841A1)],
@@ -417,66 +433,92 @@ class _QuizScreenState extends State<QuizScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
         elevation: 20,
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: brandGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))
-                  ],
-                ),
-                child: const Icon(
-                  Icons.emoji_events_rounded,
-                  color: Colors.white,
-                  size: 64,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Quiz Complete!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 28, letterSpacing: -0.5, color: Theme.of(context).textTheme.bodyLarge?.color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'You scored $_correctCount out of ${widget.quiz.length} correctly.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16, 
-                  color: isDark ? Colors.white70 : Colors.grey.shade700,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // close dialog
-                    Navigator.pop(context); // close screen
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B4EFF),
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: brandGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: const Color(0xFF8B4EFF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Colors.white,
+                      size: 64,
                     ),
                   ),
-                  child: const Text(
-                    'Return to Deck',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  const SizedBox(height: 24),
+                  Text(
+                    isPerfectScore ? 'Perfect Score! 🏆' : 'Quiz Complete!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 28, letterSpacing: -0.5, color: Theme.of(context).textTheme.bodyLarge?.color),
                   ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'You scored $_correctCount out of ${widget.quiz.length} correctly.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16, 
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // close dialog
+                        Navigator.pop(context); // close screen
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B4EFF),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Return to Deck',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isPerfectScore)
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConfettiWidget(
+                  confettiController: _confettiController,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  shouldLoop: false,
+                  emissionFrequency: 0.05,
+                  numberOfParticles: 30,
+                  maxBlastForce: 100,
+                  minBlastForce: 80,
+                  colors: const [
+                    Color(0xFF8B4EFF),
+                    Color(0xFFE841A1),
+                    Colors.amber,
+                    Colors.greenAccent,
+                    Colors.lightBlueAccent,
+                  ],
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

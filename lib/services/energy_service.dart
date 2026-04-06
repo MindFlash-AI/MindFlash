@@ -14,7 +14,7 @@ class EnergyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  int get maxEnergy => ProService().isPro ? 30 : 15;
+  int get maxEnergy => ProService().isPro ? 750 : 15;
 
   int _currentEnergy = 15;
   int get currentEnergy => _currentEnergy;

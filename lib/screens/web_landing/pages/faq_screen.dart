@@ -129,8 +129,8 @@ class FAQScreen extends StatelessWidget {
                             children: [
                               _AnimatedFAQItem(
                                 isDark: isDark, 
-                                question: "What is AI Energy?", 
-                                answer: "Energy powers our AI engine. Free users receive 15 daily energy credits, and Pro users receive 30. Generating a deck costs 3 energy, while chatting costs 1. Your balance completely resets every 24 hours at midnight! If you run out, you can always watch a quick ad to refill it instantly."
+                                question: "How does AI Energy reset?", 
+                                answer: "Energy powers our AI engine. Free users receive 15 daily energy credits, and Pro users receive 750 monthly credits. Generating a deck costs 3 energy, while chatting costs 1. Your energy resets at midnight UTC for daily plans, and at the start of each month UTC for monthly plans. If you run out, you can always watch a quick ad (mobile) or top-up (web) to get more!"
                               ),
                               const SizedBox(height: 20),
                               _AnimatedFAQItem(

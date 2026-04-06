@@ -209,10 +209,6 @@ class AboutUsScreen extends StatelessWidget {
     required String githubUrl,
     required String email,
   }) {
-    final ImageProvider imageProvider = imageUrl.startsWith('http') 
-        ? NetworkImage(imageUrl) 
-        : AssetImage(imageUrl) as ImageProvider;
-
     return HoverLift(
       child: Container(
         width: 320,
@@ -256,8 +252,12 @@ class AboutUsScreen extends StatelessWidget {
                     offset: const Offset(0, 10),
                   )
                 ],
-                image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
               ),
+          child: ClipOval(
+            child: imageUrl.startsWith('http')
+                ? Image.network(imageUrl, fit: BoxFit.cover, gaplessPlayback: true)
+                : Image.asset(imageUrl, fit: BoxFit.cover, gaplessPlayback: true),
+          ),
             ),
             const SizedBox(height: 24),
             

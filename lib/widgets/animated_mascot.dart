@@ -66,6 +66,7 @@ class _AnimatedMascotState extends State<AnimatedMascot> with SingleTickerProvid
             width: widget.size,
             height: widget.size,
             fit: BoxFit.contain,
+            gaplessPlayback: true, // 🛡️ OPTIMIZATION: Prevents flickering when the mascot changes state
             errorBuilder: (context, error, stackTrace) => Icon(
               widget.state == MascotState.sad ? Icons.battery_alert : Icons.smart_toy_rounded,
               size: widget.size * 0.8,

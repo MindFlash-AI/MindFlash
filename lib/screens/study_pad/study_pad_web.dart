@@ -41,6 +41,7 @@ class StudyPadWeb extends StatelessWidget {
   final VoidCallback onRecognizeText;
   final VoidCallback onGenerateWithAI;
   final VoidCallback onOpenNotes;
+  final VoidCallback onExportNote;
   final VoidCallback onBack;
   final VoidCallback? onDeleteNote;
 
@@ -82,6 +83,7 @@ class StudyPadWeb extends StatelessWidget {
     required this.onRecognizeText,
     required this.onGenerateWithAI,
     required this.onOpenNotes,
+    required this.onExportNote,
     required this.onBack,
     this.onDeleteNote,
   });
@@ -160,6 +162,12 @@ class StudyPadWeb extends StatelessWidget {
             label: const Text("My Notes", style: TextStyle(fontWeight: FontWeight.bold)),
             style: TextButton.styleFrom(foregroundColor: const Color(0xFF8B4EFF)),
             onPressed: onOpenNotes,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
+            tooltip: "Export to PDF",
+            onPressed: onExportNote,
           ),
           const SizedBox(width: 12),
           ElevatedButton.icon(
