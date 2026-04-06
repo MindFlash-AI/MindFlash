@@ -2,32 +2,29 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 🛡️ Added for HapticFeedback
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 import '../../../constants/constants.dart'; // 🛡️ Added to access themeNotifier
-import '../pages/about_us_screen.dart'; 
-import '../pages/features_screen.dart';
-import '../pages/how_it_works_screen.dart';
-import '../pages/pricing_screen.dart';
-import '../pages/faq_screen.dart';
 
 class WebNavBar extends StatelessWidget {
   final VoidCallback onActionTap;
+  final String? activePage;
 
-  const WebNavBar({super.key, required this.onActionTap});
+  const WebNavBar({super.key, required this.onActionTap, this.activePage});
 
   // 🛡️ Helper to define navigation links cleanly
   List<Map<String, dynamic>> _getNavLinks(BuildContext context) {
     return [
-      {"title": "Features", "page": const FeaturesScreen()},
-      {"title": "How it Works", "page": const HowItWorksScreen()},
-      {"title": "Pricing", "page": const PricingScreen()},
-      {"title": "FAQ", "page": const FAQScreen()},
-      {"title": "About Us", "page": const AboutUsScreen()},
+      {"title": "Features", "path": "/features"},
+      {"title": "How it Works", "path": "/how-it-works"},
+      {"title": "Pricing", "path": "/pricing"},
+      {"title": "FAQ", "path": "/faq"},
+      {"title": "About Us", "path": "/about-us"},
     ];
   }
 
-  void _navigateTo(BuildContext context, Widget page) {
+  void _navigateTo(BuildContext context, String path) {
     HapticFeedback.lightImpact();
-    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+    context.go(path);
   }
 
   @override
@@ -76,7 +73,7 @@ class WebNavBar extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      context.go('/');
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -129,7 +126,8 @@ class WebNavBar extends StatelessWidget {
                         context, 
                         link["title"] as String, 
                         isDark, 
-                        onTap: () => _navigateTo(context, link["page"] as Widget)
+                        isActive: activePage == link["title"],
+                        onTap: () => _navigateTo(context, link["path"] as String)
                       ),
                     )).toList(),
                   ),
@@ -223,7 +221,7 @@ class WebNavBar extends StatelessWidget {
                               onActionTap();
                             } else {
                               final link = navLinks.firstWhere((element) => element["title"] == value);
-                              _navigateTo(context, link["page"] as Widget);
+                              _navigateTo(context, link["path"] as String);
                             }
                           },
                           itemBuilder: (context) {
@@ -303,16 +301,17 @@ class WebNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavLink(BuildContext context, String title, bool isDark, {VoidCallback? onTap}) {
+  Widget _buildNavLink(BuildContext context, String title, bool isDark, {VoidCallback? onTap, bool isActive = false}) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          foregroundColor: isDark ? Colors.white70 : Colors.black87,
-          textStyle: const TextStyle(
+          foregroundColor: isActive ? const Color(0xFF8B4EFF) : (isDark ? Colors.white70 : Colors.black87),
+          backgroundColor: isActive ? const Color(0xFF8B4EFF).withValues(alpha: 0.1) : Colors.transparent,
+          textStyle: TextStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w600,
+            fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: 0.2,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -382,7 +381,7 @@ class WebNavBar extends StatelessWidget {
           if (shouldSignOut == true) {
             await FirebaseAuth.instance.signOut();
             if (context.mounted) {
-              Navigator.of(context).popUntil((route) => route.isFirst);
+                context.go('/');
             }
           }
         }

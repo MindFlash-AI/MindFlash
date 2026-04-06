@@ -19,7 +19,8 @@ class FeaturesScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Container(
+      body: SelectionArea(
+        child: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
@@ -157,9 +158,10 @@ class FeaturesScreen extends StatelessWidget {
             // --- Sticky Navbar ---
             Positioned(
               top: 0, left: 0, right: 0,
-              child: WebNavBar(onActionTap: () => _launchWebApp(context)),
+              child: WebNavBar(activePage: "Features", onActionTap: () => _launchWebApp(context)),
             ),
           ],
+        ),
         ),
       ),
     );

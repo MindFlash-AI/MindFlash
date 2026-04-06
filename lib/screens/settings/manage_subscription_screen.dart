@@ -115,7 +115,7 @@ class ManageSubscriptionScreen extends StatelessWidget {
                 isActive: isPro,
                 isPremium: true,
                 features: [
-                  "30 Daily AI Energy",
+                  "750 Monthly AI Energy",
                   "Advanced AI Tutor features",
                   "Completely Ad-Free studying",
                   "Priority support",

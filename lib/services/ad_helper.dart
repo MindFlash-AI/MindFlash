@@ -9,113 +9,103 @@ class AdHelper {
   // ----------------------------------------------------------------------
   static const bool _useTestAds = true;
 
-  static String get bannerAdUnitId {
-    // Guarded: Pro users do not see banner ads
-    if (ProService().isPro) return '';
-    
-    if (kIsWeb) return ''; // Ads are currently disabled on web for stability
-    
-    if (_useTestAds) {
-      if (Platform.isAndroid) {
-        return 'ca-app-pub-3940256099942544/6300978111'; // Google Test Banner (Android)
-      } else if (Platform.isIOS) {
-        return 'ca-app-pub-3940256099942544/2934735716'; // Google Test Banner (iOS)
-      }
-    } else {
-      // ⚠️ REPLACE WITH YOUR REAL ADMOB BANNER IDs HERE
-      if (Platform.isAndroid) {
-        return '<YOUR_ANDROID_BANNER_AD_UNIT_ID>';
-      } else if (Platform.isIOS) {
-        return '<YOUR_IOS_BANNER_AD_UNIT_ID>';
-      }
-    }
-    throw UnsupportedError('Unsupported platform');
+  // ======================================================================
+  // BANNER ADS
+  // ======================================================================
+
+  static String get studyPadBannerAdUnitId {
+    if (ProService().isPro || kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/6300978111' : 'ca-app-pub-3940256099942544/2934735716';
+    return Platform.isAndroid ? '<YOUR_ANDROID_STUDY_PAD_BANNER_ID>' : '<YOUR_IOS_STUDY_PAD_BANNER_ID>';
   }
 
-  static String get interstitialAdUnitId {
-    // Guarded: Pro users do not see interstitial ads
-    if (ProService().isPro) return '';
-    
-    if (kIsWeb) return '';
-    
-    if (_useTestAds) {
-      if (Platform.isAndroid) {
-        return 'ca-app-pub-3940256099942544/1033173712'; // Google Test Interstitial (Android)
-      } else if (Platform.isIOS) {
-        return 'ca-app-pub-3940256099942544/4411468910'; // Google Test Interstitial (iOS)
-      }
-    } else {
-      // ⚠️ REPLACE WITH YOUR REAL ADMOB INTERSTITIAL IDs HERE
-      if (Platform.isAndroid) {
-        return '<YOUR_ANDROID_INTERSTITIAL_AD_UNIT_ID>';
-      } else if (Platform.isIOS) {
-        return '<YOUR_IOS_INTERSTITIAL_AD_UNIT_ID>';
-      }
-    }
-    throw UnsupportedError('Unsupported platform');
+  static String get chatBannerAdUnitId {
+    if (ProService().isPro || kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/6300978111' : 'ca-app-pub-3940256099942544/2934735716';
+    return Platform.isAndroid ? '<YOUR_ANDROID_CHAT_BANNER_ID>' : '<YOUR_IOS_CHAT_BANNER_ID>';
   }
 
-  static String get rewardedAdUnitId {
-    // NOT GUARDED: Pro users still need rewarded ads to replenish their 30 energy
-    if (kIsWeb) return '';
-    
-    if (_useTestAds) {
-      if (Platform.isAndroid) {
-        return 'ca-app-pub-3940256099942544/5224354917'; // Google Test Rewarded (Android)
-      } else if (Platform.isIOS) {
-        return 'ca-app-pub-3940256099942544/1712409664'; // Google Test Rewarded (iOS)
-      }
-    } else {
-      // ⚠️ REPLACE WITH YOUR REAL ADMOB REWARDED IDs HERE
-      if (Platform.isAndroid) {
-        return '<YOUR_ANDROID_REWARDED_AD_UNIT_ID>';
-      } else if (Platform.isIOS) {
-        return '<YOUR_IOS_REWARDED_AD_UNIT_ID>';
-      }
-    }
-    throw UnsupportedError('Unsupported platform');
+  static String get quizBannerAdUnitId {
+    if (ProService().isPro || kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/6300978111' : 'ca-app-pub-3940256099942544/2934735716';
+    return Platform.isAndroid ? '<YOUR_ANDROID_QUIZ_BANNER_ID>' : '<YOUR_IOS_QUIZ_BANNER_ID>';
   }
 
-  static String get sponsoredMessageAdUnitId {
-    // specifically for Pro users hitting their 750 limit on mobile
-    if (kIsWeb) return '';
-    
-    if (_useTestAds) {
-      if (Platform.isAndroid) {
-        return 'ca-app-pub-3940256099942544/5224354917'; // Google Test Rewarded (Android)
-      } else if (Platform.isIOS) {
-        return 'ca-app-pub-3940256099942544/1712409664'; // Google Test Rewarded (iOS)
-      }
-    } else {
-      if (Platform.isAndroid) {
-        return '<YOUR_ANDROID_SPONSORED_MSG_AD_UNIT_ID>';
-      } else if (Platform.isIOS) {
-        return '<YOUR_IOS_SPONSORED_MSG_AD_UNIT_ID>';
-      }
-    }
-    throw UnsupportedError('Unsupported platform');
+  static String get reviewBannerAdUnitId {
+    if (ProService().isPro || kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/6300978111' : 'ca-app-pub-3940256099942544/2934735716';
+    return Platform.isAndroid ? '<YOUR_ANDROID_REVIEW_BANNER_ID>' : '<YOUR_IOS_REVIEW_BANNER_ID>';
   }
 
-  static String get nativeAdUnitId {
-    // Guarded: Pro users do not see native ads
-    if (ProService().isPro) return '';
-    
+  // ======================================================================
+  // INTERSTITIAL ADS
+  // ======================================================================
+
+  static String get quizInterstitialAdUnitId {
+    if (ProService().isPro || kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/1033173712' : 'ca-app-pub-3940256099942544/4411468910';
+    return Platform.isAndroid ? '<YOUR_ANDROID_QUIZ_INTERSTITIAL_ID>' : '<YOUR_IOS_QUIZ_INTERSTITIAL_ID>';
+  }
+
+  static String get reviewInterstitialAdUnitId {
+    if (ProService().isPro || kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/1033173712' : 'ca-app-pub-3940256099942544/4411468910';
+    return Platform.isAndroid ? '<YOUR_ANDROID_REVIEW_INTERSTITIAL_ID>' : '<YOUR_IOS_REVIEW_INTERSTITIAL_ID>';
+  }
+
+  // ======================================================================
+  // REWARDED ADS
+  // ======================================================================
+
+  static String get studyPadExportRewardedAdUnitId {
     if (kIsWeb) return '';
-    
-    if (_useTestAds) {
-      if (Platform.isAndroid) {
-        return 'ca-app-pub-3940256099942544/2247696110'; // Google Test Native Advanced (Android)
-      } else if (Platform.isIOS) {
-        return 'ca-app-pub-3940256099942544/3986624511'; // Google Test Native Advanced (iOS)
-      }
-    } else {
-      // ⚠️ REPLACE WITH YOUR REAL ADMOB NATIVE IDs HERE
-      if (Platform.isAndroid) {
-        return '<YOUR_ANDROID_NATIVE_AD_UNIT_ID>';
-      } else if (Platform.isIOS) {
-        return '<YOUR_IOS_NATIVE_AD_UNIT_ID>';
-      }
-    }
-    throw UnsupportedError('Unsupported platform');
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-3940256099942544/1712409664';
+    return Platform.isAndroid ? '<YOUR_ANDROID_STUDY_PAD_EXPORT_REWARDED_ID>' : '<YOUR_IOS_STUDY_PAD_EXPORT_REWARDED_ID>';
+  }
+
+  static String get chatRefillRewardedAdUnitId {
+    if (kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-3940256099942544/1712409664';
+    return Platform.isAndroid ? '<YOUR_ANDROID_CHAT_REFILL_REWARDED_ID>' : '<YOUR_IOS_CHAT_REFILL_REWARDED_ID>';
+  }
+
+  static String get createDeckRefillRewardedAdUnitId {
+    if (kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-3940256099942544/1712409664';
+    return Platform.isAndroid ? '<YOUR_ANDROID_CREATE_DECK_REFILL_REWARDED_ID>' : '<YOUR_IOS_CREATE_DECK_REFILL_REWARDED_ID>';
+  }
+
+  static String get updateDeckRefillRewardedAdUnitId {
+    if (kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-3940256099942544/1712409664';
+    return Platform.isAndroid ? '<YOUR_ANDROID_UPDATE_DECK_REFILL_REWARDED_ID>' : '<YOUR_IOS_UPDATE_DECK_REFILL_REWARDED_ID>';
+  }
+
+  static String get chatSponsoredMessageAdUnitId {
+    if (kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-3940256099942544/1712409664';
+    return Platform.isAndroid ? '<YOUR_ANDROID_CHAT_SPONSORED_MSG_ID>' : '<YOUR_IOS_CHAT_SPONSORED_MSG_ID>';
+  }
+
+  static String get createDeckSponsoredMessageAdUnitId {
+    if (kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-3940256099942544/1712409664';
+    return Platform.isAndroid ? '<YOUR_ANDROID_CREATE_DECK_SPONSORED_MSG_ID>' : '<YOUR_IOS_CREATE_DECK_SPONSORED_MSG_ID>';
+  }
+
+  static String get updateDeckSponsoredMessageAdUnitId {
+    if (kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-3940256099942544/1712409664';
+    return Platform.isAndroid ? '<YOUR_ANDROID_UPDATE_DECK_SPONSORED_MSG_ID>' : '<YOUR_IOS_UPDATE_DECK_SPONSORED_MSG_ID>';
+  }
+
+  // ======================================================================
+  // NATIVE ADS
+  // ======================================================================
+
+  static String get dashboardNativeAdUnitId {
+    if (ProService().isPro || kIsWeb) return '';
+    if (_useTestAds) return Platform.isAndroid ? 'ca-app-pub-3940256099942544/2247696110' : 'ca-app-pub-3940256099942544/3986624511';
+    return Platform.isAndroid ? '<YOUR_ANDROID_DASHBOARD_NATIVE_ID>' : '<YOUR_IOS_DASHBOARD_NATIVE_ID>';
   }
 }

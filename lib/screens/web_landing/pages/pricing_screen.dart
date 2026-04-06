@@ -19,7 +19,8 @@ class PricingScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Container(
+      body: SelectionArea(
+        child: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
@@ -114,7 +115,7 @@ class PricingScreen extends StatelessWidget {
                               HoverLift(
                                 child: _buildPricingCard(context, isDark, "Pro", "\$2.49", "/ month", [
                                   "Desktop Web Access",
-                                  "30 AI Energy daily",
+                                  "750 AI Energy monthly",
                                   "Ad-free experience",
                                   "Priority support"
                                 ], true),
@@ -141,9 +142,10 @@ class PricingScreen extends StatelessWidget {
             // --- Sticky Navbar ---
             Positioned(
               top: 0, left: 0, right: 0,
-              child: WebNavBar(onActionTap: () => _launchWebApp(context)),
+              child: WebNavBar(activePage: "Pricing", onActionTap: () => _launchWebApp(context)),
             ),
           ],
+        ),
         ),
       ),
     );

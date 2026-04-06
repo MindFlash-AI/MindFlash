@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../services/auth_service.dart';
 import '../../../widgets/web_pro_gate.dart';
 import '../../dashboard/dashboard_screen.dart';
@@ -51,32 +52,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> with TickerProviderStat
     
     if (mounted) {
       if (user != null) {
-        // Success! Route them back to the WebLandingScreen with a premium transition
-        Navigator.pushAndRemoveUntil(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 600),
-            pageBuilder: (context, animation, secondaryAnimation) => const WebLandingScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              final slideAnimation = Tween<Offset>(
-                begin: const Offset(0.0, 0.05),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              ));
-
-              return SlideTransition(
-                position: slideAnimation,
-                child: FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-              );
-            },
-          ),
-          (route) => false,
-        );
+        // Success! Route them back to the WebLandingScreen
+        context.go('/');
       } else {
         setState(() => _isLoading = false);
         // Show error snackbar
@@ -94,14 +71,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> with TickerProviderStat
 
   // 🛡️ Safe back navigation logic
   void _safeNavigateBack() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    if (context.canPop()) {
+      context.pop();
     } else {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const WebLandingScreen()),
-        (route) => false,
-      );
+      context.go('/');
     }
   }
 

@@ -20,7 +20,8 @@ class AboutUsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Container(
+      body: SelectionArea(
+        child: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
@@ -67,10 +68,12 @@ class AboutUsScreen extends StatelessWidget {
             Positioned(
               top: 0, left: 0, right: 0,
               child: WebNavBar(
+                activePage: "About Us",
                 onActionTap: () => _launchWebApp(context),
               ),
             ),
           ],
+        ),
         ),
       ),
     );

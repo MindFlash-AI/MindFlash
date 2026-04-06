@@ -37,7 +37,7 @@ class NotificationService {
       iOS: iosSettings,
     );
 
-    await _notificationsPlugin.initialize(initSettings);
+    await _notificationsPlugin.initialize(settings: initSettings);
   }
 
   Future<void> scheduleDailyReminder() async {
@@ -61,13 +61,12 @@ class NotificationService {
     );
 
     await _notificationsPlugin.zonedSchedule(
-      0,
-      'Time to Study! 🧠',
-      'Keep your streak alive! Open MindFlash and review a few cards.',
-      _nextInstanceOfSevenPM(),
-      platformDetails,
+      id: 0,
+      title: 'Time to Study! 🧠',
+      body: 'Keep your streak alive! Open MindFlash and review a few cards.',
+      scheduledDate: _nextInstanceOfSevenPM(),
+      notificationDetails: platformDetails,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // 🛡️ BUG FIX: Prevents SecurityException crashes on Android 14+
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }

@@ -56,7 +56,7 @@ class _UpdateDeckAIDialogState extends State<UpdateDeckAIDialog> {
     if (kIsWeb) return; 
 
     RewardedAd.load(
-      adUnitId: AdHelper.rewardedAdUnitId,
+      adUnitId: ProService().isPro ? AdHelper.updateDeckSponsoredMessageAdUnitId : AdHelper.updateDeckRefillRewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {

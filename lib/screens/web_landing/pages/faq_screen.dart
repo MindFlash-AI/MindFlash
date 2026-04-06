@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/web_navigation_bar.dart'; 
 import '../widgets/web_footer.dart'; // 🛡️ Imported the global footer
@@ -20,7 +21,8 @@ class FAQScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Container(
+      body: SelectionArea(
+        child: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
@@ -136,7 +138,7 @@ class FAQScreen extends StatelessWidget {
                               _AnimatedFAQItem(
                                 isDark: isDark, 
                                 question: "What is the difference between Free and Pro?", 
-                                answer: "MindFlash Pro completely removes all advertisements, doubles your daily AI energy to 30, and unlocks this Desktop Web version for heavy-duty study sessions. It costs just \$1.00/month!"
+                                answer: "MindFlash Pro completely removes all advertisements, provides a massive allowance of 750 AI energy credits per month, and unlocks this Desktop Web version for heavy-duty study sessions. If you ever run out, you can instantly top-up your credits! It costs just \$1.00/month!"
                               ),
                               const SizedBox(height: 20),
                               _AnimatedFAQItem(
@@ -184,9 +186,10 @@ class FAQScreen extends StatelessWidget {
             // --- Sticky Navbar ---
             Positioned(
               top: 0, left: 0, right: 0,
-              child: WebNavBar(onActionTap: () => _launchWebApp(context)),
+              child: WebNavBar(activePage: "FAQ", onActionTap: () => _launchWebApp(context)),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -274,17 +277,9 @@ class FAQScreen extends StatelessWidget {
 
   void _launchWebApp(BuildContext context) {
     if (FirebaseAuth.instance.currentUser != null) {
-      Navigator.push(
-        context, 
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const WebProGate(child: DashboardScreen()),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        )
-      );
+      context.go('/dashboard');
     } else {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const WebLoginScreen()));
+      context.go('/login');
     }
   }
 }

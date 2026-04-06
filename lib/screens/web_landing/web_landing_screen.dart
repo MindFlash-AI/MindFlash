@@ -23,7 +23,8 @@ class WebLandingScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Container(
+      body: SelectionArea(
+        child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -89,6 +90,7 @@ class WebLandingScreen extends StatelessWidget {
             Positioned(
               top: 0, left: 0, right: 0,
               child: WebNavBar(
+                activePage: "Home",
                 onActionTap: () {
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null) {
@@ -103,6 +105,7 @@ class WebLandingScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

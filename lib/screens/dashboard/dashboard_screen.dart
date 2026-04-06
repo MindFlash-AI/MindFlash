@@ -24,6 +24,7 @@ import '../../widgets/update_deck_ai_dialog.dart';
 import '../../widgets/universal_sidebar.dart';
 import '../../widgets/dialogs/feedback_dialog.dart';
 import '../../widgets/web_pro_gate.dart';
+import '../../widgets/floating_tutor_button.dart'; // 🛡️ Import Walkthrough Mascot
 
 import '../deck_view/deck_view.dart';
 import '../study_pad/widgets/saved_notes_sheet.dart';
@@ -62,14 +63,27 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _isNativeAdLoaded = false;
   bool _isNativeAdLoading = false;
 
+  bool _showWalkthrough = false;
+
   @override
   void initState() {
     super.initState();
+    _checkWalkthroughStatus();
     _loadDecks();
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat();
+  }
+
+  Future<void> _checkWalkthroughStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeen = prefs.getBool('has_seen_walkthrough') ?? false;
+    if (!hasSeen && mounted) {
+      setState(() {
+        _showWalkthrough = true;
+      });
+    }
   }
 
   @override
@@ -91,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _loadNativeAd() {
     if (kIsWeb || ProService().isPro) return;
 
-    final adUnitId = AdHelper.nativeAdUnitId;
+    final adUnitId = AdHelper.dashboardNativeAdUnitId;
     if (adUnitId.isEmpty) return;
 
     _nativeAd = NativeAd(
@@ -593,7 +607,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                   .copyWith(statusBarColor: Colors.transparent)
               : SystemUiOverlayStyle.dark
                   .copyWith(statusBarColor: Colors.transparent),
-          child: LayoutBuilder(builder: (context, constraints) {
+          child: Stack(
+            children: [
+              LayoutBuilder(builder: (context, constraints) {
             final maxWidth = constraints.maxWidth;
             final isDesktop = maxWidth >= 850;
 
@@ -688,6 +704,25 @@ class _DashboardScreenState extends State<DashboardScreen>
               );
             }
           }),
+              if (_showWalkthrough)
+                Positioned(
+                  bottom: 40,
+                  right: 24,
+                  child: FloatingTutorButton(
+                    isWalkthrough: true,
+                    onWalkthroughComplete: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('has_seen_walkthrough', true);
+                      if (mounted) {
+                        setState(() {
+                          _showWalkthrough = false;
+                        });
+                      }
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

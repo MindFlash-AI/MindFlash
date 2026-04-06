@@ -114,7 +114,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     if (kIsWeb) return; 
 
     RewardedAd.load(
-      adUnitId: AdHelper.rewardedAdUnitId,
+      adUnitId: ProService().isPro ? AdHelper.createDeckSponsoredMessageAdUnitId : AdHelper.createDeckRefillRewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
@@ -134,7 +134,7 @@ class _CreateDeckAIDialogState extends State<CreateDeckAIDialog> {
     if (_isSubmitting || _isFileProcessing) return; // 🛡️ Strict lock
     
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'txt', 'jpg', 'jpeg', 'png'],
         withData: true, 

@@ -244,7 +244,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     if (kIsWeb || ProService().isPro) return;
     
     _bannerAd = BannerAd(
-      adUnitId: AdHelper.bannerAdUnitId,
+      adUnitId: AdHelper.chatBannerAdUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
@@ -263,7 +263,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   void _loadRewardedAd() {
     if (kIsWeb) return;
     RewardedAd.load(
-      adUnitId: ProService().isPro ? AdHelper.sponsoredMessageAdUnitId : AdHelper.rewardedAdUnitId,
+      adUnitId: ProService().isPro ? AdHelper.chatSponsoredMessageAdUnitId : AdHelper.chatRefillRewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {

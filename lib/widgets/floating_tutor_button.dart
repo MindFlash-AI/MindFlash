@@ -7,9 +7,16 @@ import '../screens/chat/ai_chat_screen.dart';
 import 'animated_mascot.dart';
 
 class FloatingTutorButton extends StatefulWidget {
-  final Deck deck;
+  final Deck? deck;
+  final bool isWalkthrough;
+  final VoidCallback? onWalkthroughComplete;
 
-  const FloatingTutorButton({super.key, required this.deck});
+  const FloatingTutorButton({
+    super.key, 
+    this.deck,
+    this.isWalkthrough = false,
+    this.onWalkthroughComplete,
+  });
 
   @override
   State<FloatingTutorButton> createState() => _FloatingTutorButtonState();
@@ -19,6 +26,7 @@ class _FloatingTutorButtonState extends State<FloatingTutorButton> {
   bool _showBubble = false;
   late String _greeting;
   Timer? _timer;
+  int _walkthroughIndex = 0;
 
   // A list of cute greetings the mascot can randomly say
   final List<String> _greetings = [
@@ -30,12 +38,21 @@ class _FloatingTutorButtonState extends State<FloatingTutorButton> {
     "Confused? Tap me!",
   ];
 
+  final List<String> _walkthroughSteps = [
+    "Welcome to MindFlash! 👋\nI'm your AI Tutor.",
+    "I can magically turn your notes into flashcards! ✨",
+    "Tap 'Generate with AI' below to begin. Happy studying! 🚀\n(Tap to close)"
+  ];
+
   @override
   void initState() {
     super.initState();
     
-    // Pick a random greeting
-    _greeting = _greetings[Random().nextInt(_greetings.length)];
+    if (widget.isWalkthrough) {
+      _greeting = _walkthroughSteps[0];
+    } else {
+      _greeting = _greetings[Random().nextInt(_greetings.length)];
+    }
     
     // Wait 1.5 seconds after the screen loads to pop the bubble up
     Future.delayed(const Duration(milliseconds: 1500), () {
@@ -46,14 +63,16 @@ class _FloatingTutorButtonState extends State<FloatingTutorButton> {
       }
     });
 
-    // Automatically hide the bubble after 8 seconds so it's not distracting
-    _timer = Timer(const Duration(seconds: 8), () {
-      if (mounted) {
-        setState(() {
-          _showBubble = false;
-        });
-      }
-    });
+    if (!widget.isWalkthrough) {
+      // Automatically hide the bubble after 8 seconds so it's not distracting
+      _timer = Timer(const Duration(seconds: 8), () {
+        if (mounted) {
+          setState(() {
+            _showBubble = false;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -75,20 +94,33 @@ class _FloatingTutorButtonState extends State<FloatingTutorButton> {
         onTap: () {
           HapticFeedback.lightImpact();
           
-          // Hide the bubble immediately if they tap the mascot or the bubble
+          if (widget.isWalkthrough) {
+            if (_walkthroughIndex < _walkthroughSteps.length - 1) {
+              setState(() {
+                _walkthroughIndex++;
+                _greeting = _walkthroughSteps[_walkthroughIndex];
+              });
+            } else {
+              setState(() => _showBubble = false);
+              widget.onWalkthroughComplete?.call();
+            }
+            return;
+          }
+
           setState(() {
             _showBubble = false;
           });
           
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AIChatScreen(deck: widget.deck),
-            ),
-          ).then((_) {
-            // 🛡️ BUG FIX: Forces the UI to refresh and fetch the synced energy state when returning!
-            if (mounted) setState(() {});
-          });
+          if (widget.deck != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AIChatScreen(deck: widget.deck!),
+              ),
+            ).then((_) {
+              if (mounted) setState(() {});
+            });
+          }
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -114,7 +146,7 @@ class _FloatingTutorButtonState extends State<FloatingTutorButton> {
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeOutBack, // Gives it a nice little spring effect
                 child: Container(
-                  // Changed to left: 8 since the bubble is now on the right of the mascot
+                  constraints: const BoxConstraints(maxWidth: 250),
                   margin: const EdgeInsets.only(left: 8, bottom: 35), 
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(

@@ -100,7 +100,7 @@ class _ReviewScreenState extends State<ReviewScreen> with WidgetsBindingObserver
     if (kIsWeb) return; // Skip loading ads on web to prevent crashes
 
     InterstitialAd.load(
-      adUnitId: AdHelper.interstitialAdUnitId,
+      adUnitId: AdHelper.reviewInterstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -120,7 +120,7 @@ class _ReviewScreenState extends State<ReviewScreen> with WidgetsBindingObserver
     if (kIsWeb) return; // Skip loading ads on web to prevent crashes
 
     _bannerAd = BannerAd(
-      adUnitId: AdHelper.bannerAdUnitId,
+      adUnitId: AdHelper.reviewBannerAdUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(

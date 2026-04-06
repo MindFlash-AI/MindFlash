@@ -131,7 +131,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> with WidgetsBindingObse
     if (kIsWeb || ProService().isPro) return;
     
     _bannerAd = BannerAd(
-      adUnitId: AdHelper.bannerAdUnitId,
+      adUnitId: AdHelper.studyPadBannerAdUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
@@ -148,7 +148,7 @@ class _StudyPadScreenState extends State<StudyPadScreen> with WidgetsBindingObse
   void _loadRewardedAd() {
     if (kIsWeb || ProService().isPro) return;
     RewardedAd.load(
-      adUnitId: AdHelper.rewardedAdUnitId,
+      adUnitId: AdHelper.studyPadExportRewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {

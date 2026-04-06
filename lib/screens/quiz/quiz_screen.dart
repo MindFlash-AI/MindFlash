@@ -78,7 +78,7 @@ class _QuizScreenState extends State<QuizScreen> {
     if (kIsWeb) return;
     if (ProService().isPro) return;
 
-    final adUnitId = AdHelper.bannerAdUnitId;
+    final adUnitId = AdHelper.quizBannerAdUnitId;
     if (adUnitId.isEmpty) return;
 
     _bannerAd = BannerAd(
@@ -103,7 +103,7 @@ class _QuizScreenState extends State<QuizScreen> {
     if (kIsWeb) return;
 
     InterstitialAd.load(
-      adUnitId: AdHelper.interstitialAdUnitId,
+      adUnitId: AdHelper.quizInterstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {

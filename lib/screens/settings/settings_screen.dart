@@ -13,7 +13,8 @@ import '../login/login_screen.dart';
 import '../web_landing/web_landing_screen.dart'; // 🛡️ Changed to Web Landing Screen
 import 'account_settings_screen.dart';
 import '../../widgets/how_it_works_dialog.dart';
-import '../../widgets/pro_paywall_sheet.dart'; 
+import '../../widgets/pro_paywall_sheet.dart';
+import '../dashboard/dashboard_screen.dart'; 
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -333,7 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  isPro ? "Thanks for your support! 💖" : "Double energy & no ads",
+                                  isPro ? "Thanks for your support! 💖" : "750 monthly energy & no ads",
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: isPro ? Colors.white70 : (isDark ? Colors.white54 : Colors.grey.shade600),
@@ -671,6 +672,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Column(
               children: [
+                ListTile(
+                  onTap: () async {
+                    if (_hapticsEnabled) HapticFeedback.lightImpact();
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('has_seen_walkthrough', false);
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                        (route) => false,
+                      );
+                    }
+                  },
+                  title: Text(
+                    "Replay App Walkthrough",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "Meet the AI Tutor again",
+                    style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600),
+                  ),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: const Color(0xFFE841A1).withValues(alpha: 0.15), shape: BoxShape.circle),
+                    child: const Icon(Icons.smart_toy_rounded, color: Color(0xFFE841A1)),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                ),
+                Divider(height: 1, indent: 60, color: isDark ? Colors.white12 : Colors.grey.shade200),
                 ListTile(
                   onTap: () {
                     if (_hapticsEnabled) HapticFeedback.lightImpact();
